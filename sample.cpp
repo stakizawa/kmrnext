@@ -9,6 +9,15 @@ class Key {
 public:
   size_t value[Dim];
 
+  Key() {}
+
+  Key(size_t *val)
+  {
+    for (size_t i = 0; i < Dimension; i++) {
+      value[i] = val[i];
+    }
+  }
+
   string to_string()
   {
     ostringstream os;
@@ -24,6 +33,7 @@ public:
   }
 
   static const size_t Dimension = Dim;
+  static const size_t Any = -1;
 };
 
 class Data {
@@ -58,6 +68,11 @@ public:
     }
   }
 
+  bool dimension(int dim) const
+  {
+    return _value[dim];
+  }
+
   string to_string()
   {
     ostringstream os;
@@ -90,19 +105,39 @@ public:
 
   void add(const Key<Dim>& key, const Data& data)
   {
-    size_t idx = calc_index(key);
+    size_t idx = key_to_index(key);
     Data *d = &(_data[idx]);
     d->copy_deep(data);
   }
 
-  Data& get(Key<Dim>& key)
+  Data& get(const Key<Dim>& key)
   {
-    size_t idx = calc_index(key);
+    size_t idx = key_to_index(key);
     return _data[idx];
   }
 
-  template <class Functor>
-  void load_files(const vector<string>& files, Functor f)
+  vector<Data>* get(const View<Dim>& view, const Key<Dim>& key)
+  {
+    vector<Data> *dvec = new vector<Data>();
+    for (size_t i = 0; i < _data_size; i++) {
+      Key<Dim> *k = index_to_key(i);
+      bool store = true;
+      for (size_t j = 0; j < Dimension; j++) {
+	if (view.dimension(j) && key.value[j] != k->value[j]) {
+	  store = false;
+	  break;
+	}
+      }
+      delete k;
+      if (store) {
+	dvec->push_back(_data[i]);
+      }
+    }
+    return dvec;
+  }
+
+  template <typename Loader>
+  void load_files(const vector<string>& files, Loader f)
   {
     for (size_t i = 0; i < files.size(); i++) {
       string file = files[i];
@@ -131,7 +166,7 @@ private:
   Data *_data;
   size_t _data_size;
 
-  size_t calc_index(const Key<Dim>& key)
+  size_t key_to_index(const Key<Dim>& key)
   {
     size_t idx = 0;
     for (size_t i = 0; i < Dimension; i++) {
@@ -142,6 +177,21 @@ private:
       idx += key.value[i] * offset;
     }
     return idx;
+  }
+
+  Key<Dim>* index_to_key(const size_t index)
+  {
+    Key<Dim> *key = new Key<Dim>();
+    size_t _index = index;
+    for (size_t i = 0; i < Dimension; i++) {
+      size_t length = 1;
+      for (size_t j = i+1; j < Dimension; j++) {
+	length *= _dim_sizes[j];
+      }
+      key->value[i] = _index / length;
+      _index %= length;
+    }
+    return key;
   }
 };
 
@@ -199,26 +249,41 @@ main()
   Loader loader;
   ds1.load_files(files, loader);
 
+  ///////////  Setup keys
+  size_t kval1[Dimension] = {2, 2, 2};
+  size_t kval2[Dimension] = {2, 2, 3};
+  Key3 key1(kval1);
+  Key3 key2(kval2);
+
   ///////////  Get a data from a DataStore
-  Key3 key;
-  key.value[0] = 2; key.value[1] = 2; key.value[2] = 2;
-  Data d1 = ds1.get(key);
+  Data d1 = ds1.get(key1);
   cout << "Value: " << *(long *)d1.value() << endl;
   //cout << "Size: " << d1.size() << endl;
-  key.value[0] = 2; key.value[1] = 2; key.value[2] = 3;
-  d1 = ds1.get(key);
+  d1 = ds1.get(key2);
   cout << "Value: " << *(long *)d1.value() << endl;
   //cout << "Size: " << d1.size() << endl;
+
+  ///////////  Setup views
+  bool flags1[Dimension] = {true, true, true};
+  bool flags2[Dimension] = {true, false, true};
+  bool flags3[Dimension] = {true, false, false};
+  bool flags4[Dimension] = {false, false, false};
+  V3 v1(flags1);
+  V3 v2(flags2);
+  V3 v3(flags3);
+  V3 v4(flags4);
+
+  ///////////  Get a data from a DataStore with a view
+  vector<Data> *dvec1 = ds1.get(v1, key1);
+  cout << "dvec1" << endl;
+  cout << "  size: " << dvec1->size() << endl;
+  // TODO print
 
   ///////////  Set a View then map function
-  bool flags1[Dimension] = {true, true, true};
-  V3 v1(flags1);
   cout << v1.to_string() << endl;
   //  ds1.set_view(v1);
-  //  ds1.map(mapper1);
+  //  ds1.map(v1, mapper1);
 
-  bool flags2[Dimension] = {true, false, false};
-  V3 v2(flags2);
   // ds1.set_view(v2);
   // ds1.map(mapper2);
 
