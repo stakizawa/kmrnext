@@ -1,19 +1,19 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-//#include <typeinfo>
 
 using namespace std;
 
-template <std::size_t Dim>
+template <size_t Dim>
 class Key {
 public:
   size_t value[Dim];
 
-  string to_string() {
+  string to_string()
+  {
     ostringstream os;
     os << '<';
-    for (std::size_t i = 0; i < Dimension; i++) {
+    for (size_t i = 0; i < Dimension; i++) {
       os << value[i];
       if (i < Dimension - 1) {
 	os << ',';
@@ -23,31 +23,46 @@ public:
     return os.str();
   }
 
-  static const std::size_t Dimension = Dim;
+  static const size_t Dimension = Dim;
 };
 
 class Data {
+  void *_value;
+  size_t _value_size;
+
 public:
-  void        *value;
-  std::size_t value_size;
+  Data(void *value, const size_t value_size)
+    : _value(value), _value_size(value_size) {}
+
+  void copy_deep(const Data& src)
+  {
+    _value = static_cast<void*>(malloc(src._value_size));
+    memcpy(_value, src._value, src._value_size);
+    _value_size = src._value_size;
+  }
+
+  void *value() { return _value; }
+
+  size_t size() { return _value_size; }
 };
 
-template <std::size_t Dim>
+template <size_t Dim>
 class View {
   bool _value[Dim];
 
 public:
   View(bool *flags)
   {
-    for (std::size_t i = 0; i < Dimension; i++) {
+    for (size_t i = 0; i < Dimension; i++) {
       _value[i] = flags[i];
     }
   }
 
-  string to_string() {
+  string to_string()
+  {
     ostringstream os;
     os << '<';
-    for (std::size_t i = 0; i < Dimension; i++) {
+    for (size_t i = 0; i < Dimension; i++) {
       os << _value[i];
       if (i < Dimension - 1) {
 	os << ',';
@@ -57,28 +72,27 @@ public:
     return os.str();
   }
 
-  static const std::size_t Dimension = Dim;
+  static const size_t Dimension = Dim;
 };
 
-template <std::size_t Dim>
+template <size_t Dim>
 class DataStore {
 public:
-  DataStore(std::size_t *sizes)
-    : _data(NULL), _data_size(1) {
-    for (std::size_t i = 0; i < Dimension; i++) {
+  DataStore(size_t *sizes)
+    : _data(NULL), _data_size(1)
+  {
+    for (size_t i = 0; i < Dimension; i++) {
       _dim_sizes[i] = sizes[i];
       _data_size *= sizes[i];
     }
     _data = static_cast<Data*>(malloc(sizeof(Data) * _data_size));
   }
 
-  void add(Key<Dim>& key, void *data, std::size_t data_size)
+  void add(const Key<Dim>& key, const Data& data)
   {
     size_t idx = calc_index(key);
     Data *d = &(_data[idx]);
-    d->value = static_cast<void*>(malloc(data_size));
-    memcpy(d->value, data, data_size);
-    d->value_size = data_size;
+    d->copy_deep(data);
   }
 
   Data& get(Key<Dim>& key)
@@ -88,7 +102,7 @@ public:
   }
 
   template <class Functor>
-  void load_files(const std::vector<string>& files, Functor f)
+  void load_files(const vector<string>& files, Functor f)
   {
     for (size_t i = 0; i < files.size(); i++) {
       string file = files[i];
@@ -100,7 +114,7 @@ public:
   {
     ostringstream os;
     os << '<';
-    for (std::size_t i = 0; i < Dimension; i++) {
+    for (size_t i = 0; i < Dimension; i++) {
       os << _dim_sizes[i];
       if (i < Dimension - 1) {
 	os << ',';
@@ -110,14 +124,14 @@ public:
     return os.str();
   }
 
-  static const std::size_t Dimension = Dim;
+  static const size_t Dimension = Dim;
 
 private:
-  std::size_t _dim_sizes[Dim];
+  size_t _dim_sizes[Dim];
   Data *_data;
   size_t _data_size;
 
-  size_t calc_index(Key<Dim>& key)
+  size_t calc_index(const Key<Dim>& key)
   {
     size_t idx = 0;
     for (size_t i = 0; i < Dimension; i++) {
@@ -159,7 +173,8 @@ public:
 	for (int k = 0; k < Dim2; k++) {
 	  key.value[2] = k;
 	  long val = i*j*k;
-	  ds->add(key, &val, sizeof(long));
+	  Data d(&val, sizeof(long));
+	  ds->add(key, d);
 	}
       }
     }
@@ -170,7 +185,7 @@ public:
 int
 main()
 {
-  cout << DS3::Dimension << endl;
+  cout << "Data dimension: " << DS3::Dimension << endl;
 
   ///////////  Create a DataStore
   size_t sizes[Dimension] = {Dim0, Dim1, Dim2};
@@ -178,7 +193,7 @@ main()
   cout << ds1.to_string() << endl;
 
   ///////////  Load data contents from a file
-  std::vector<string> files;
+  vector<string> files;
   files.push_back("dummy1");
   //  files.push_back("dummy2");
   Loader loader;
@@ -188,10 +203,12 @@ main()
   Key3 key;
   key.value[0] = 2; key.value[1] = 2; key.value[2] = 2;
   Data d1 = ds1.get(key);
-  cout << "Value: " << *(long *)d1.value << endl;
+  cout << "Value: " << *(long *)d1.value() << endl;
+  //cout << "Size: " << d1.size() << endl;
   key.value[0] = 2; key.value[1] = 2; key.value[2] = 3;
   d1 = ds1.get(key);
-  cout << "Value: " << *(long *)d1.value << endl;
+  cout << "Value: " << *(long *)d1.value() << endl;
+  //cout << "Size: " << d1.size() << endl;
 
   ///////////  Set a View then map function
   bool flags1[Dimension] = {true, true, true};
