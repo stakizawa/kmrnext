@@ -6,7 +6,6 @@
 using namespace std;
 
 const int Dimension = 3;
-typedef Next::Key<Dimension> Key3;
 typedef Next::DataStore<Dimension> DS3;
 typedef Next::View<Dimension> V3;
 
@@ -21,13 +20,13 @@ public:
   {
     //cout << "From Fanctor: " << file << endl;
     //cout << "From Fanctor: " << ds->to_string() << endl;
-    Key3 key;
+    Next::Key key(Dimension);
     for (int i = 0; i < Dim0; i++) {
-      key.value[0] = i;
+      key.set_dim(0, i);
       for (int j = 0; j < Dim1; j++) {
-	key.value[1] = j;
+	key.set_dim(1, j);
 	for (int k = 0; k < Dim2; k++) {
-	  key.value[2] = k;
+	  key.set_dim(2, k);
 	  long val = i*j*k;
 	  Next::Data d(&val, sizeof(long));
 	  ds->add(key, d);
@@ -38,7 +37,7 @@ public:
   }
 };
 
-void print_gotten_data(vector<Next::Data>* dvec, V3& v, Key3& k)
+void print_gotten_data(vector<Next::Data>* dvec, V3& v, Next::Key& k)
 {
   cout << "Gotten Data" << endl;
   cout << "  view: " << v.to_string() << endl;
@@ -76,10 +75,12 @@ main()
   ds1.load_files(files, loader);
 
   ///////////  Setup keys
+  Next::Key key1(Dimension);
+  Next::Key key2(Dimension);
   size_t kval1[Dimension] = {2, 2, 2};
   size_t kval2[Dimension] = {2, 2, 3};
-  Key3 key1(kval1);
-  Key3 key2(kval2);
+  key1.set(kval1);
+  key2.set(kval2);
 
   ///////////  Get a data from a DataStore
   Next::Data d1 = ds1.get(key1);

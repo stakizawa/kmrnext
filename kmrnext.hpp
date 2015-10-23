@@ -10,35 +10,57 @@ namespace Next {
 
   const size_t MaxDimensionSize = 8;
 
-  template <size_t Dim>
-  class Key {
+  template <typename T>
+  class Dimensional {
+  protected:
+    size_t _size;
+    T _value[MaxDimensionSize];
+
   public:
-    size_t value[Dim];
-
-    Key() {}
-
-    Key(size_t *val)
+    T dim(size_t idx) const // TODO rename to operator[]?
     {
-      for (size_t i = 0; i < Dimension; i++) {
-	value[i] = val[i];
+      if (idx >= _size) {
+	// TODO through exception
       }
+      return _value[idx];
+    }
+
+    void set_dim(size_t idx, T val)
+    {
+      if (idx >= _size) {
+	// TODO through exception
+      }
+      _value[idx] = val;
     }
 
     string to_string()
     {
       ostringstream os;
       os << '<';
-      for (size_t i = 0; i < Dimension; i++) {
-	os << value[i];
-	if (i < Dimension - 1) {
+      for (size_t i = 0; i < _size; i++) {
+	os << _value[i];
+	if (i < _size - 1) {
 	  os << ',';
 	}
       }
       os << '>';
       return os.str();
     }
+  };
 
-    static const size_t Dimension = Dim;
+  class Key : public Dimensional<size_t> {
+  public:
+    Key(size_t dim_size)
+    {
+      _size = dim_size;
+    }
+
+    void set(size_t *val)
+    {
+      for (size_t i = 0; i < _size; i++) {
+	_value[i] = val[i];
+      }
+    }
   };
 
   class Data {
@@ -108,27 +130,27 @@ namespace Next {
       _data = static_cast<Data*>(malloc(sizeof(Data) * _data_size));
     }
 
-    void add(const Key<Dim>& key, const Data& data)
+    void add(const Key& key, const Data& data)
     {
       size_t idx = key_to_index(key);
       Data *d = &(_data[idx]);
       d->copy_deep(data);
     }
 
-    Data& get(const Key<Dim>& key)
+    Data& get(const Key& key)
     {
       size_t idx = key_to_index(key);
       return _data[idx];
     }
 
-    vector<Data>* get(const View<Dim>& view, const Key<Dim>& key)
+    vector<Data>* get(const View<Dim>& view, const Key& key)
     {
       vector<Data> *dvec = new vector<Data>();
       for (size_t i = 0; i < _data_size; i++) {
-	Key<Dim> *k = index_to_key(i);
+	Key *k = index_to_key(i);
 	bool store = true;
 	for (size_t j = 0; j < Dimension; j++) {
-	  if (view.dimension(j) && key.value[j] != k->value[j]) {
+	  if (view.dimension(j) && key.dim(j) != k->dim(j)) {
 	    store = false;
 	    break;
 	  }
@@ -171,7 +193,7 @@ namespace Next {
     Data *_data;
     size_t _data_size;
 
-    size_t key_to_index(const Key<Dim>& key)
+    size_t key_to_index(const Key& key)
     {
       size_t idx = 0;
       for (size_t i = 0; i < Dimension; i++) {
@@ -179,21 +201,21 @@ namespace Next {
 	for (size_t j = i+1; j < Dimension; j++) {
 	  offset *= _dim_sizes[j];
 	}
-	idx += key.value[i] * offset;
+	idx += key.dim(i) * offset;
       }
       return idx;
     }
 
-    Key<Dim>* index_to_key(const size_t index)
+    Key* index_to_key(const size_t index)
     {
-      Key<Dim> *key = new Key<Dim>();
+      Key *key = new Key(Dimension);
       size_t _index = index;
       for (size_t i = 0; i < Dimension; i++) {
 	size_t length = 1;
 	for (size_t j = i+1; j < Dimension; j++) {
 	  length *= _dim_sizes[j];
 	}
-	key->value[i] = _index / length;
+	key->set_dim(i, _index / length);
 	_index %= length;
       }
       return key;
