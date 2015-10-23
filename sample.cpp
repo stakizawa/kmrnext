@@ -33,22 +33,23 @@ public:
   }
 };
 
-void print_gotten_data(vector<Next::Data>* dvec, Next::View& v, Next::Key& k)
+void print_gotten_data(vector<Next::DataPack>* dpvec, Next::View& v,
+		       Next::Key& k)
 {
   cout << "Gotten Data" << endl;
   cout << "  view: " << v.to_string() << endl;
   cout << "  key:  " << k.to_string() << endl;
-  cout << "  size: " << dvec->size() << endl;
-  cout << "  values (top10)" << endl << "    ";
+  cout << "  size: " << dpvec->size() << endl;
+  cout << "  values (top10)" << endl;
   int cnt = 0;
-  for (vector<Next::Data>::iterator itr = dvec->begin();
-       itr != dvec->end(); itr++) {
+  for (vector<Next::DataPack>::iterator itr = dpvec->begin();
+       itr != dpvec->end(); itr++) {
     if (cnt >= 10) {
       break;
     }
     cnt += 1;
-    long val = *(long *)itr->value();
-    cout << val << ", ";
+    cout << "    " << itr->key.to_string() << " : "
+	 << *(long *)itr->data->value() << endl;
   }
   cout << endl;
 }
@@ -60,7 +61,7 @@ main()
   Next::DataStore ds1(Dimension);
   size_t sizes[Dimension] = {Dim0, Dim1, Dim2};
   ds1.set(sizes);
-  cout << ds1.to_string() << endl;
+  cout << "DataStore: " << ds1.to_string() << endl;
 
   ///////////  Load data contents from a file
   vector<string> files;
@@ -78,12 +79,12 @@ main()
   key2.set(kval2);
 
   ///////////  Get a data from a DataStore
-  Next::Data d1 = ds1.get(key1);
-  cout << "Value: " << *(long *)d1.value() << endl;
-  //cout << "Size: " << d1.size() << endl;
-  d1 = ds1.get(key2);
-  cout << "Value: " << *(long *)d1.value() << endl;
-  //cout << "Size: " << d1.size() << endl;
+  Next::DataPack dp1 = ds1.get(key1);
+  cout << dp1.key.to_string() << " : " << *(long *)dp1.data->value() << endl;
+  // cout << "Size: " << dp1.data->size() << endl;
+  dp1 = ds1.get(key2);
+  cout << dp1.key.to_string() << " : " << *(long *)dp1.data->value() << endl;
+  // cout << "Size: " << dp1.data->size() << endl;
 
   ///////////  Setup views
   Next::View v1(Dimension);
@@ -100,30 +101,30 @@ main()
   v4.set(flags4);
 
   ///////////  Get a data from a DataStore with a view
-  vector<Next::Data> *dvec = ds1.get(v1, key1);
-  print_gotten_data(dvec, v1, key1);
-  delete dvec;
-  dvec = ds1.get(v1, key2);
-  print_gotten_data(dvec, v1, key2);
-  delete dvec;
-  dvec = ds1.get(v2, key1);
-  print_gotten_data(dvec, v2, key1);
-  delete dvec;
-  dvec = ds1.get(v2, key2);
-  print_gotten_data(dvec, v2, key2);
-  delete dvec;
-  dvec = ds1.get(v3, key1);
-  print_gotten_data(dvec, v3, key1);
-  delete dvec;
-  dvec = ds1.get(v3, key2);
-  print_gotten_data(dvec, v3, key2);
-  delete dvec;
-  dvec = ds1.get(v4, key1);
-  print_gotten_data(dvec, v4, key1);
-  delete dvec;
-  dvec = ds1.get(v4, key2);
-  print_gotten_data(dvec, v4, key2);
-  delete dvec;
+  vector<Next::DataPack> *dpvec = ds1.get(v1, key1);
+  print_gotten_data(dpvec, v1, key1);
+  delete dpvec;
+  dpvec = ds1.get(v1, key2);
+  print_gotten_data(dpvec, v1, key2);
+  delete dpvec;
+  dpvec = ds1.get(v2, key1);
+  print_gotten_data(dpvec, v2, key1);
+  delete dpvec;
+  dpvec = ds1.get(v2, key2);
+  print_gotten_data(dpvec, v2, key2);
+  delete dpvec;
+  dpvec = ds1.get(v3, key1);
+  print_gotten_data(dpvec, v3, key1);
+  delete dpvec;
+  dpvec = ds1.get(v3, key2);
+  print_gotten_data(dpvec, v3, key2);
+  delete dpvec;
+  dpvec = ds1.get(v4, key1);
+  print_gotten_data(dpvec, v4, key1);
+  delete dpvec;
+  dpvec = ds1.get(v4, key2);
+  print_gotten_data(dpvec, v4, key2);
+  delete dpvec;
 
   ///////////  Apply map functions
   //  ds1.map(v1, mapper);

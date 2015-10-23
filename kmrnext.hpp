@@ -26,7 +26,7 @@ namespace Next {
       }
     }
 
-    T dim(size_t idx) const // TODO rename to operator[]?
+    T dim(size_t idx) const
     {
       if (idx >= _size) {
 	// TODO through exception
@@ -57,16 +57,25 @@ namespace Next {
     }
   };
 
+  ///////////////////////////////////////////////////////////////////////////
+  // Key class
+  ///////////////////////////////////////////////////////////////////////////
   class Key : public Dimensional<size_t> {
   public:
     Key(size_t size) : Dimensional<size_t>(size) {}
   };
 
+  ///////////////////////////////////////////////////////////////////////////
+  // A class that define view of data
+  ///////////////////////////////////////////////////////////////////////////
   class View : public Dimensional<bool> {
   public:
     View(size_t size) : Dimensional<bool>(size) {}
   };
 
+  ///////////////////////////////////////////////////////////////////////////
+  // A class that define view of data
+  ///////////////////////////////////////////////////////////////////////////
   class Data {
     void *_value;
     size_t _value_size;
@@ -85,6 +94,17 @@ namespace Next {
     void *value() { return _value; }
 
     size_t size() { return _value_size; }
+  };
+
+  ///////////////////////////////////////////////////////////////////////////
+  // A class that stores a data ans its key
+  ///////////////////////////////////////////////////////////////////////////
+  class DataPack {
+  public:
+    Key key;
+    Data *data;
+
+    DataPack(const Key k, Data *d) : key(k), data(d) {}
   };
 
   class DataStore : public Dimensional<size_t> {
@@ -109,15 +129,15 @@ namespace Next {
       d->copy_deep(data);
     }
 
-    Data& get(const Key& key)
+    DataPack get(const Key& key)
     {
       size_t idx = key_to_index(key);
-      return _data[idx];
+      return DataPack(key, &(_data[idx]));
     }
 
-    vector<Data>* get(const View& view, const Key& key)
+    vector<DataPack>* get(const View& view, const Key& key)
     {
-      vector<Data> *dvec = new vector<Data>();
+      vector<DataPack> *dps = new vector<DataPack>();
       for (size_t i = 0; i < _data_size; i++) {
 	Key tmpkey = index_to_key(i);
 	bool store = true;
@@ -128,10 +148,11 @@ namespace Next {
 	  }
 	}
 	if (store) {
-	  dvec->push_back(_data[i]);
+	  //	  dps->push_back(_data[i]);
+	  dps->push_back(DataPack(tmpkey, &(_data[i])));
 	}
       }
-      return dvec;
+      return dps;
     }
 
     template <typename Loader>
