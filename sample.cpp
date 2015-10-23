@@ -6,16 +6,13 @@
 using namespace std;
 
 const int Dimension = 3;
-typedef Next::DataStore<Dimension> DS3;
-
-// For convenience
 const int Dim0 = 10;
 const int Dim1 = 10;
 const int Dim2 = 10;
 
 class Loader {
 public:
-  int operator()(DS3 *ds, const string& file)
+  int operator()(Next::DataStore *ds, const string& file)
   {
     //cout << "From Fanctor: " << file << endl;
     //cout << "From Fanctor: " << ds->to_string() << endl;
@@ -59,11 +56,10 @@ void print_gotten_data(vector<Next::Data>* dvec, Next::View& v, Next::Key& k)
 int
 main()
 {
-  cout << "Data dimension: " << DS3::Dimension << endl;
-
   ///////////  Create a DataStore
+  Next::DataStore ds1(Dimension);
   size_t sizes[Dimension] = {Dim0, Dim1, Dim2};
-  DS3 ds1(sizes);
+  ds1.set(sizes);
   cout << ds1.to_string() << endl;
 
   ///////////  Load data contents from a file

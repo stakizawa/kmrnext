@@ -19,7 +19,7 @@ namespace Next {
   public:
     Dimensional(size_t size) : _size(size) {}
 
-    void set(T *val)
+    virtual void set(T *val)
     {
       for (size_t i = 0; i < _size; i++) {
 	_value[i] = val[i];
@@ -87,15 +87,17 @@ namespace Next {
     size_t size() { return _value_size; }
   };
 
-  template <size_t Dim>
-  class DataStore {
+  class DataStore : public Dimensional<size_t> {
   public:
-    DataStore(size_t *sizes)
-      : _data(NULL), _data_size(1)
+    DataStore(size_t size)
+      : Dimensional<size_t>(size), _data(NULL), _data_size(0) {}
+
+    virtual void set(size_t *val)
     {
-      for (size_t i = 0; i < Dimension; i++) {
-	_dim_sizes[i] = sizes[i];
-	_data_size *= sizes[i];
+      _data_size = 1;
+      for (size_t i = 0; i < _size; i++) {
+	_value[i] = val[i];
+	_data_size *= val[i];
       }
       _data = static_cast<Data*>(malloc(sizeof(Data) * _data_size));
     }
@@ -119,7 +121,7 @@ namespace Next {
       for (size_t i = 0; i < _data_size; i++) {
 	Key tmpkey = index_to_key(i);
 	bool store = true;
-	for (size_t j = 0; j < Dimension; j++) {
+	for (size_t j = 0; j < _size; j++) {
 	  if (view.dim(j) && key.dim(j) != tmpkey.dim(j)) {
 	    store = false;
 	    break;
@@ -141,34 +143,17 @@ namespace Next {
       }
     }
 
-    string to_string()
-    {
-      ostringstream os;
-      os << '<';
-      for (size_t i = 0; i < Dimension; i++) {
-	os << _dim_sizes[i];
-	if (i < Dimension - 1) {
-	  os << ',';
-	}
-      }
-      os << '>';
-      return os.str();
-    }
-
-    static const size_t Dimension = Dim;
-
   private:
-    size_t _dim_sizes[Dim];
     Data *_data;
     size_t _data_size;
 
     size_t key_to_index(const Key& key)
     {
       size_t idx = 0;
-      for (size_t i = 0; i < Dimension; i++) {
+      for (size_t i = 0; i < _size; i++) {
 	size_t offset = 1;
-	for (size_t j = i+1; j < Dimension; j++) {
-	  offset *= _dim_sizes[j];
+	for (size_t j = i+1; j < _size; j++) {
+	  offset *= _value[j];
 	}
 	idx += key.dim(i) * offset;
       }
@@ -177,12 +162,12 @@ namespace Next {
 
     Key index_to_key(const size_t index)
     {
-      Key key(Dimension);
+      Key key(_size);
       size_t _index = index;
-      for (size_t i = 0; i < Dimension; i++) {
+      for (size_t i = 0; i < _size; i++) {
 	size_t length = 1;
-	for (size_t j = i+1; j < Dimension; j++) {
-	  length *= _dim_sizes[j];
+	for (size_t j = i+1; j < _size; j++) {
+	  length *= _value[j];
 	}
 	key.set_dim(i, _index / length);
 	_index %= length;
@@ -190,6 +175,7 @@ namespace Next {
       return key;
     }
   };
+
 }
 
 #endif
