@@ -17,6 +17,15 @@ namespace Next {
     T _value[MaxDimensionSize];
 
   public:
+    Dimensional(size_t size) : _size(size) {}
+
+    void set(T *val)
+    {
+      for (size_t i = 0; i < _size; i++) {
+	_value[i] = val[i];
+      }
+    }
+
     T dim(size_t idx) const // TODO rename to operator[]?
     {
       if (idx >= _size) {
@@ -50,17 +59,12 @@ namespace Next {
 
   class Key : public Dimensional<size_t> {
   public:
-    Key(size_t dim_size)
-    {
-      _size = dim_size;
-    }
+    Key(size_t size) : Dimensional<size_t>(size) {}
+  };
 
-    void set(size_t *val)
-    {
-      for (size_t i = 0; i < _size; i++) {
-	_value[i] = val[i];
-      }
-    }
+  class View : public Dimensional<bool> {
+  public:
+    View(size_t size) : Dimensional<bool>(size) {}
   };
 
   class Data {
@@ -81,40 +85,6 @@ namespace Next {
     void *value() { return _value; }
 
     size_t size() { return _value_size; }
-  };
-
-  template <size_t Dim>
-  class View {
-    bool _value[Dim];
-
-  public:
-    View(bool *flags)
-    {
-      for (size_t i = 0; i < Dimension; i++) {
-	_value[i] = flags[i];
-      }
-    }
-
-    bool dimension(int dim) const
-    {
-      return _value[dim];
-    }
-
-    string to_string()
-    {
-      ostringstream os;
-      os << '<';
-      for (size_t i = 0; i < Dimension; i++) {
-	os << _value[i];
-	if (i < Dimension - 1) {
-	  os << ',';
-	}
-      }
-      os << '>';
-      return os.str();
-    }
-
-    static const size_t Dimension = Dim;
   };
 
   template <size_t Dim>
@@ -143,14 +113,14 @@ namespace Next {
       return _data[idx];
     }
 
-    vector<Data>* get(const View<Dim>& view, const Key& key)
+    vector<Data>* get(const View& view, const Key& key)
     {
       vector<Data> *dvec = new vector<Data>();
       for (size_t i = 0; i < _data_size; i++) {
 	Key tmpkey = index_to_key(i);
 	bool store = true;
 	for (size_t j = 0; j < Dimension; j++) {
-	  if (view.dimension(j) && key.dim(j) != tmpkey.dim(j)) {
+	  if (view.dim(j) && key.dim(j) != tmpkey.dim(j)) {
 	    store = false;
 	    break;
 	  }

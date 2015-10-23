@@ -7,7 +7,6 @@ using namespace std;
 
 const int Dimension = 3;
 typedef Next::DataStore<Dimension> DS3;
-typedef Next::View<Dimension> V3;
 
 // For convenience
 const int Dim0 = 10;
@@ -37,7 +36,7 @@ public:
   }
 };
 
-void print_gotten_data(vector<Next::Data>* dvec, V3& v, Next::Key& k)
+void print_gotten_data(vector<Next::Data>* dvec, Next::View& v, Next::Key& k)
 {
   cout << "Gotten Data" << endl;
   cout << "  view: " << v.to_string() << endl;
@@ -91,14 +90,18 @@ main()
   //cout << "Size: " << d1.size() << endl;
 
   ///////////  Setup views
+  Next::View v1(Dimension);
+  Next::View v2(Dimension);
+  Next::View v3(Dimension);
+  Next::View v4(Dimension);
   bool flags1[Dimension] = {true, true, true};
   bool flags2[Dimension] = {true, false, true};
   bool flags3[Dimension] = {true, false, false};
   bool flags4[Dimension] = {false, false, false};
-  V3 v1(flags1);
-  V3 v2(flags2);
-  V3 v3(flags3);
-  V3 v4(flags4);
+  v1.set(flags1);
+  v2.set(flags2);
+  v3.set(flags3);
+  v4.set(flags4);
 
   ///////////  Get a data from a DataStore with a view
   vector<Next::Data> *dvec = ds1.get(v1, key1);
