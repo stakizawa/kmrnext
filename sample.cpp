@@ -122,13 +122,8 @@ main()
   print_gotten_data(dvec, v4, key2);
   delete dvec;
 
-  ///////////  Set a View then map function
-  cout << v1.to_string() << endl;
-  //  ds1.set_view(v1);
-  //  ds1.map(v1, mapper1);
-
-  // ds1.set_view(v2);
-  // ds1.map(mapper2);
+  ///////////  Apply map functions
+  //  ds1.map(v1, mapper);
 
   return 0;
 }
