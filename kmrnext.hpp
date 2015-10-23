@@ -147,10 +147,10 @@ namespace Next {
     {
       vector<Data> *dvec = new vector<Data>();
       for (size_t i = 0; i < _data_size; i++) {
-	Key *k = index_to_key(i);
+	Key tmpkey = index_to_key(i);
 	bool store = true;
 	for (size_t j = 0; j < Dimension; j++) {
-	  if (view.dimension(j) && key.dim(j) != k->dim(j)) {
+	  if (view.dimension(j) && key.dim(j) != tmpkey.dim(j)) {
 	    store = false;
 	    break;
 	  }
@@ -158,7 +158,6 @@ namespace Next {
 	if (store) {
 	  dvec->push_back(_data[i]);
 	}
-	delete k;
       }
       return dvec;
     }
@@ -206,16 +205,16 @@ namespace Next {
       return idx;
     }
 
-    Key* index_to_key(const size_t index)
+    Key index_to_key(const size_t index)
     {
-      Key *key = new Key(Dimension);
+      Key key(Dimension);
       size_t _index = index;
       for (size_t i = 0; i < Dimension; i++) {
 	size_t length = 1;
 	for (size_t j = i+1; j < Dimension; j++) {
 	  length *= _dim_sizes[j];
 	}
-	key->set_dim(i, _index / length);
+	key.set_dim(i, _index / length);
 	_index %= length;
       }
       return key;
