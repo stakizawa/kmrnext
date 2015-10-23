@@ -148,7 +148,6 @@ namespace Next {
 	  }
 	}
 	if (store) {
-	  //	  dps->push_back(_data[i]);
 	  dps->push_back(DataPack(tmpkey, &(_data[i])));
 	}
       }
@@ -158,6 +157,10 @@ namespace Next {
     template <typename Mapper>
     void map(DataStore& outds, Mapper m, const View& view)
     {
+      Key key(_size);
+      for (size_t i = 0; i < _size; i++) {
+
+      }
     }
 
     template <typename Loader>
