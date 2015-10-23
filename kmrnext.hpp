@@ -155,6 +155,11 @@ namespace Next {
       return dps;
     }
 
+    template <typename Mapper>
+    void map(DataStore& outds, Mapper m, const View& view)
+    {
+    }
+
     template <typename Loader>
     void load_files(const vector<string>& files, Loader f)
     {

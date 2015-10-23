@@ -33,6 +33,9 @@ public:
   }
 };
 
+class Incrementer {
+};
+
 void print_gotten_data(vector<Next::DataPack>* dpvec, Next::View& v,
 		       Next::Key& k)
 {
@@ -127,7 +130,10 @@ main()
   delete dpvec;
 
   ///////////  Apply map functions
-  //  ds1.map(v1, mapper);
+  Next::DataStore ds2(Dimension);
+  ds1.set(sizes);
+  Incrementer incr;
+  ds1.map(ds2, incr, v1);
 
   return 0;
 }
