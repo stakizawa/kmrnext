@@ -3,10 +3,12 @@
 #include <sstream>
 #include "kmrnext.hpp"
 
+using namespace std;
+
 const int Dimension = 3;
-typedef Key<Dimension> Key3;
-typedef DataStore<Dimension> DS3;
-typedef View<Dimension> V3;
+typedef Next::Key<Dimension> Key3;
+typedef Next::DataStore<Dimension> DS3;
+typedef Next::View<Dimension> V3;
 
 // For convenience
 const int Dim0 = 10;
@@ -27,7 +29,7 @@ public:
 	for (int k = 0; k < Dim2; k++) {
 	  key.value[2] = k;
 	  long val = i*j*k;
-	  Data d(&val, sizeof(long));
+	  Next::Data d(&val, sizeof(long));
 	  ds->add(key, d);
 	}
       }
@@ -36,7 +38,7 @@ public:
   }
 };
 
-void print_gotten_data(vector<Data>* dvec, V3& v, Key3& k)
+void print_gotten_data(vector<Next::Data>* dvec, V3& v, Key3& k)
 {
   cout << "Gotten Data" << endl;
   cout << "  view: " << v.to_string() << endl;
@@ -44,7 +46,8 @@ void print_gotten_data(vector<Data>* dvec, V3& v, Key3& k)
   cout << "  size: " << dvec->size() << endl;
   cout << "  values (top10)" << endl << "    ";
   int cnt = 0;
-  for (vector<Data>::iterator itr = dvec->begin(); itr != dvec->end(); itr++) {
+  for (vector<Next::Data>::iterator itr = dvec->begin();
+       itr != dvec->end(); itr++) {
     if (cnt >= 10) {
       break;
     }
@@ -79,7 +82,7 @@ main()
   Key3 key2(kval2);
 
   ///////////  Get a data from a DataStore
-  Data d1 = ds1.get(key1);
+  Next::Data d1 = ds1.get(key1);
   cout << "Value: " << *(long *)d1.value() << endl;
   //cout << "Size: " << d1.size() << endl;
   d1 = ds1.get(key2);
@@ -97,7 +100,7 @@ main()
   V3 v4(flags4);
 
   ///////////  Get a data from a DataStore with a view
-  vector<Data> *dvec = ds1.get(v1, key1);
+  vector<Next::Data> *dvec = ds1.get(v1, key1);
   print_gotten_data(dvec, v1, key1);
   delete dvec;
   dvec = ds1.get(v1, key2);
