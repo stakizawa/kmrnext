@@ -157,10 +157,18 @@ namespace Next {
     template <typename Mapper>
     void map(DataStore& outds, Mapper m, const View& view)
     {
-      Key key(_size);
+      size_t key_count = 0;
       for (size_t i = 0; i < _size; i++) {
-
+	if (view.dim(i)) {
+	  if (key_count == 0) {
+	    key_count = _value[i];
+	  } else {
+	    key_count *= _value[i];
+	  }
+	}
       }
+      cout << "key_count: " << key_count << endl;
+
     }
 
     template <typename Loader>
