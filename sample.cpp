@@ -5,10 +5,13 @@
 
 using namespace std;
 
-const int Dimension = 3;
-const int Dim0 = 10;
-const int Dim1 = 10;
-const int Dim2 = 10;
+const int Dimension3 = 3;
+const int Dim3_0 = 10;
+const int Dim3_1 = 10;
+const int Dim3_2 = 10;
+const int Dimension2 = 2;
+const int Dim2_0 = 10;
+const int Dim2_1 = 10;
 
 class Loader {
 public:
@@ -16,12 +19,12 @@ public:
   {
     //cout << "From Fanctor: " << file << endl;
     //cout << "From Fanctor: " << ds->to_string() << endl;
-    Next::Key key(Dimension);
-    for (int i = 0; i < Dim0; i++) {
+    Next::Key key(Dimension3);
+    for (int i = 0; i < Dim3_0; i++) {
       key.set_dim(0, i);
-      for (int j = 0; j < Dim1; j++) {
+      for (int j = 0; j < Dim3_1; j++) {
 	key.set_dim(1, j);
-	for (int k = 0; k < Dim2; k++) {
+	for (int k = 0; k < Dim3_2; k++) {
 	  key.set_dim(2, k);
 	  long val = i*j*k;
 	  Next::Data d(&val, sizeof(long));
@@ -34,6 +37,39 @@ public:
 };
 
 class Incrementer {
+public:
+  int operator()(Next::DataStore *inds, Next::DataStore *outds,
+		 Next::Key key, vector<Next::DataPack>& dps)
+  {
+    // cout << "Key: " << key.to_string() << endl;
+    // cout << "Data Count: " << dps.size() << endl;
+    long sum = 0;
+    for (int i = 0; i < dps.size(); i++) {
+      Next::DataPack& dp = dps.at(i);
+      long v = *(long *)dp.data->value();
+      // cout << "  Data: " << dp.key.to_string() << ", " << v << endl;
+      sum += v;
+    }
+    Next::Data d(&sum, sizeof(long));
+    outds->add(key, d);
+    return 0;
+  }
+};
+
+class Printer {
+public:
+  int operator()(Next::DataStore *inds, Next::DataStore *outds,
+		 Next::Key key, vector<Next::DataPack>& dps)
+  {
+    cout << "Key: " << key.to_string() << endl;
+    cout << "Data Count: " << dps.size() << endl;
+    for (int i = 0; i < dps.size(); i++) {
+      Next::DataPack& dp = dps.at(i);
+      long v = *(long *)dp.data->value();
+      cout << "  Data: " << dp.key.to_string() << ", " << v << endl;
+    }
+    return 0;
+  }
 };
 
 void print_gotten_data(vector<Next::DataPack>* dpvec, Next::View& v,
@@ -61,9 +97,9 @@ int
 main()
 {
   ///////////  Create a DataStore
-  Next::DataStore ds1(Dimension);
-  size_t sizes[Dimension] = {Dim0, Dim1, Dim2};
-  ds1.set(sizes);
+  Next::DataStore ds1(Dimension3);
+  size_t sizes3[Dimension3] = {Dim3_0, Dim3_1, Dim3_2};
+  ds1.set(sizes3);
   cout << "DataStore: " << ds1.to_string() << endl;
 
   ///////////  Load data contents from a file
@@ -74,10 +110,10 @@ main()
   ds1.load_files(files, loader);
 
   ///////////  Setup keys
-  Next::Key key1(Dimension);
-  Next::Key key2(Dimension);
-  size_t kval1[Dimension] = {2, 2, 2};
-  size_t kval2[Dimension] = {2, 2, 3};
+  Next::Key key1(Dimension3);
+  Next::Key key2(Dimension3);
+  size_t kval1[Dimension3] = {2, 2, 2};
+  size_t kval2[Dimension3] = {2, 2, 3};
   key1.set(kval1);
   key2.set(kval2);
 
@@ -90,14 +126,14 @@ main()
   // cout << "Size: " << dp1.data->size() << endl;
 
   ///////////  Setup views
-  Next::View v1(Dimension);
-  Next::View v2(Dimension);
-  Next::View v3(Dimension);
-  Next::View v4(Dimension);
-  bool flags1[Dimension] = {true, true, true};
-  bool flags2[Dimension] = {true, false, true};
-  bool flags3[Dimension] = {true, false, false};
-  bool flags4[Dimension] = {false, false, false};
+  Next::View v1(Dimension3);
+  Next::View v2(Dimension3);
+  Next::View v3(Dimension3);
+  Next::View v4(Dimension3);
+  bool flags1[Dimension3] = {true, true, true};
+  bool flags2[Dimension3] = {true, false, true};
+  bool flags3[Dimension3] = {true, false, false};
+  bool flags4[Dimension3] = {false, false, false};
   v1.set(flags1);
   v2.set(flags2);
   v3.set(flags3);
@@ -130,10 +166,18 @@ main()
   delete dpvec;
 
   ///////////  Apply map functions
-  Next::DataStore ds2(Dimension);
-  ds1.set(sizes);
+  Next::DataStore ds2(Dimension2);
+  size_t sizes2[Dimension2] = {Dim2_0, Dim2_1};
+  ds2.set(sizes2);
   Incrementer incr;
-  ds1.map(ds2, incr, v1);
+  ds1.map(&ds2, incr, v2);
+
+  ///////////  Get data from ds2
+  Next::View v5(Dimension2);
+  bool flags5[Dimension2] = {false, false};
+  v5.set(flags5);
+  Printer printer;
+  ds2.map(NULL, printer, v5);
 
   return 0;
 }

@@ -26,6 +26,11 @@ namespace Next {
       }
     }
 
+    size_t size()
+    {
+      return _size;
+    }
+
     T dim(size_t idx) const
     {
       if (idx >= _size) {
@@ -155,20 +160,29 @@ namespace Next {
     }
 
     template <typename Mapper>
-    void map(DataStore& outds, Mapper m, const View& view)
+    void map(DataStore* outds, Mapper m, const View& view)
     {
-      size_t key_count = 0;
+      size_t nkeys = 1;
       for (size_t i = 0; i < _size; i++) {
 	if (view.dim(i)) {
-	  if (key_count == 0) {
-	    key_count = _value[i];
-	  } else {
-	    key_count *= _value[i];
-	  }
+	  nkeys *= _value[i];
 	}
       }
-      cout << "key_count: " << key_count << endl;
 
+      vector< vector<DataPack> > dpgroups(nkeys);
+
+      for (size_t i = 0; i < _data_size; i++) {
+	Key tmpkey = index_to_key(i);
+	size_t viewed_idx = key_to_viwed_index(tmpkey, view);
+	vector<DataPack>& dps = dpgroups.at(viewed_idx);
+	dps.push_back(DataPack(tmpkey, &(_data[i])));
+      }
+
+      for (int i = 0; i < dpgroups.size(); i++) {
+	vector<DataPack> &dps = dpgroups.at(i);
+	Key viewed_key = key_to_viewed_key(dps.at(0).key, view);
+	m(this, outds, viewed_key, dps);
+      }
     }
 
     template <typename Loader>
@@ -211,6 +225,60 @@ namespace Next {
       }
       return key;
     }
+
+    size_t key_to_viwed_index(const Key& key, const View& view)
+    {
+      size_t idx = 0;
+      for (size_t i = 0; i < _size; i++) {
+	if (view.dim(i)) {
+	  size_t offset = 1;
+	  for (size_t j = i+1; j < _size; j++) {
+	    if (view.dim(j)) {
+	      offset *= _value[j];
+	    }
+	  }
+	  idx += key.dim(i) * offset;
+	}
+      }
+      return idx;
+    }
+
+#if 0
+    // Dimension of the viewed key is same as the source key
+    Key key_to_viewed_key(const Key& key, const View& view)
+    {
+      Key viewed_key(_size);
+      for (size_t i = 0; i < _size; i++) {
+	if (view.dim(i)) {
+	  viewed_key.set_dim(i, key.dim(i));
+	} else {
+	  viewed_key.set_dim(i, 0);
+	}
+      }
+      return viewed_key;
+    }
+#endif
+
+    Key key_to_viewed_key(const Key& key, const View& view)
+    {
+      size_t viewed_key_size = 0;
+      for (size_t i = 0; i < _size; i++) {
+	if (view.dim(i)) {
+	  viewed_key_size += 1;
+	}
+      }
+
+      Key viewed_key(viewed_key_size);
+      size_t viewed_key_idx = 0;
+      for (size_t i = 0; i < _size; i++) {
+	if (view.dim(i)) {
+	  viewed_key.set_dim(viewed_key_idx, key.dim(i));
+	  viewed_key_idx += 1;
+	}
+      }
+      return viewed_key;
+    }
+
   };
 
 }
