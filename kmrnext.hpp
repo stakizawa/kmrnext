@@ -126,9 +126,19 @@ namespace Next {
     // It gets data whose keys are same when the specified view is applied.
     vector<DataPack>* get(const View& view, const Key& key);
 
+    // It sets Data from DataStores.
+    void set_from(const vector<DataStore*>& dslist);
+
+    // It splits DataStore to low-dimensional DataStores.
+    void split_to(vector<DataStore*>& dslist);
+
     template <typename Mapper>
     void map(DataStore* outds, Mapper m, const View& view)
     {
+      if (_data_size == 0) {
+	return;
+      }
+
       size_t nkeys = 1;
       for (size_t i = 0; i < _size; i++) {
 	if (view.dim(i)) {

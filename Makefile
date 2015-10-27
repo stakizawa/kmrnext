@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -Wall -O2
+CFLAGS = -Wall -g
 
 HEADERS = kmrnext.hpp
 OBJS    = kmrnext.o
