@@ -8,7 +8,7 @@ namespace Next {
     _value_size = src._value_size;
   }
 
-  void DataStore::set(size_t *val)
+  void DataStore::set(const size_t *val)
   {
     _data_size = 1;
     for (size_t i = 0; i < _size; i++) {

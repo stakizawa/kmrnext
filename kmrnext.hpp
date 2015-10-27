@@ -19,7 +19,7 @@ namespace Next {
   public:
     Dimensional(size_t size) : _size(size) {}
 
-    virtual void set(T *val)
+    virtual void set(const T *val)
     {
       for (size_t i = 0; i < _size; i++) {
 	_value[i] = val[i];
@@ -115,7 +115,7 @@ namespace Next {
       : Dimensional<size_t>(size), _data(NULL), _data_size(0) {}
 
     // It sets size of each dimension.
-    virtual void set(size_t *val);
+    virtual void set(const size_t *val);
 
     // It adds a data to this DataStore.
     void add(const Key& key, const Data& data);
