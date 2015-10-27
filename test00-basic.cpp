@@ -1,6 +1,4 @@
 #include <iostream>
-#include <iostream>
-#include <sstream>
 #include "kmrnext.hpp"
 
 using namespace std;
