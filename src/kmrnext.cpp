@@ -1,4 +1,7 @@
 #include <sstream>
+#include <stdexcept>
+#include <cstdlib>
+#include <cstring>
 #include "kmrnext.hpp"
 
 namespace Next {
