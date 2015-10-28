@@ -14,8 +14,6 @@ m4_include([m4/ax_openmp.m4])
 # Checks compiler
 AC_PROG_CC
 AC_PROG_CXX
-CFLAGS="$CFLAGS -Wall -MD"
-CXXFLAGS="$CXXFLAGS -Wall -MD"
 
 # Checks MPI and OpenMP
 AC_LANG(C)
@@ -25,8 +23,19 @@ AC_LANG(C++)
 AX_MPI
 AX_OPENMP([OPENMP_CXXFLAGS=$ax_cv_cxx_openmp])
 
-CFLAGS="$CFLAGS $OPENMP_CFLAGS"
-CXXFLAGS="$CXXFLAGS $OPENMP_CXXFLAGS"
+# Checks other compiler flags
+AC_SUBST(WARN_CC)  #[C warning flags]
+AC_SUBST(WARN_CXX) #[C++ warning flags]
+AC_SUBST(STD_CC)   #[C standard flags]
+AC_SUBST(STD_CXX)  #[C++ standard flags]
+
+WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
+WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
+STD_CC="-std=gnu99"
+STD_CXX="-std=c++98"
+
+CFLAGS="$CFLAGS $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
+CXXFLAGS="$CXXFLAGS $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
 
 # Checks debug option
 AC_ARG_ENABLE([debug],

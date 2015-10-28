@@ -627,6 +627,10 @@ LIBOBJS
 EGREP
 GREP
 CXXCPP
+STD_CXX
+STD_CC
+WARN_CXX
+WARN_CC
 MPICXX
 MPILIBS
 MPICC
@@ -3522,8 +3526,6 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-CFLAGS="$CFLAGS -Wall -MD"
-CXXFLAGS="$CXXFLAGS -Wall -MD"
 
 # Checks MPI and OpenMP
 ac_ext=c
@@ -4031,8 +4033,19 @@ else
 fi
 
 
-CFLAGS="$CFLAGS $OPENMP_CFLAGS"
-CXXFLAGS="$CXXFLAGS $OPENMP_CXXFLAGS"
+# Checks other compiler flags
+  #[C warning flags]
+ #[C++ warning flags]
+   #[C standard flags]
+  #[C++ standard flags]
+
+WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
+WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
+STD_CC="-std=gnu99"
+STD_CXX="-std=c++98"
+
+CFLAGS="$CFLAGS $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
+CXXFLAGS="$CXXFLAGS $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
 
 # Checks debug option
 # Check whether --enable-debug was given.

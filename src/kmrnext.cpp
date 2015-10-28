@@ -104,8 +104,7 @@ namespace Next {
     }
     // TODO check if the size of each DataStore in dslist is same.
 
-    size_t split_dims_size = _size - 1;
-    size_t split_dims[split_dims_size];
+    size_t split_dims[MaxDimensionSize];
     for (size_t i = 1; i < _size; i++) {
       split_dims[i-1] = _value[i];
     }

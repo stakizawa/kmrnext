@@ -17,7 +17,7 @@ namespace Next {
     T _value[MaxDimensionSize];
 
   public:
-    Dimensional(size_t size) : _size(size) {}
+    Dimensional(size_t siz) : _size(siz) {}
 
     virtual void set(const T *val)
     {
@@ -67,7 +67,7 @@ namespace Next {
   ///////////////////////////////////////////////////////////////////////////
   class Key : public Dimensional<size_t> {
   public:
-    Key(size_t size) : Dimensional<size_t>(size) {}
+    Key(size_t siz) : Dimensional<size_t>(siz) {}
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -75,7 +75,7 @@ namespace Next {
   ///////////////////////////////////////////////////////////////////////////
   class View : public Dimensional<bool> {
   public:
-    View(size_t size) : Dimensional<bool>(size) {}
+    View(size_t siz) : Dimensional<bool>(siz) {}
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -86,8 +86,8 @@ namespace Next {
     size_t _value_size;
 
   public:
-    Data(void *value, const size_t value_size)
-      : _value(value), _value_size(value_size) {}
+    Data(void *val, const size_t val_siz)
+      : _value(val), _value_size(val_siz) {}
 
     void copy_deep(const Data& src);
 
@@ -111,8 +111,8 @@ namespace Next {
 
   class DataStore : public Dimensional<size_t> {
   public:
-    DataStore(size_t size)
-      : Dimensional<size_t>(size), _data(NULL), _data_size(0) {}
+    DataStore(size_t siz)
+      : Dimensional<size_t>(siz), _data(NULL), _data_size(0) {}
 
     // It sets size of each dimension.
     virtual void set(const size_t *val);
