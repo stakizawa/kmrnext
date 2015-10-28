@@ -3626,6 +3626,7 @@ _ACEOF
 fi
 
 
+CXXFLAGS="$CXXFLAGS -Wall -MD"
 CFLAGS="$CFLAGS -Wall -MD"
 
 # Checks for library functions.

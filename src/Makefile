@@ -14,7 +14,7 @@ test01-mng-ds: $(OBJS) test01-mng-ds.o
 	$(CXX) -o $@ $^
 
 .cpp.o:
-	$(CXX) $(DEFS) $(CFLAGS) -c $<
+	$(CXX) $(DEFS) $(CXXFLAGS) -c $<
 
 .PHONY: clean
 clean:

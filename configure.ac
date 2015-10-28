@@ -19,6 +19,7 @@ AC_PROG_CC
 AC_CHECK_HEADER_STDBOOL
 AC_TYPE_SIZE_T
 
+CXXFLAGS="$CXXFLAGS -Wall -MD"
 CFLAGS="$CFLAGS -Wall -MD"
 
 # Checks for library functions.
