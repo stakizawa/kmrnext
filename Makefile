@@ -1,26 +1,17 @@
-CC = g++
-CFLAGS = -Wall -MD -g
+.PHONY: all
+all:
+	cd src; make all
 
-HEADERS = kmrnext.hpp
-OBJS    = kmrnext.o
-TESTS   = test00-basic test01-mng-ds
-
-.Phony: all
-all: $(TESTS)
-
-test00-basic: $(OBJS) test00-basic.o
-	$(CC) -o $@ $^
-
-test01-mng-ds: $(OBJS) test01-mng-ds.o
-	$(CC) -o $@ $^
-
-.cpp.o:
-	$(CC) $(CFLAGS) -c $<
+configure: configure.ac config.make.in
+	autoconf
+	autoheader
+	-rm -fr autom4te.cache
 
 .PHONY: clean
 clean:
-	-rm -rf $(OBJS)
-	-rm -rf $(TESTS) *.o *.d
+	cd src; make clean
 
--include *.d
-
+.PHONY: distclean
+distclean:
+	cd src; make distclean
+	-rm -f config.status config.log config.h config.make

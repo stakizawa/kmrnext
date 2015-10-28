@@ -1,0 +1,14 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+BINDIR=@bindir@
+LIBDIR=@libdir@
+INCDIR=@includedir@
+ETCDIR=@sysconfdir@
+DOCDIR=${prefix}/doc
+MANDIR=${prefix}/man
+
+CC=@CC@
+CXX=@CXX@
+DEFS=@DEFS@
+LIBS=@LIBS@
+CFLAGS=@CFLAGS@
