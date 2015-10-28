@@ -1,0 +1,6 @@
+config.h
+config.log
+config.make
+config.status
+src/*.d
+src/*.o
