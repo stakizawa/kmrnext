@@ -14,6 +14,11 @@ m4_include([m4/ax_openmp.m4])
 # Checks compiler
 AC_PROG_CC
 AC_PROG_CXX
+! (type fccpx 1>/dev/null 2>/dev/null); fujitsu_env=$?
+if test "$fujitsu_env" -eq "1"; then
+   CC=fccpx
+   CXX=FCCpx
+fi
 
 # Checks MPI and OpenMP
 AC_LANG(C)
@@ -24,15 +29,27 @@ AX_MPI
 AX_OPENMP([OPENMP_CXXFLAGS=$ax_cv_cxx_openmp])
 
 # Checks other compiler flags
-AC_SUBST(WARN_CC)  #[C warning flags]
-AC_SUBST(WARN_CXX) #[C++ warning flags]
-AC_SUBST(STD_CC)   #[C standard flags]
-AC_SUBST(STD_CXX)  #[C++ standard flags]
+AC_SUBST(STD_CC)
+AC_SUBST(STD_CXX)
+AC_SUBST(WARN_CC)
+AC_SUBST(WARN_CXX)
 
-WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
-WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
-STD_CC="-std=gnu99"
-STD_CXX="-std=c++98"
+case "$CC" in
+gcc)
+    STD_CC="-std=gnu99"
+    STD_CXX="-std=c++98"
+    WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
+    WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
+    ;;
+fccpx)
+    CFLAGS="$CFLAGS -Kfast,preex -Xg"
+    CXXFLAGS="$CXXFLAGS -Kfast,preex -Xg"
+    STD_CC="-std=gnu99"
+    STD_CXX="-std=c++98"
+    WARN_CC=""
+    WARN_CXX=""
+    ;;
+esac
 
 CFLAGS="$CFLAGS $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
 CXXFLAGS="$CXXFLAGS $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
@@ -46,7 +63,6 @@ if test "$enable_debug" = "yes"; then
    CFLAGS="-DDEBUG $CFLAGS"
    CXXFLAGS="-DDEBUG $CXXFLAGS"
 fi
-
 
 # Checks KMR library [TODO]
 
