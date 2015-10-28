@@ -155,7 +155,7 @@ namespace Next {
 	dps.push_back(DataPack(tmpkey, &(_data[i])));
       }
 
-      for (int i = 0; i < dpgroups.size(); i++) {
+      for (size_t i = 0; i < dpgroups.size(); i++) {
 	vector<DataPack> &dps = dpgroups.at(i);
 	Key viewed_key = key_to_viewed_key(dps.at(0).key, view);
 	m(this, outds, viewed_key, dps);

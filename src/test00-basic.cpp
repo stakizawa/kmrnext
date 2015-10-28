@@ -42,7 +42,7 @@ public:
     // cout << "Key: " << key.to_string() << endl;
     // cout << "Data Count: " << dps.size() << endl;
     long sum = 0;
-    for (int i = 0; i < dps.size(); i++) {
+    for (size_t i = 0; i < dps.size(); i++) {
       Next::DataPack& dp = dps.at(i);
       long v = *(long *)dp.data->value();
       // cout << "  Data: " << dp.key.to_string() << ", " << v << endl;
@@ -61,7 +61,7 @@ public:
   {
     cout << "Key: " << key.to_string() << endl;
     cout << "Data Count: " << dps.size() << endl;
-    for (int i = 0; i < dps.size(); i++) {
+    for (size_t i = 0; i < dps.size(); i++) {
       Next::DataPack& dp = dps.at(i);
       long v = *(long *)dp.data->value();
       cout << "  Data: " << dp.key.to_string() << ", " << v << endl;

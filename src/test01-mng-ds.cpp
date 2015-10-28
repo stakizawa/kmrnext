@@ -179,7 +179,7 @@ public:
   {
     cout << _padding << "Count: " << dps.size() << endl;
     size_t count = 0;
-    for (int i = 0; i < dps.size(); i++) {
+    for (size_t i = 0; i < dps.size(); i++) {
       if (count++ >= _max_count) {
 	break;
       }
