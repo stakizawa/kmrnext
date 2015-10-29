@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <vector>
 
 namespace Next {
@@ -17,7 +18,7 @@ namespace Next {
     T _value[MaxDimensionSize];
 
   public:
-    Dimensional(size_t siz) : _size(siz) {}
+    explicit Dimensional(size_t siz) : _size(siz) {}
 
     virtual void set(const T *val)
     {
@@ -34,7 +35,9 @@ namespace Next {
     T dim(size_t idx) const
     {
       if (idx >= _size) {
-	// TODO through exception
+	ostringstream os;
+	os << "Index should be less than dimension size: " << _size;
+	throw runtime_error(os.str());
       }
       return _value[idx];
     }
@@ -42,7 +45,9 @@ namespace Next {
     void set_dim(size_t idx, T val)
     {
       if (idx >= _size) {
-	// TODO through exception
+	ostringstream os;
+	os << "Index should be less than dimension size: " << _size;
+	throw runtime_error(os.str());
       }
       _value[idx] = val;
     }
@@ -67,7 +72,7 @@ namespace Next {
   ///////////////////////////////////////////////////////////////////////////
   class Key : public Dimensional<size_t> {
   public:
-    Key(size_t siz) : Dimensional<size_t>(siz) {}
+    explicit Key(size_t siz) : Dimensional<size_t>(siz) {}
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -75,7 +80,7 @@ namespace Next {
   ///////////////////////////////////////////////////////////////////////////
   class View : public Dimensional<bool> {
   public:
-    View(size_t siz) : Dimensional<bool>(siz) {}
+    explicit View(size_t siz) : Dimensional<bool>(siz) {}
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -111,8 +116,10 @@ namespace Next {
 
   class DataStore : public Dimensional<size_t> {
   public:
-    DataStore(size_t siz)
+    explicit DataStore(size_t siz)
       : Dimensional<size_t>(siz), _data(NULL), _data_size(0) {}
+
+    ~DataStore();
 
     // It sets size of each dimension.
     virtual void set(const size_t *val);

@@ -12,6 +12,13 @@ namespace Next {
     _value_size = src._value_size;
   }
 
+  DataStore::~DataStore()
+  {
+    if (_data != NULL) {
+      free(_data);
+    }
+  }
+
   void DataStore::set(const size_t *val)
   {
     if (_data_size != 0) {
