@@ -5,6 +5,13 @@
 #include "kmrnext.hpp"
 
 namespace Next {
+  Data::~Data()
+  {
+    if (_value_allocated) {
+      free(_value);
+    }
+  }
+
   void Data::copy_deep(const Data& src)
   {
     _value = static_cast<void*>(malloc(src._value_size));
@@ -14,7 +21,7 @@ namespace Next {
 
   DataStore::~DataStore()
   {
-    if (_data != NULL) {
+    if (_data_allocated) {
       free(_data);
     }
   }
@@ -31,6 +38,7 @@ namespace Next {
       _data_size *= val[i];
     }
     _data = static_cast<Data*>(malloc(sizeof(Data) * _data_size));
+    _data_allocated = true;
   }
 
   void DataStore::add(const Key& key, const Data& data)
@@ -123,6 +131,20 @@ namespace Next {
       memcpy(dst->_data, _data + offset, sizeof(Data) * dst->_data_size);
       offset += dst->_data_size;
     }
+  }
+
+  void DataStore::set(const size_t *val, Data *dat_ptr)
+  {
+    if (_data_size != 0) {
+      throw runtime_error("DataStore is already initialized.");
+    }
+
+    _data_size = 1;
+    for (size_t i = 0; i < _size; i++) {
+      _value[i] = val[i];
+      _data_size *= val[i];
+    }
+    _data = dat_ptr;
   }
 
   size_t DataStore::key_to_index(const Key& key)

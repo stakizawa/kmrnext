@@ -92,7 +92,9 @@ namespace Next {
 
   public:
     Data(void *val, const size_t val_siz)
-      : _value(val), _value_size(val_siz) {}
+      : _value(val), _value_size(val_siz), _value_allocated(false) {}
+
+    ~Data();
 
     void copy_deep(const Data& src);
 
@@ -101,6 +103,9 @@ namespace Next {
 
     // It returns size of the stored data.
     size_t size() { return _value_size; }
+
+  private:
+    bool _value_allocated;
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -117,7 +122,8 @@ namespace Next {
   class DataStore : public Dimensional<size_t> {
   public:
     explicit DataStore(size_t siz)
-      : Dimensional<size_t>(siz), _data(NULL), _data_size(0) {}
+      : Dimensional<size_t>(siz), _data(NULL), _data_size(0),
+      _data_allocated(false) {}
 
     ~DataStore();
 
@@ -172,15 +178,57 @@ namespace Next {
     template <typename Loader>
     void load_files(const vector<string>& files, Loader f)
     {
-      for (size_t i = 0; i < files.size(); i++) {
-	string file = files[i];
-	f(this, file);
+      load_array(files, f);
+      // for (size_t i = 0; i < files.size(); i++) {
+      // 	f(this, files[i]);
+      // }
+    }
+
+    template <typename Type, typename Loader>
+    void load_array(const vector<Type>& array, Loader f)
+    {
+      if (array.size() == 1) {
+	f(this, array[0]);
+	return;
+      }
+
+      // Check if the size of array is same as the multiple of dimension.
+      size_t mi;
+      size_t mdim = 1;
+      for (mi = 0; mi < _size; mi++) {
+	mdim *= _value[mi];
+	if (mdim == array.size()) {
+	  break;
+	}
+      }
+      if (mdim != array.size()) {
+	throw runtime_error("The size of array should be match the "
+			    "size of dimension.");
+      }
+
+      // Calculate size and dimension of Sub DS
+      size_t sub_ds_dim = _size - (mi + 1);
+      size_t sub_ds_dims[MaxDimensionSize];
+      for (size_t i = 0; i < sub_ds_dim; i++) {
+	sub_ds_dims[i] = _value[i + mi + 1];
+      }
+
+      size_t offset = 0;
+      for (size_t i = 0; i < array.size(); i++) {
+      	DataStore ds(sub_ds_dim);
+      	ds.set(sub_ds_dims, this->_data + offset);
+      	f(&ds, array[i]);
       }
     }
 
   private:
     Data *_data;
     size_t _data_size;
+    bool _data_allocated;
+
+    // It sets size of each dimension.
+    // It just sets pointer to data, not performs malloc and memcpy.
+    void set(const size_t *val, Data *dat_ptr);
 
     // It returns the index of Data calculated from the specified Key.
     size_t key_to_index(const Key& key);
