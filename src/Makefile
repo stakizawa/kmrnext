@@ -1,28 +1,35 @@
 include ../config.make
 
 HEADERS = kmrnext.hpp
+LIB     = libkmrnext.a
 OBJS    = kmrnext.o
 TESTS   = test00-basic test01-mng-ds
 
 .Phony: all
-all: $(TESTS)
+all: $(LIB)
 
-test00-basic: $(OBJS) test00-basic.o
-	$(CXX) -o $@ $^
+.Phony: tests
+tests: $(TESTS)
 
-test01-mng-ds: $(OBJS) test01-mng-ds.o
-	$(CXX) -o $@ $^
+libkmrnext.a: kmrnext.hpp $(OBJS)
+	ar csr $@ $(OBJS)
 
 .cpp.o:
 	$(CXX) $(DEFS) $(CXXFLAGS) -c $<
 
+test00-basic: test00-basic.o $(LIB)
+	$(CXX) -o $@ $^
+
+test01-mng-ds: test01-mng-ds.o $(LIB)
+	$(CXX) -o $@ $^
+
 .PHONY: clean
 clean:
-	-rm -rf $(OBJS)
-	-rm -rf $(TESTS) *.o *.d
+	-rm -rf $(OBJS) $(TESTS) *.o *.d
 
 .PHONY: distclean
 distclean: clean
+	-rm -rf $(LIB)
 
 -include *.d
 
