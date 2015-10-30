@@ -10,9 +10,8 @@ CXXFLAGS = -DDEBUG -g -O2 -Wall -std=c++98 -fopenmp
 HEADERS  = kmrnext.hpp
 LIB      = ../src/libkmrnext.a
 
-TEST_OBJS = test_key.o test_data.o
+TEST_OBJS = test_key.o test_data.o test_data_store.o
 TEST_MAIN = test_all
-TESTS     = test_key test_data
 
 # google test path
 GTEST_HOME = $(HOME)/lib/googletest-1.7.0
@@ -24,12 +23,6 @@ all: $(TEST_MAIN)
 	$(CXX) $(DEFS) $(CXXFLAGS) -I$(GTEST_HOME)/include -I../src -c $<
 
 test_all: test_main.o $(TEST_OBJS)
-	$(CXX) -o $@ $^ $(LIB) $(GTEST_HOME)/lib/libgtest.a -lpthread
-
-test_key: test_key.o test_main.o
-	$(CXX) -o $@ $^ $(LIB) $(GTEST_HOME)/lib/libgtest.a -lpthread
-
-test_data: test_data.o test_main.o
 	$(CXX) -o $@ $^ $(LIB) $(GTEST_HOME)/lib/libgtest.a -lpthread
 
 .PHONY: clean
