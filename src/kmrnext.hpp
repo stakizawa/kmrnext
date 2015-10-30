@@ -18,7 +18,14 @@ namespace Next {
     T _value[MaxDimensionSize];
 
   public:
-    explicit Dimensional(size_t siz) : _size(siz) {}
+    explicit Dimensional(size_t siz) : _size(siz)
+    {
+      if (_size > MaxDimensionSize) {
+	ostringstream os;
+	os << "Dimension size should be less than " << (MaxDimensionSize + 1);
+	throw runtime_error(os.str());
+      }
+    }
 
     virtual void set(const T *val)
     {
@@ -209,8 +216,10 @@ namespace Next {
       // Calculate size and dimension of Sub DS
       size_t sub_ds_dim = _size - (mi + 1);
       size_t sub_ds_dims[MaxDimensionSize];
+      size_t sub_ds_siz = 0;
       for (size_t i = 0; i < sub_ds_dim; i++) {
 	sub_ds_dims[i] = _value[i + mi + 1];
+	sub_ds_siz += _value[i + mi + 1];
       }
 
       size_t offset = 0;
@@ -218,6 +227,7 @@ namespace Next {
       	DataStore ds(sub_ds_dim);
       	ds.set(sub_ds_dims, this->_data + offset);
       	f(&ds, array[i]);
+	offset += sub_ds_siz;
       }
     }
 
