@@ -14,9 +14,13 @@ namespace Next {
 
   void Data::copy_deep(const Data& src)
   {
+    if (_value != NULL) {
+      throw runtime_error("Data is already set value.");
+    }
     _value = static_cast<void*>(malloc(src._value_size));
     memcpy(_value, src._value, src._value_size);
     _value_size = src._value_size;
+    _value_allocated = true;
   }
 
   DataStore::~DataStore()
@@ -37,7 +41,7 @@ namespace Next {
       _value[i] = val[i];
       _data_size *= val[i];
     }
-    _data = static_cast<Data*>(malloc(sizeof(Data) * _data_size));
+    _data = static_cast<Data*>(calloc(_data_size, sizeof(Data)));
     _data_allocated = true;
   }
 
@@ -93,7 +97,7 @@ namespace Next {
     for (size_t i = 0; i < _size; i++) {
       _data_size *= _value[i];
     }
-    _data = static_cast<Data*>(malloc(sizeof(Data) * _data_size));
+    _data = static_cast<Data*>(calloc(_data_size, sizeof(Data)));
 
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {

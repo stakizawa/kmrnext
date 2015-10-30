@@ -98,6 +98,8 @@ namespace Next {
     size_t _value_size;
 
   public:
+    Data() : _value(NULL), _value_size(0), _value_allocated(false) {}
+
     Data(void *val, const size_t val_siz)
       : _value(val), _value_size(val_siz), _value_allocated(false) {}
 
