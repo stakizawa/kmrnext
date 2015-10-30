@@ -30,6 +30,13 @@ namespace {
       ekey0_->set(ary_ekey0);
       ekey1_->set(ary_ekey1);
 
+      key2d0_ = new Next::Key(2);
+      key2d1_ = new Next::Key(2);
+      size_t ary_key2d0[2] = {0,0};
+      size_t ary_key2d1[2] = {1,0};
+      key2d0_->set(ary_key2d0);
+      key2d1_->set(ary_key2d1);
+
       v0_ = new Next::View(ds_size_);
       v1_ = new Next::View(ds_size_);
       v2_ = new Next::View(ds_size_);
@@ -103,6 +110,8 @@ namespace {
       delete key2_;
       delete ekey0_;
       delete ekey1_;
+      delete key2d0_;
+      delete key2d1_;
       delete v0_;
       delete v1_;
       delete v2_;
@@ -124,6 +133,9 @@ namespace {
     Next::Key *key2_;      // <1,1,1>
     Next::Key *ekey0_;     // <0,3,0>
     Next::Key *ekey1_;     // <10,10,10>
+
+    Next::Key *key2d0_;    // <0,0>
+    Next::Key *key2d1_;    // <1,0>
 
     Next::View *v0_;       // <t,t,t>
     Next::View *v1_;       // <t,f,t>
@@ -261,6 +273,56 @@ namespace {
     vec5.push_back(ds3_);
     Next::DataStore mds5(3);
     EXPECT_THROW({mds5.set_from(vec5);}, std::runtime_error);
+  }
+
+  TEST_F(DataStoreTest, Split_to) {
+    std::vector<Next::DataStore*> vec0;
+    Next::DataStore sds00(ds_size_ - 1);
+    Next::DataStore sds01(ds_size_ - 1);
+    vec0.push_back(&sds00);
+    vec0.push_back(&sds01);
+    // assume that ds.get() works fine
+    ds0_->split_to(vec0);
+    EXPECT_EQ((size_t)2, vec0.size());
+    EXPECT_EQ(array_ds0_[1], sds00.dim(0));
+    EXPECT_EQ(array_ds0_[2], sds00.dim(1));
+    EXPECT_EQ(*(long*)d0_->value(), *(long*)sds00.get(*key2d0_).data->value());
+    EXPECT_EQ(*(long*)d0_->value(), *(long*)sds00.get(*key2d1_).data->value());
+    EXPECT_EQ(array_ds0_[1], sds01.dim(0));
+    EXPECT_EQ(array_ds0_[2], sds01.dim(1));
+    EXPECT_EQ(*(long*)d0_->value(), *(long*)sds01.get(*key2d0_).data->value());
+    EXPECT_EQ(*(long*)d0_->value(), *(long*)sds01.get(*key2d1_).data->value());
+
+    // If target DataStore has only one dimension, it throws runtime_errror.
+    std::vector<Next::DataStore*> vec1;
+    Next::DataStore sds10(1);
+    Next::DataStore sds11(1);
+    vec1.push_back(&sds10);
+    vec1.push_back(&sds11);
+    EXPECT_THROW({ds3_->split_to(vec1);}, std::runtime_error);
+
+    // If the vector is empty, it throws runtime_error.
+    std::vector<Next::DataStore*> vec2;
+    EXPECT_THROW({ds0_->split_to(vec2);}, std::runtime_error);
+
+    // If more vector than the top-level dimension of the target DataStore
+    // is given, it throws runtime_error.
+    std::vector<Next::DataStore*> vec3;
+    Next::DataStore sds30(ds_size_ - 1);
+    Next::DataStore sds31(ds_size_ - 1);
+    Next::DataStore sds32(ds_size_ - 1);
+    vec3.push_back(&sds30);
+    vec3.push_back(&sds31);
+    vec3.push_back(&sds32);
+    EXPECT_THROW({ds0_->split_to(vec3);}, std::runtime_error);
+  }
+
+  TEST_F(DataStoreTest, Map) {
+    EXPECT_THROW({;;}, std::runtime_error);
+  }
+
+  TEST_F(DataStoreTest, Load_array) {
+    EXPECT_THROW({;;}, std::runtime_error);
   }
 
 }
