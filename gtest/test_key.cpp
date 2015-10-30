@@ -1,5 +1,4 @@
 // This test tests Key and View class.
-#include <iostream>
 #include <gtest/gtest.h>
 #include "kmrnext.hpp"
 
@@ -13,17 +12,17 @@ namespace {
 
     KeyTest() {
       // You can do set-up work for each test here.
-      kKeySize = 3;
-      kKeySizeError = 1000;
-      kKey0 = new size_t[kKeySize];
-      for (size_t i = 0; i < kKeySize; i++) {
-	kKey0[i] = i;
+      key_size_ = 3;
+      key_size_error_ = 1000;
+      array_key0_ = new size_t[key_size_];
+      for (size_t i = 0; i < key_size_; i++) {
+	array_key0_[i] = i;
       }
     }
 
     virtual ~KeyTest() {
       // You can do clean-up work that doesn't throw exceptions here.
-      delete kKey0;
+      delete array_key0_;
     }
 
     // If the constructor and destructor are not enough for setting up
@@ -40,41 +39,41 @@ namespace {
     }
 
     // Objects declared here can be used by all tests in the test case for Key.
-    size_t kKeySize;      // 3
-    size_t kKeySizeError; // 1000
-    size_t *kKey0;        // {0,1,2}
+    size_t key_size_;       // 3
+    size_t key_size_error_; // 1000
+    size_t *array_key0_;          // {0,1,2}
   };
 
   TEST_F(KeyTest, Constructor) {
-    Next::Key k(kKeySize);
-    EXPECT_EQ(kKeySize, k.size());
-    EXPECT_THROW({Next::Key ke(kKeySizeError);}, std::runtime_error);
+    Next::Key k(key_size_);
+    EXPECT_EQ(key_size_, k.size());
+    EXPECT_THROW({Next::Key ke(key_size_error_);}, std::runtime_error);
   }
 
   TEST_F(KeyTest, Dim) {
-    Next::Key k(kKeySize);
-    k.set(kKey0);
-    EXPECT_EQ((size_t)0, k.dim(0));
-    EXPECT_EQ((size_t)1, k.dim(1));
-    EXPECT_EQ((size_t)2, k.dim(2));
+    Next::Key k(key_size_);
+    k.set(array_key0_);
+    EXPECT_EQ(array_key0_[0], k.dim(0));
+    EXPECT_EQ(array_key0_[1], k.dim(1));
+    EXPECT_EQ(array_key0_[2], k.dim(2));
     EXPECT_THROW({k.dim(3);}, std::runtime_error);
-    EXPECT_THROW({k.dim(kKeySizeError);}, std::runtime_error);
+    EXPECT_THROW({k.dim(key_size_error_);}, std::runtime_error);
   }
 
   TEST_F(KeyTest, Set_dim) {
-    Next::Key k(kKeySize);
-    k.set(kKey0);
+    Next::Key k(key_size_);
+    k.set(array_key0_);
     k.set_dim(0, 100);
     EXPECT_EQ((size_t)100, k.dim(0));
-    EXPECT_EQ((size_t)1,   k.dim(1));
-    EXPECT_EQ((size_t)2,   k.dim(2));
+    EXPECT_EQ(array_key0_[1], k.dim(1));
+    EXPECT_EQ(array_key0_[2], k.dim(2));
     EXPECT_THROW({k.set_dim(3, 0);}, std::runtime_error);
-    EXPECT_THROW({k.set_dim(kKeySizeError, 0);}, std::runtime_error);
+    EXPECT_THROW({k.set_dim(key_size_error_, 0);}, std::runtime_error);
   }
 
   TEST_F(KeyTest, To_string) {
-    Next::Key k(kKeySize);
-    k.set(kKey0);
+    Next::Key k(key_size_);
+    k.set(array_key0_);
     std::string kstr = k.to_string();
     EXPECT_STREQ("<0,1,2>", kstr.c_str());
   }
