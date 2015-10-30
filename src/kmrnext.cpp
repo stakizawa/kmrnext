@@ -62,7 +62,7 @@ namespace Next {
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key)
   {
-    check_key_range(key); // TODO is it OK?
+    check_key_range(key);
     vector<DataPack> *dps = new vector<DataPack>();
     for (size_t i = 0; i < _data_size; i++) {
       Key tmpkey = index_to_key(i);
@@ -88,7 +88,28 @@ namespace Next {
     if (_data_size != 0) {
       throw runtime_error("DataStore is already initialized.");
     }
-    // TODO check if the size of each DataStore in dslist is same.
+    {
+      // Check each DataStore in the vector
+      size_t expected_dim_size = _size - 1;
+      size_t expected_data_size = 0;
+      for (size_t i = 0; i < dslist.size(); i++) {
+	DataStore *src = dslist.at(i);
+	if (expected_dim_size != src->_size) {
+	  throw runtime_error("Dimension size of one of DataStore is wrong.");
+	}
+	size_t calc_data_size = 1;
+	for (size_t j = 0; j < expected_dim_size; j++) {
+	  calc_data_size *= src->_value[j];
+	}
+	if (i == 0) {
+	  expected_data_size = calc_data_size;
+	} else {
+	  if (expected_data_size != calc_data_size) {
+	    throw runtime_error("Data count one of DataStore is wrong.");
+	  }
+	}
+      }
+    }
 
     _value[0] = dslist.size();
     DataStore *ds0 = dslist.at(0);
