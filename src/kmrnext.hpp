@@ -59,7 +59,7 @@ namespace Next {
       _value[idx] = val;
     }
 
-    string to_string()
+    string to_string() const
     {
       ostringstream os;
       os << '<';
@@ -71,6 +71,24 @@ namespace Next {
       }
       os << '>';
       return os.str();
+    }
+
+    bool operator==(const Dimensional<T>& rhs) const
+    {
+      if (_size != rhs._size) {
+	return false;
+      }
+      for (size_t i = 0; i < _size; i++) {
+	if (_value[i] != rhs._value[i]) {
+	  return false;
+	}
+      }
+      return true;
+    }
+
+    bool operator!=(const Dimensional<T>& rhs) const
+    {
+      return !(*this == rhs);
     }
   };
 
@@ -254,6 +272,9 @@ namespace Next {
 
     // It converts the specified key by applying the specified View.
     Key key_to_viewed_key(const Key& key, const View& view);
+
+    // It checks if dimensions of key are inside the range.
+    void check_key_range(const Key& key);
   };
 
 }

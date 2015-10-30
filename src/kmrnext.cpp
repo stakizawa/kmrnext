@@ -47,6 +47,7 @@ namespace Next {
 
   void DataStore::add(const Key& key, const Data& data)
   {
+    check_key_range(key);
     size_t idx = key_to_index(key);
     Data *d = &(_data[idx]);
     d->copy_deep(data);
@@ -54,12 +55,14 @@ namespace Next {
 
   DataPack DataStore::get(const Key& key)
   {
+    check_key_range(key);
     size_t idx = key_to_index(key);
     return DataPack(key, &(_data[idx]));
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key)
   {
+    check_key_range(key); // TODO is it OK?
     vector<DataPack> *dps = new vector<DataPack>();
     for (size_t i = 0; i < _data_size; i++) {
       Key tmpkey = index_to_key(i);
@@ -232,4 +235,15 @@ namespace Next {
   }
 #endif
 
+  void DataStore::check_key_range(const Key& key)
+  {
+    for (size_t i = 0; i < _size; i++) {
+      if (key.dim(i) >= _value[i]) {
+	ostringstream os;
+	os << "Dimension " << (i+1) << " of Key" << key.to_string()
+	   << " is out of range.";
+	throw runtime_error(os.str());
+      }
+    }
+  }
 }

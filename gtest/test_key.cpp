@@ -18,6 +18,10 @@ namespace {
       for (size_t i = 0; i < key_size_; i++) {
 	array_key0_[i] = i;
       }
+      array_key1_ = new size_t[key_size_];
+      for (size_t i = 0; i < key_size_; i++) {
+	array_key1_[i] = key_size_ - (i + 1);
+      }
     }
 
     virtual ~KeyTest() {
@@ -41,7 +45,8 @@ namespace {
     // Objects declared here can be used by all tests in the test case for Key.
     size_t key_size_;       // 3
     size_t key_size_error_; // 1000
-    size_t *array_key0_;          // {0,1,2}
+    size_t *array_key0_;    // {0,1,2}
+    size_t *array_key1_;    // {2,1,0}
   };
 
   TEST_F(KeyTest, Constructor) {
@@ -76,5 +81,16 @@ namespace {
     k.set(array_key0_);
     std::string kstr = k.to_string();
     EXPECT_STREQ("<0,1,2>", kstr.c_str());
+  }
+
+  TEST_F(KeyTest, Equal) {
+    Next::Key k0(key_size_);
+    Next::Key k1(key_size_);
+    Next::Key k2(key_size_);
+    k0.set(array_key0_);
+    k1.set(array_key0_);
+    k2.set(array_key1_);
+    EXPECT_EQ(k1, k0);
+    EXPECT_NE(k2, k0);
   }
 }  // namespace
