@@ -34,7 +34,7 @@ namespace Next {
       }
     }
 
-    size_t size()
+    size_t size() const
     {
       return _size;
     }
@@ -173,8 +173,9 @@ namespace Next {
     void split_to(vector<DataStore*>& dslist);
 
     template <typename Mapper>
-    void map(DataStore* outds, Mapper m, const View& view)
+    void map(DataStore* outds, Mapper& m, const View& view)
     {
+      check_map_args(outds, view);
       if (_data_size == 0) {
 	return;
       }
@@ -230,7 +231,7 @@ namespace Next {
       }
       if (mdim != array.size()) {
 	throw runtime_error("The size of array should be match the "
-			    "size of dimension.");
+			    "multiple of dimension sizes of the DataStore.");
       }
 
       // Calculate size and dimension of Sub DS
@@ -275,7 +276,10 @@ namespace Next {
 
     // It checks if dimensions of key are inside the range.
     void check_key_range(const Key& key);
-  };
+
+    // It checks the arguments of map().
+    void check_map_args(DataStore *outds, const View& view);
+};
 
 }
 

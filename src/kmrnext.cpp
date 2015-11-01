@@ -258,6 +258,10 @@ namespace Next {
 
   void DataStore::check_key_range(const Key& key)
   {
+    if (_size != key.size()) {
+      throw runtime_error("Dimension size of Key should be same as "
+			  "that of DataStore.");
+    }
     for (size_t i = 0; i < _size; i++) {
       if (key.dim(i) >= _value[i]) {
 	ostringstream os;
@@ -265,6 +269,18 @@ namespace Next {
 	   << " is out of range.";
 	throw runtime_error(os.str());
       }
+    }
+  }
+
+  void DataStore::check_map_args(DataStore *outds, const View& view)
+  {
+    if (this == outds) {
+      throw runtime_error("The input and output DataStore should be "
+			  "different.");
+    }
+    if (_size != view.size()) {
+      throw runtime_error("Dimension size of the input DataStore and "
+			  "view should be same.");
     }
   }
 }

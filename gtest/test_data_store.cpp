@@ -173,9 +173,9 @@ namespace {
   }
 
   TEST_F(DataStoreTest, Add) {
+    // assume that ds.get() works fine
     Next::DataStore ds(ds_size_);
     ds.set(array_ds0_);
-    // assume that ds.get() works fine
     ds.add(*key0_, *d0_);
     Next::DataPack dp = ds.get(*key0_);
     EXPECT_EQ(*key0_, dp.key);
@@ -194,6 +194,9 @@ namespace {
     EXPECT_EQ(*(long*)d0_->value(), *(long*)dp.data->value());
     EXPECT_EQ(d0_->size(), dp.data->size());
 
+    // If dimension sizes of Key and DataStore are not same,
+    // it throws a runtime_error.
+    EXPECT_THROW({ds0_->get(*key2d0_);}, std::runtime_error);
     // If a dimension is out of range, it throws a runtime_error.
     EXPECT_THROW({ds0_->get(*ekey0_);}, std::runtime_error);
     // If all dimensions are out of range, it throws a runtime_error.
@@ -221,12 +224,12 @@ namespace {
   }
 
   TEST_F(DataStoreTest, Set_from) {
+    // assume that ds.get() works fine
     std::vector<Next::DataStore*> vec0;
     vec0.push_back(ds1_);
     vec0.push_back(ds1_);
     vec0.push_back(ds1_);
     Next::DataStore mds0(3);
-    // assume that ds.get() works fine
     mds0.set_from(vec0);
     EXPECT_EQ((size_t)3, mds0.dim(0));
     EXPECT_EQ(ds1_->dim(0), mds0.dim(1));
@@ -276,12 +279,12 @@ namespace {
   }
 
   TEST_F(DataStoreTest, Split_to) {
+    // assume that ds.get() works fine
     std::vector<Next::DataStore*> vec0;
     Next::DataStore sds00(ds_size_ - 1);
     Next::DataStore sds01(ds_size_ - 1);
     vec0.push_back(&sds00);
     vec0.push_back(&sds01);
-    // assume that ds.get() works fine
     ds0_->split_to(vec0);
     EXPECT_EQ((size_t)2, vec0.size());
     EXPECT_EQ(array_ds0_[1], sds00.dim(0));
@@ -317,12 +320,133 @@ namespace {
     EXPECT_THROW({ds0_->split_to(vec3);}, std::runtime_error);
   }
 
+  // A mapper class that increments value and the calculates average.
+  class Summarizer {
+  public:
+    int operator()(Next::DataStore *inds, Next::DataStore *outds,
+		   Next::Key key, std::vector<Next::DataPack>& dps)
+    {
+      long sum = 0;
+      for (size_t i = 0; i < dps.size(); i++) {
+	Next::DataPack& dp = dps.at(i);
+	long v = *(long *)dp.data->value() + 1;
+	sum += v;
+      }
+      long avg = sum / dps.size();
+      Next::Data d(&avg, sizeof(long));
+      outds->add(key, d);
+      return 0;
+    }
+  };
+
   TEST_F(DataStoreTest, Map) {
-    EXPECT_THROW({;;}, std::runtime_error);
+    // assume that ds.get() works fine
+    Summarizer mapper;
+
+    Next::DataStore ods0(ds_size_);
+    ods0.set(array_ds0_);
+    ds0_->map(&ods0, mapper, *v0_);
+    EXPECT_EQ(2, *(long*)ods0.get(*key0_).data->value());
+    EXPECT_EQ(2, *(long*)ods0.get(*key1_).data->value());
+    EXPECT_EQ(2, *(long*)ods0.get(*key2_).data->value());
+
+    Next::DataStore ods1(2);
+    size_t ary_ods1[2] = {2,2};
+    ods1.set(ary_ods1);
+    ds0_->map(&ods1, mapper, *v1_);
+    EXPECT_EQ(2, *(long*)ods1.get(*key2d0_).data->value());
+    EXPECT_EQ(2, *(long*)ods1.get(*key2d1_).data->value());
+
+    // If the input and output DataStores are same, it throws runtime_error.
+    EXPECT_THROW({ds0_->map(ds0_, mapper, *v0_);}, std::runtime_error);
+
+    // If the output DataStore already has some value, it throws runtime_error.
+    // TODO check future.
+
+    // If the dimension of view does not match that of the input DataStore,
+    // it throws runtime_error.
+    Next::DataStore ods2(ds_size_);
+    ods2.set(array_ds0_);
+    EXPECT_THROW({ds1_->map(&ods2, mapper, *v0_);}, std::runtime_error);
   }
 
+  class DataLoader1D {
+    size_t size_;
+  public:
+    DataLoader1D(size_t siz) : size_(siz) {}
+
+    int operator()(Next::DataStore *ds, int num)
+    {
+      Next::Key key(1);
+      Next::Data data(&num, sizeof(int));
+      for (size_t i = 0; i < size_; i++) {
+	key.set_dim(0, i);
+	ds->add(key, data);
+      }
+      return 0;
+    }
+  };
+
+  class DataLoader2D {
+    size_t size0_;
+    size_t size1_;
+  public:
+    DataLoader2D(size_t siz0, size_t siz1) : size0_(siz0), size1_(siz1) {}
+
+    int operator()(Next::DataStore *ds, int num)
+    {
+      Next::Key key(2);
+      Next::Data data(&num, sizeof(int));
+      for (size_t i = 0; i < size0_; i++) {
+	key.set_dim(0, i);
+	for (size_t j = 0; j < size1_; j++) {
+	  key.set_dim(1, j);
+	  ds->add(key, data);
+	}
+      }
+      return 0;
+    }
+  };
+
   TEST_F(DataStoreTest, Load_array) {
-    EXPECT_THROW({;;}, std::runtime_error);
+    DataLoader1D loader1d(ds0_->dim(2));
+    DataLoader2D loader2d(ds0_->dim(1), ds0_->dim(2));
+
+    // Test 0
+    Next::DataStore ds0(ds_size_);
+    ds0.set(array_ds0_);
+    std::vector<int> vec0;
+    for (size_t i = 0; i < ds0.dim(0); i++) {
+      for (size_t j = 0; j < ds0.dim(1); j++) {
+	vec0.push_back(j+1);
+      }
+    }
+    ds0.load_array(vec0, loader1d);
+    EXPECT_EQ(1, *(long*)ds0.get(*key0_).data->value());
+    EXPECT_EQ(1, *(long*)ds0.get(*key1_).data->value());
+    EXPECT_EQ(2, *(long*)ds0.get(*key2_).data->value());
+
+    // Test 1
+    Next::DataStore ds1(ds_size_);
+    ds1.set(array_ds0_);
+    std::vector<int> vec1;
+    for (size_t i = 0; i < ds1.dim(0); i++) {
+      vec1.push_back(i+1);
+    }
+    ds1.load_array(vec1, loader2d);
+    EXPECT_EQ(1, *(long*)ds1.get(*key0_).data->value());
+    EXPECT_EQ(1, *(long*)ds1.get(*key1_).data->value());
+    EXPECT_EQ(2, *(long*)ds1.get(*key2_).data->value());
+
+    // IF the size of array is not same as the multiple of dimension size
+    // of the DataStore, it throws runtime_error.
+    Next::DataStore ds2(ds_size_);
+    ds2.set(array_ds0_);
+    std::vector<int> vec2;
+    for (size_t i = 0; i < ds_size_error_; i++) {
+      vec2.push_back(i+1);
+    }
+    EXPECT_THROW({ds2.load_array(vec2, loader2d);}, std::runtime_error);
   }
 
 }
