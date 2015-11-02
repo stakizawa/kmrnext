@@ -1,5 +1,6 @@
 // This test tests DataStore class.
 #include <gtest/gtest.h>
+#include <sstream>
 #include "kmrnext.hpp"
 
 namespace {
@@ -447,6 +448,23 @@ namespace {
       vec2.push_back(i+1);
     }
     EXPECT_THROW({ds2.load_array(vec2, loader2d);}, std::runtime_error);
+  }
+
+  class DS0Printer : public Next::DataPackDumper {
+  public:
+    std::string operator()(Next::DataPack& dp)
+    {
+      std::ostringstream os;
+      os << *(long*)dp.data->value() << ",";
+      return os.str();
+    }
+  };
+
+  TEST_F(DataStoreTest, Dump) {
+    DS0Printer ptr0;
+    std::string expected0 = "Data Count: 8\n1,1,1,1,1,1,1,1,";
+    std::string actual0 = ds0_->dump(ptr0);
+    EXPECT_STREQ(expected0.c_str(), actual0.c_str());
   }
 
 }

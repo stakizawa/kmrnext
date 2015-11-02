@@ -146,6 +146,15 @@ namespace Next {
     DataPack(const Key k, Data *d) : key(k), data(d) {}
   };
 
+  ///////////////////////////////////////////////////////////////////////////
+  // A class that should be inherited by classes that are used to dump
+  // to atas in a DataStore.
+  ///////////////////////////////////////////////////////////////////////////
+  class DataPackDumper {
+  public:
+    virtual string operator()(Next::DataPack& dp) = 0;
+  };
+
   class DataStore : public Dimensional<size_t> {
   public:
     explicit DataStore(size_t siz)
@@ -252,6 +261,39 @@ namespace Next {
       }
     }
 
+    // TODO it can be make a inner-class of dump()
+    class WrappedDumper {
+    public:
+      string result_;
+      DataPackDumper& dumper_;
+
+      WrappedDumper(DataPackDumper& dumper) : dumper_(dumper) {};
+      int operator()(DataStore *inds, DataStore *outds,
+    		     Key key, vector<Next::DataPack>& dps)
+      {
+    	ostringstream os;
+    	os << "Data Count: " << dps.size() << endl;
+    	for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
+    	     itr++) {
+    	  os << dumper_(*itr);
+    	}
+
+    	result_ = os.str();
+    	return 0;
+      }
+    };
+
+    string dump(DataPackDumper& dumper)
+    {
+      View view(_size);
+      for (size_t i = 0; i < _size; i++) {
+    	view.set_dim(i, false);
+      }
+      WrappedDumper dmpr(dumper);
+      map(NULL, dmpr, view);
+      return dmpr.result_;
+    }
+
   private:
     Data *_data;
     size_t _data_size;
@@ -279,7 +321,7 @@ namespace Next {
 
     // It checks the arguments of map().
     void check_map_args(DataStore *outds, const View& view);
-};
+  };
 
 }
 
