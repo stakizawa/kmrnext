@@ -4061,8 +4061,9 @@ fccpx)
     ;;
 esac
 
-CFLAGS="$CFLAGS $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
-CXXFLAGS="$CXXFLAGS $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
+# Remotes the default CFLAGS and CXXFLAGS
+CFLAGS="-g $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
+CXXFLAGS="-g $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
 
 # Checks debug option
 # Check whether --enable-debug was given.
@@ -4073,8 +4074,11 @@ else
 fi
 
 if test "$enable_debug" = "yes"; then
-   CFLAGS="-DDEBUG $CFLAGS"
-   CXXFLAGS="-DDEBUG $CXXFLAGS"
+   CFLAGS="-DDEBUG -O0 $CFLAGS"
+   CXXFLAGS="-DDEBUG -O0 $CXXFLAGS"
+else
+   CFLAGS="-O2 $CFLAGS"
+   CXXFLAGS="-O2 $CXXFLAGS"
 fi
 
 # Checks KMR library [TODO]

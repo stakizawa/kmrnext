@@ -51,8 +51,9 @@ fccpx)
     ;;
 esac
 
-CFLAGS="$CFLAGS $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
-CXXFLAGS="$CXXFLAGS $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
+# The default CFLAGS and CXXFLAGS are remoted
+CFLAGS="-g $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
+CXXFLAGS="-g $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
 
 # Checks debug option
 AC_ARG_ENABLE([debug],
@@ -60,8 +61,11 @@ AC_ARG_ENABLE([debug],
 			      [turn on debugging [default=no]])],
 	      [], [enable_debug=no])
 if test "$enable_debug" = "yes"; then
-   CFLAGS="-DDEBUG $CFLAGS"
-   CXXFLAGS="-DDEBUG $CXXFLAGS"
+   CFLAGS="-DDEBUG -O0 $CFLAGS"
+   CXXFLAGS="-DDEBUG -O0 $CXXFLAGS"
+else
+   CFLAGS="-O2 $CFLAGS"
+   CXXFLAGS="-O2 $CXXFLAGS"
 fi
 
 # Checks KMR library [TODO]
