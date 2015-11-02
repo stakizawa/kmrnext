@@ -15,6 +15,7 @@ configure: configure.ac config.make.in
 clean:
 	cd src; make clean
 	cd gtest; make clean
+	cd example; make clean
 
 .PHONY: distclean
 distclean: clean
