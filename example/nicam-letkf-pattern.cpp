@@ -9,7 +9,7 @@ using namespace Next;
 const int NumIteration = 10;
 
 const int DimEnsembleData = 3;
-const int DimRegionData   = 2;
+//const int DimRegionData   = 2;
 const int DimLatticeData  = 1;
 
 const int NumEnsemble = 2;

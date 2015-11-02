@@ -34,16 +34,19 @@ AC_SUBST(STD_CXX)
 AC_SUBST(WARN_CC)
 AC_SUBST(WARN_CXX)
 
+# The default CFLAGS and CXXFLAGS are remoted
 case "$CC" in
 gcc)
+    CFLAGS=""
+    CXXFLAGS=""
     STD_CC="-std=gnu99"
     STD_CXX="-std=c++98"
     WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
     WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
     ;;
 fccpx)
-    CFLAGS="$CFLAGS -Kfast,preex -Xg"
-    CXXFLAGS="$CXXFLAGS -Kfast,preex -Xg"
+    CFLAGS="-Kfast,preex -Xg"
+    CXXFLAGS="-Kfast,preex -Xg"
     STD_CC="-std=gnu99"
     STD_CXX="-std=c++98"
     WARN_CC=""
@@ -51,9 +54,8 @@ fccpx)
     ;;
 esac
 
-# The default CFLAGS and CXXFLAGS are remoted
-CFLAGS="-g $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
-CXXFLAGS="-g $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
+CFLAGS="-g $CFLAGS $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
+CXXFLAGS="-g $CXXFLAGS $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
 
 # Checks debug option
 AC_ARG_ENABLE([debug],
