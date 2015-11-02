@@ -144,15 +144,15 @@ namespace Next {
     Data *data;
 
     DataPack(const Key k, Data *d) : key(k), data(d) {}
-  };
 
-  ///////////////////////////////////////////////////////////////////////////
-  // A class that should be inherited by classes that are used to dump
-  // to atas in a DataStore.
-  ///////////////////////////////////////////////////////////////////////////
-  class DataPackDumper {
-  public:
-    virtual string operator()(Next::DataPack& dp) = 0;
+    /////////////////////////////////////////////////////////////////////////
+    // A class that should be inherited by a classe that is used to dump
+    // data in a DataStore.
+    /////////////////////////////////////////////////////////////////////////
+    class Dumper {
+    public:
+      virtual string operator()(DataPack& dp) = 0;
+    };
   };
 
   class DataStore : public Dimensional<size_t> {
@@ -162,6 +162,27 @@ namespace Next {
       _data_allocated(false) {}
 
     ~DataStore();
+
+    /////////////////////////////////////////////////////////////////////////
+    // A class that should be inherited by a classe that is applied to
+    // each value in DataStore.
+    /////////////////////////////////////////////////////////////////////////
+    class Mapper {
+    public:
+      // TODO key can be a reference
+      virtual int operator()(DataStore *inds, DataStore *outds, Key key,
+			     vector<DataPack>& dps) = 0;
+    };
+
+    /////////////////////////////////////////////////////////////////////////
+    // A class that should be inherited by a classe that is used to load
+    // data to this DataStore.
+    /////////////////////////////////////////////////////////////////////////
+    template <typename Type>
+    class Loader {
+    public:
+      virtual int operator()(DataStore *ds, const Type& param) = 0;
+    };
 
     // It sets size of each dimension.
     virtual void set(const size_t *val);
@@ -181,48 +202,18 @@ namespace Next {
     // It splits DataStore to low-dimensional DataStores.
     void split_to(vector<DataStore*>& dslist);
 
-    template <typename Mapper>
-    void map(DataStore* outds, Mapper& m, const View& view)
-    {
-      check_map_args(outds, view);
-      if (_data_size == 0) {
-	return;
-      }
+    // It maps each data.
+    void map(DataStore* outds, Mapper& m, const View& view);
 
-      size_t nkeys = 1;
-      for (size_t i = 0; i < _size; i++) {
-	if (view.dim(i)) {
-	  nkeys *= _value[i];
-	}
-      }
+    // It dumps data in the DataStore.
+    string dump(DataPack::Dumper& dumper);
 
-      vector< vector<DataPack> > dpgroups(nkeys);
+    // It loads files to the DataStore.
+    void load_files(const vector<string>& files, Loader<string>& f);
 
-      for (size_t i = 0; i < _data_size; i++) {
-	Key tmpkey = index_to_key(i);
-	size_t viewed_idx = key_to_viwed_index(tmpkey, view);
-	vector<DataPack>& dps = dpgroups.at(viewed_idx);
-	dps.push_back(DataPack(tmpkey, &(_data[i])));
-      }
-
-      for (size_t i = 0; i < dpgroups.size(); i++) {
-	vector<DataPack> &dps = dpgroups.at(i);
-	Key viewed_key = key_to_viewed_key(dps.at(0).key, view);
-	m(this, outds, viewed_key, dps);
-      }
-    }
-
-    template <typename Loader>
-    void load_files(const vector<string>& files, Loader f)
-    {
-      load_array(files, f);
-      // for (size_t i = 0; i < files.size(); i++) {
-      // 	f(this, files[i]);
-      // }
-    }
-
-    template <typename Type, typename Loader>
-    void load_array(const vector<Type>& array, Loader f)
+    // It loads data in an array to the DataStore.
+    template <typename Type>
+    void load_array(const vector<Type>& array, Loader<Type>& f)
     {
       if (array.size() == 1) {
 	f(this, array[0]);
@@ -259,39 +250,6 @@ namespace Next {
       	f(&ds, array[i]);
 	offset += sub_ds_siz;
       }
-    }
-
-    // TODO it can be make a inner-class of dump()
-    class WrappedDumper {
-    public:
-      string result_;
-      DataPackDumper& dumper_;
-
-      WrappedDumper(DataPackDumper& dumper) : dumper_(dumper) {};
-      int operator()(DataStore *inds, DataStore *outds,
-    		     Key key, vector<Next::DataPack>& dps)
-      {
-    	ostringstream os;
-    	os << "Data Count: " << dps.size() << endl;
-    	for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
-    	     itr++) {
-    	  os << dumper_(*itr);
-    	}
-
-    	result_ = os.str();
-    	return 0;
-      }
-    };
-
-    string dump(DataPackDumper& dumper)
-    {
-      View view(_size);
-      for (size_t i = 0; i < _size; i++) {
-    	view.set_dim(i, false);
-      }
-      WrappedDumper dmpr(dumper);
-      map(NULL, dmpr, view);
-      return dmpr.result_;
     }
 
   private:

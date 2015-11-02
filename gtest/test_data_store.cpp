@@ -322,7 +322,7 @@ namespace {
   }
 
   // A mapper class that increments value and the calculates average.
-  class Summarizer {
+  class Summarizer : public Next::DataStore::Mapper {
   public:
     int operator()(Next::DataStore *inds, Next::DataStore *outds,
 		   Next::Key key, std::vector<Next::DataPack>& dps)
@@ -371,15 +371,15 @@ namespace {
     EXPECT_THROW({ds1_->map(&ods2, mapper, *v0_);}, std::runtime_error);
   }
 
-  class DataLoader1D {
+  class DataLoader1D : public Next::DataStore::Loader<int> {
     size_t size_;
   public:
     DataLoader1D(size_t siz) : size_(siz) {}
 
-    int operator()(Next::DataStore *ds, int num)
+    int operator()(Next::DataStore *ds, const int& num)
     {
       Next::Key key(1);
-      Next::Data data(&num, sizeof(int));
+      Next::Data data((void*)&num, sizeof(int));
       for (size_t i = 0; i < size_; i++) {
 	key.set_dim(0, i);
 	ds->add(key, data);
@@ -388,16 +388,16 @@ namespace {
     }
   };
 
-  class DataLoader2D {
+  class DataLoader2D : public Next::DataStore::Loader<int> {
     size_t size0_;
     size_t size1_;
   public:
     DataLoader2D(size_t siz0, size_t siz1) : size0_(siz0), size1_(siz1) {}
 
-    int operator()(Next::DataStore *ds, int num)
+    int operator()(Next::DataStore *ds, const int& num)
     {
       Next::Key key(2);
-      Next::Data data(&num, sizeof(int));
+      Next::Data data((void*)&num, sizeof(int));
       for (size_t i = 0; i < size0_; i++) {
 	key.set_dim(0, i);
 	for (size_t j = 0; j < size1_; j++) {
@@ -450,7 +450,7 @@ namespace {
     EXPECT_THROW({ds2.load_array(vec2, loader2d);}, std::runtime_error);
   }
 
-  class DS0Printer : public Next::DataPackDumper {
+  class DS0Printer : public Next::DataPack::Dumper {
   public:
     std::string operator()(Next::DataPack& dp)
     {

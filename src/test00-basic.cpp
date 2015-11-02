@@ -19,7 +19,7 @@ void print_get_view_result(vector<Next::DataPack>* dpvec, Next::View& v,
 			   Next::Key& k, int count);
 
 // A mapper class that calculates sum of data.
-class Summarizer {
+class Summarizer : public Next::DataStore::Mapper {
 public:
   int operator()(Next::DataStore *inds, Next::DataStore *outds,
 		 Next::Key key, vector<Next::DataPack>& dps)
@@ -37,7 +37,7 @@ public:
 };
 
 // A mapper class that prints all data.
-class DataStorePrinter {
+class DataStorePrinter : public Next::DataStore::Mapper {
   int _max_count;
   string _padding;
 
@@ -166,7 +166,7 @@ main()
 }
 
 
-class Loader {
+class Loader : public Next::DataStore::Loader<string> {
 public:
   int operator()(Next::DataStore *ds, const string& file)
   {

@@ -161,6 +161,72 @@ namespace Next {
     }
   }
 
+  void DataStore::map(DataStore* outds, Mapper& m, const View& view)
+  {
+    check_map_args(outds, view);
+    if (_data_size == 0) {
+      return;
+    }
+
+    size_t nkeys = 1;
+    for (size_t i = 0; i < _size; i++) {
+      if (view.dim(i)) {
+	nkeys *= _value[i];
+      }
+    }
+
+    vector< vector<DataPack> > dpgroups(nkeys);
+
+    for (size_t i = 0; i < _data_size; i++) {
+      Key tmpkey = index_to_key(i);
+      size_t viewed_idx = key_to_viwed_index(tmpkey, view);
+      vector<DataPack>& dps = dpgroups.at(viewed_idx);
+      dps.push_back(DataPack(tmpkey, &(_data[i])));
+    }
+
+    for (size_t i = 0; i < dpgroups.size(); i++) {
+      vector<DataPack> &dps = dpgroups.at(i);
+      Key viewed_key = key_to_viewed_key(dps.at(0).key, view);
+      m(this, outds, viewed_key, dps);
+    }
+  }
+
+  void DataStore::load_files(const vector<string>& files, Loader<string>& f)
+  {
+    load_array(files, f);
+  }
+
+  string DataStore::dump(DataPack::Dumper& dumper)
+  {
+    class WrappedDumper : public Mapper {
+    public:
+      string result_;
+      DataPack::Dumper& dumper_;
+
+      WrappedDumper(DataPack::Dumper& dmpr) : dumper_(dmpr) {}
+      int operator()(DataStore *inds, DataStore *outds,
+		     Key key, vector<Next::DataPack>& dps)
+      {
+	ostringstream os;
+	os << "Data Count: " << dps.size() << endl;
+	for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
+	     itr++) {
+	  os << dumper_(*itr);
+	}
+	result_ = os.str();
+	return 0;
+      }
+    } dmpr(dumper);
+
+    View view(_size);
+    for (size_t i = 0; i < _size; i++) {
+      view.set_dim(i, false);
+    }
+
+    map(NULL, dmpr, view);
+    return dmpr.result_;
+  }
+
   void DataStore::set(const size_t *val, Data *dat_ptr)
   {
     if (_data_size != 0) {

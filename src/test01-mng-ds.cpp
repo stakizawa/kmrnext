@@ -132,7 +132,7 @@ main()
 }
 
 
-class DataLoader {
+class DataLoader : public Next::DataStore::Loader<string> {
 public:
   int operator()(Next::DataStore *ds, const string& file)
   {
@@ -162,7 +162,7 @@ public:
 };
 
 // A mapper class that prints all data.
-class DataStorePrinter {
+class DataStorePrinter : public Next::DataStore::Mapper {
   int _max_count;
   string _padding;
 
