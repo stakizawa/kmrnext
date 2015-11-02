@@ -423,7 +423,7 @@ namespace {
     }
     ds0.load_array(vec0, loader1d);
     EXPECT_EQ(1, *(long*)ds0.get(*key0_).data->value());
-    EXPECT_EQ(1, *(long*)ds0.get(*key1_).data->value());
+    EXPECT_EQ(2, *(long*)ds0.get(*key1_).data->value());
     EXPECT_EQ(2, *(long*)ds0.get(*key2_).data->value());
 
     // Test 1

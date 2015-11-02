@@ -237,10 +237,10 @@ namespace Next {
       // Calculate size and dimension of Sub DS
       size_t sub_ds_dim = _size - (mi + 1);
       size_t sub_ds_dims[MaxDimensionSize];
-      size_t sub_ds_siz = 0;
+      size_t sub_ds_siz = 1;
       for (size_t i = 0; i < sub_ds_dim; i++) {
 	sub_ds_dims[i] = _value[i + mi + 1];
-	sub_ds_siz += _value[i + mi + 1];
+	sub_ds_siz *= _value[i + mi + 1];
       }
 
       size_t offset = 0;

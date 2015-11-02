@@ -17,7 +17,7 @@ namespace Next {
     if (_value != NULL) {
       throw runtime_error("Data is already set value.");
     }
-    _value = static_cast<void*>(malloc(src._value_size));
+    _value = static_cast<void*>(calloc(src._value_size, sizeof(void*)));
     memcpy(_value, src._value, src._value_size);
     _value_size = src._value_size;
     _value_allocated = true;
