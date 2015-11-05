@@ -10,6 +10,10 @@ CXXFLAGS = -DDEBUG -g -O2 -Wall -std=c++98 -fopenmp
 HEADERS  = kmrnext.hpp
 LIB      = ../src/libkmrnext.a
 
+ifeq ($(TARGET), KMR)
+    DEPLIB += $(KMRDIR)/lib/libkmr.a
+endif
+
 TEST_OBJS = test_key.o test_data.o test_data_store.o
 TEST_MAIN = test_all
 
@@ -23,7 +27,7 @@ all: $(TEST_MAIN)
 	$(CXX) $(DEFS) $(CXXFLAGS) -I$(GTEST_HOME)/include -I../src -c $<
 
 test_all: test_main.o $(TEST_OBJS)
-	$(CXX) -o $@ $^ $(LIB) $(GTEST_HOME)/lib/libgtest.a -lpthread
+	$(CXX) -o $@ $^ $(LIB) $(GTEST_HOME)/lib/libgtest.a $(DEPLIB) -lpthread
 
 .PHONY: clean
 clean:

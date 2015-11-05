@@ -16,8 +16,8 @@ AC_PROG_CC
 AC_PROG_CXX
 ! (type fccpx 1>/dev/null 2>/dev/null); fujitsu_env=$?
 if test "$fujitsu_env" -eq "1"; then
-   CC=fccpx
-   CXX=FCCpx
+    CC=fccpx
+    CXX=FCCpx
 fi
 
 # Checks MPI and OpenMP
@@ -63,16 +63,38 @@ AC_ARG_ENABLE([debug],
 			      [turn on debugging [default=no]])],
 	      [], [enable_debug=no])
 if test "$enable_debug" = "yes"; then
-   CFLAGS="-DDEBUG -O0 $CFLAGS"
-   CXXFLAGS="-DDEBUG -O0 $CXXFLAGS"
+    CFLAGS="-DDEBUG -O0 $CFLAGS"
+    CXXFLAGS="-DDEBUG -O0 $CXXFLAGS"
 else
-   CFLAGS="-O2 $CFLAGS"
-   CXXFLAGS="-O2 $CXXFLAGS"
+    CFLAGS="-O2 $CFLAGS"
+    CXXFLAGS="-O2 $CXXFLAGS"
 fi
 
-# Checks KMR library [TODO]
+# Checks the backend library
+AC_ARG_WITH([backend],
+	    [AS_HELP_STRING([--with-backend=@<:@none/kmr@:>@],
+			    [set thebackend parallel driver [default=none]])],
+	    [with_backend=$withval],
+	    [with_backend=none])
+if test "$with_backend" = "kmr"; then
+    TARGET="KMR"
+    AC_DEFINE([BACKEND_KMR], [1],
+    	      [Define if kmr backend is set])
+    CC=$MPICC
+    CXX=$MPICXX
+else
+    # in case of "none"
+    TARGET="SERIAL"
+fi
+AC_SUBST(TARGET)
 
-# Checks KMR header [TODO]
+# Checks KMR library
+AC_ARG_WITH([kmr],
+	    [AS_HELP_STRING([--with-kmr=PATH],
+			    [set path for kmr [default=/usr/local]])],
+	    [KMRDIR=$withval],
+	    [KMRDIR=/usr/local])
+AC_SUBST(KMRDIR)
 
 # Checks for typedefs, structures, compiler characteristics,
 # and library functions.

@@ -5,6 +5,10 @@ LIB     = libkmrnext.a
 OBJS    = kmrnext.o
 TESTS   = test00-basic test01-mng-ds
 
+ifeq ($(TARGET), KMR)
+    DEPLIB += $(KMRDIR)/lib/libkmr.a
+endif
+
 .Phony: all
 all: $(LIB)
 
@@ -15,13 +19,17 @@ libkmrnext.a: kmrnext.hpp $(OBJS)
 	ar csr $@ $(OBJS)
 
 .cpp.o:
+ifeq ($(TARGET), KMR)
+	$(CXX) $(DEFS) $(CXXFLAGS) -I$(KMRDIR)/include -c $<
+else
 	$(CXX) $(DEFS) $(CXXFLAGS) -c $<
+endif
 
 test00-basic: test00-basic.o $(LIB)
-	$(CXX) -o $@ $^
+	$(CXX) -o $@ $^ $(DEPLIB)
 
 test01-mng-ds: test01-mng-ds.o $(LIB)
-	$(CXX) -o $@ $^
+	$(CXX) -o $@ $^ $(DEPLIB)
 
 .PHONY: clean
 clean:
