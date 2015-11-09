@@ -1,9 +1,8 @@
 #ifndef KMRNEXT_HPP
 #define KMRNEXT_HPP
 
-#include <iostream>
-#include <sstream>
 #include <stdexcept>
+#include <sstream>
 #include <vector>
 
 namespace kmrnext {
@@ -11,6 +10,35 @@ namespace kmrnext {
 
   const size_t kMaxDimensionSize = 8;
 
+  class Key;
+  class View;
+  class Data;
+  class DataPack;
+  class DataStore;
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Main class of KMRNext
+  ///////////////////////////////////////////////////////////////////////////
+  class KMRNext {
+  public:
+    // It initializes the whole system.
+    static KMRNext* init(int argc, char **argv);
+
+    // It finalizes the whole system.
+    static void finalize();
+
+    // It creates a DataStore with the specified dimension size.
+    DataStore* create_ds(size_t siz);
+
+  private:
+    static KMRNext *kmrnext_;
+
+    KMRNext() {}
+  };
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Super class of multi-dimensional data class
+  ///////////////////////////////////////////////////////////////////////////
   template <typename T>
   class Dimensional {
   protected:
@@ -18,8 +46,7 @@ namespace kmrnext {
     T value_[kMaxDimensionSize];
 
   public:
-    explicit Dimensional(size_t siz) : size_(siz)
-    {
+    explicit Dimensional(size_t siz) : size_(siz) {
       if (size_ > kMaxDimensionSize) {
 	ostringstream os;
 	os << "Dimension size should be less than " << (kMaxDimensionSize + 1);
@@ -27,20 +54,17 @@ namespace kmrnext {
       }
     }
 
-    virtual void set(const T *val)
-    {
+    virtual void set(const T *val) {
       for (size_t i = 0; i < size_; i++) {
 	value_[i] = val[i];
       }
     }
 
-    size_t size() const
-    {
+    size_t size() const {
       return size_;
     }
 
-    T dim(size_t idx) const
-    {
+    T dim(size_t idx) const {
       if (idx >= size_) {
 	ostringstream os;
 	os << "Index should be less than dimension size: " << size_;
@@ -49,8 +73,7 @@ namespace kmrnext {
       return value_[idx];
     }
 
-    void set_dim(size_t idx, T val)
-    {
+    void set_dim(size_t idx, T val) {
       if (idx >= size_) {
 	ostringstream os;
 	os << "Index should be less than dimension size: " << size_;
@@ -59,8 +82,7 @@ namespace kmrnext {
       value_[idx] = val;
     }
 
-    string to_string() const
-    {
+    string to_string() const {
       ostringstream os;
       os << '<';
       for (size_t i = 0; i < size_; i++) {
@@ -73,8 +95,7 @@ namespace kmrnext {
       return os.str();
     }
 
-    bool operator==(const Dimensional<T>& rhs) const
-    {
+    bool operator==(const Dimensional<T>& rhs) const {
       if (size_ != rhs.size_) {
 	return false;
       }
@@ -86,8 +107,7 @@ namespace kmrnext {
       return true;
     }
 
-    bool operator!=(const Dimensional<T>& rhs) const
-    {
+    bool operator!=(const Dimensional<T>& rhs) const {
       return !(*this == rhs);
     }
   };
@@ -222,8 +242,7 @@ namespace kmrnext {
 
     // It loads data in an array to the DataStore.
     template <typename Type>
-    void load_array(const vector<Type>& array, Loader<Type>& f)
-    {
+    void load_array(const vector<Type>& array, Loader<Type>& f) {
       if (array.size() == 1) {
 	f(this, array[0]);
 	return;
@@ -288,26 +307,6 @@ namespace kmrnext {
 
     // It checks the arguments of map().
     void check_map_args(DataStore *outds, const View& view);
-  };
-
-  ///////////////////////////////////////////////////////////////////////////
-  // Main class of KMRNext
-  ///////////////////////////////////////////////////////////////////////////
-  class KMRNext {
-  public:
-    // It initializes the whole system.
-    static KMRNext* init(int argc, char **argv);
-
-    // It finalizes the whole system.
-    static void finalize();
-
-    // It creates a DataStore with the specified dimension size.
-    DataStore* create_ds(size_t siz);
-
-  private:
-    static KMRNext *kmrnext_;
-
-    KMRNext() {}
   };
 
 }

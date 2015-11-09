@@ -2,7 +2,7 @@ include ../config.make
 
 HEADERS = kmrnext.hpp
 LIB     = libkmrnext.a
-OBJS    = kmrnext.o
+OBJS    = kmrnext.o basic_data.o data_store.o
 TESTS   = test00-basic test01-mng-ds
 
 ifeq ($(TARGET), KMR)
@@ -15,7 +15,7 @@ all: $(LIB)
 .Phony: tests
 tests: $(TESTS)
 
-libkmrnext.a: kmrnext.hpp $(OBJS)
+libkmrnext.a: $(HEADERS) $(OBJS)
 	ar csr $@ $(OBJS)
 
 .cpp.o:
