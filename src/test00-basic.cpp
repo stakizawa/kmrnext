@@ -3,41 +3,41 @@
 
 using namespace std;
 
-const bool print = true;
+const bool kPrint = true;
 
-const int Dimension3 = 3;
-const int Dim3_0 = 10;
-const int Dim3_1 = 10;
-const int Dim3_2 = 10;
-const int Dimension2 = 2;
-const int Dim2_0 = 10;
-const int Dim2_1 = 10;
+const int kDimension3 = 3;
+const int kDim3_0 = 10;
+const int kDim3_1 = 10;
+const int kDim3_2 = 10;
+const int kDimension2 = 2;
+const int kDim2_0 = 10;
+const int kDim2_1 = 10;
 
-void load_data(Next::DataStore& ds);
-void print_get_result(Next::Key& key, Next::DataPack& dp);
-void print_get_view_result(vector<Next::DataPack>* dpvec, Next::View& v,
-			   Next::Key& k, int count);
+void load_data(kmrnext::DataStore& ds);
+void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp);
+void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
+			   kmrnext::Key& k, int count);
 
 // A mapper class that calculates sum of data.
-class Summarizer : public Next::DataStore::Mapper {
+class Summarizer : public kmrnext::DataStore::Mapper {
 public:
-  int operator()(Next::DataStore *inds, Next::DataStore *outds,
-		 Next::Key key, vector<Next::DataPack>& dps)
+  int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
+		 kmrnext::Key key, vector<kmrnext::DataPack>& dps)
   {
     long sum = 0;
     for (size_t i = 0; i < dps.size(); i++) {
-      Next::DataPack& dp = dps.at(i);
-      long v = *(long *)dp.data->value();
+      kmrnext::DataPack& dp = dps.at(i);
+      long v = *(long *)dp.data()->value();
       sum += v;
     }
-    Next::Data d(&sum, sizeof(long));
+    kmrnext::Data d(&sum, sizeof(long));
     outds->add(key, d);
     return 0;
   }
 };
 
 // A mapper class that prints all data.
-class DataStorePrinter : public Next::DataStore::Mapper {
+class DataStorePrinter : public kmrnext::DataStore::Mapper {
   int _max_count;
   string _padding;
 
@@ -45,8 +45,8 @@ public:
   DataStorePrinter(const int max_count, const string& padding)
     : _max_count(max_count), _padding(padding) {}
 
-  int operator()(Next::DataStore *inds, Next::DataStore *outds,
-		 Next::Key key, vector<Next::DataPack>& dps)
+  int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
+		 kmrnext::Key key, vector<kmrnext::DataPack>& dps)
   {
     cout << _padding << "Key: " << key.to_string() << endl;
     cout << _padding << "Count: " << dps.size() << endl;
@@ -56,13 +56,13 @@ public:
       cout << _padding << "Values (all)" << endl;
     }
     int count = 0;
-    for (vector<Next::DataPack>::iterator itr = dps.begin();
+    for (vector<kmrnext::DataPack>::iterator itr = dps.begin();
     	 itr != dps.end(); itr++) {
       if (_max_count > 0 && count++ >= _max_count) {
     	break;
       }
-      cout << _padding << "  " << itr->key.to_string() << " : "
-    	   << *(long *)itr->data->value() << endl;
+      cout << _padding << "  " << itr->key().to_string() << " : "
+    	   << *(long *)itr->data()->value() << endl;
     }
     return 0;
   }
@@ -76,8 +76,8 @@ int
 main()
 {
   ///////////  Create a DataStore
-  Next::DataStore ds1(Dimension3);
-  size_t sizes3[Dimension3] = {Dim3_0, Dim3_1, Dim3_2};
+  kmrnext::DataStore ds1(kDimension3);
+  size_t sizes3[kDimension3] = {kDim3_0, kDim3_1, kDim3_2};
   ds1.set(sizes3);
   cout << "DataStore: " << ds1.to_string() << endl;
 
@@ -85,17 +85,17 @@ main()
   load_data(ds1);
 
   ///////////  Setup keys
-  Next::Key key1(Dimension3);
-  Next::Key key2(Dimension3);
-  size_t kval1[Dimension3] = {2, 2, 2};
-  size_t kval2[Dimension3] = {2, 2, 3};
+  kmrnext::Key key1(kDimension3);
+  kmrnext::Key key2(kDimension3);
+  size_t kval1[kDimension3] = {2, 2, 2};
+  size_t kval2[kDimension3] = {2, 2, 3};
   key1.set(kval1);
   key2.set(kval2);
 
   ///////////  Get a data from a DataStore
-  Next::DataPack dp1 = ds1.get(key1);
-  Next::DataPack dp2 = ds1.get(key2);
-  if (print) {
+  kmrnext::DataPack dp1 = ds1.get(key1);
+  kmrnext::DataPack dp2 = ds1.get(key2);
+  if (kPrint) {
     cout << "1. Get a data from a DataStore by get()" << endl;
     print_get_result(key1, dp1);
     print_get_result(key2, dp2);
@@ -103,29 +103,29 @@ main()
   }
 
   ///////////  Setup views
-  Next::View v1(Dimension3);
-  Next::View v2(Dimension3);
-  Next::View v3(Dimension3);
-  Next::View v4(Dimension3);
-  bool flags1[Dimension3] = {true, true, true};
-  bool flags2[Dimension3] = {true, false, true};
-  bool flags3[Dimension3] = {true, false, false};
-  bool flags4[Dimension3] = {false, false, false};
+  kmrnext::View v1(kDimension3);
+  kmrnext::View v2(kDimension3);
+  kmrnext::View v3(kDimension3);
+  kmrnext::View v4(kDimension3);
+  bool flags1[kDimension3] = {true, true, true};
+  bool flags2[kDimension3] = {true, false, true};
+  bool flags3[kDimension3] = {true, false, false};
+  bool flags4[kDimension3] = {false, false, false};
   v1.set(flags1);
   v2.set(flags2);
   v3.set(flags3);
   v4.set(flags4);
 
   ///////////  Get a data from a DataStore with a view
-  vector<Next::DataPack> *dpvec1 = ds1.get(v1, key1);
-  vector<Next::DataPack> *dpvec2 = ds1.get(v1, key2);
-  vector<Next::DataPack> *dpvec3 = ds1.get(v2, key1);
-  vector<Next::DataPack> *dpvec4 = ds1.get(v2, key2);
-  vector<Next::DataPack> *dpvec5 = ds1.get(v3, key1);
-  vector<Next::DataPack> *dpvec6 = ds1.get(v3, key2);
-  vector<Next::DataPack> *dpvec7 = ds1.get(v4, key1);
-  vector<Next::DataPack> *dpvec8 = ds1.get(v4, key2);
-  if (print) {
+  vector<kmrnext::DataPack> *dpvec1 = ds1.get(v1, key1);
+  vector<kmrnext::DataPack> *dpvec2 = ds1.get(v1, key2);
+  vector<kmrnext::DataPack> *dpvec3 = ds1.get(v2, key1);
+  vector<kmrnext::DataPack> *dpvec4 = ds1.get(v2, key2);
+  vector<kmrnext::DataPack> *dpvec5 = ds1.get(v3, key1);
+  vector<kmrnext::DataPack> *dpvec6 = ds1.get(v3, key2);
+  vector<kmrnext::DataPack> *dpvec7 = ds1.get(v4, key1);
+  vector<kmrnext::DataPack> *dpvec8 = ds1.get(v4, key2);
+  if (kPrint) {
     cout << "2. Get data from a DataStore by get(view)" << endl;
     print_get_view_result(dpvec1, v1, key1, 10);
     print_get_view_result(dpvec2, v1, key2, 10);
@@ -147,15 +147,15 @@ main()
   delete dpvec8;
 
   ///////////  Apply map functions
-  Next::DataStore ds2(Dimension2);
-  size_t sizes2[Dimension2] = {Dim2_0, Dim2_1};
+  kmrnext::DataStore ds2(kDimension2);
+  size_t sizes2[kDimension2] = {kDim2_0, kDim2_1};
   ds2.set(sizes2);
   Summarizer sumr;
   ds1.map(&ds2, sumr, v2);
-  if (print) {
+  if (kPrint) {
     cout << "3. Apply map to each data in a DataStore" << endl;
-    Next::View v5(Dimension2);
-    bool flags5[Dimension2] = {false, false};
+    kmrnext::View v5(kDimension2);
+    bool flags5[kDimension2] = {false, false};
     v5.set(flags5);
     DataStorePrinter printer(-1, "  ");
     ds2.map(NULL, printer, v5);
@@ -166,19 +166,19 @@ main()
 }
 
 
-class Loader : public Next::DataStore::Loader<string> {
+class Loader : public kmrnext::DataStore::Loader<string> {
 public:
-  int operator()(Next::DataStore *ds, const string& file)
+  int operator()(kmrnext::DataStore *ds, const string& file)
   {
-    Next::Key key(Dimension3);
-    for (int i = 0; i < Dim3_0; i++) {
+    kmrnext::Key key(kDimension3);
+    for (int i = 0; i < kDim3_0; i++) {
       key.set_dim(0, i);
-      for (int j = 0; j < Dim3_1; j++) {
+      for (int j = 0; j < kDim3_1; j++) {
 	key.set_dim(1, j);
-	for (int k = 0; k < Dim3_2; k++) {
+	for (int k = 0; k < kDim3_2; k++) {
 	  key.set_dim(2, k);
 	  long val = i*j*k;
-	  Next::Data d(&val, sizeof(long));
+	  kmrnext::Data d(&val, sizeof(long));
 	  ds->add(key, d);
 	}
       }
@@ -187,7 +187,7 @@ public:
   }
 };
 
-void load_data(Next::DataStore& ds)
+void load_data(kmrnext::DataStore& ds)
 {
   vector<string> files;
   files.push_back("dummy1");
@@ -196,16 +196,16 @@ void load_data(Next::DataStore& ds)
   ds.load_files(files, loader);
 }
 
-void print_get_result(Next::Key& key, Next::DataPack& dp)
+void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp)
 {
   cout << "  Query key: " << key.to_string()
-       << "    Result: " << dp.key.to_string() << ": "
-       << *(long *)dp.data->value()
-       << " (Size:" << dp.data->size() << ")" << endl;
+       << "    Result: " << dp.key().to_string() << ": "
+       << *(long *)dp.data()->value()
+       << " (Size:" << dp.data()->size() << ")" << endl;
 }
 
-void print_get_view_result(vector<Next::DataPack>* dpvec, Next::View& v,
-			   Next::Key& k, int count)
+void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
+			   kmrnext::Key& k, int count)
 {
   cout << "  Condition" << endl;
   cout << "    view: " << v.to_string() << ", key: " << k.to_string() << endl;
@@ -217,14 +217,14 @@ void print_get_view_result(vector<Next::DataPack>* dpvec, Next::View& v,
     cout << "    values (all)" << endl;
   }
   int cnt = 0;
-  for (vector<Next::DataPack>::iterator itr = dpvec->begin();
+  for (vector<kmrnext::DataPack>::iterator itr = dpvec->begin();
        itr != dpvec->end(); itr++) {
     if (count > 0 && cnt >= count) {
       break;
     }
     cnt += 1;
-    cout << "    " << itr->key.to_string() << " : "
-  	 << *(long *)itr->data->value() << endl;
+    cout << "    " << itr->key().to_string() << " : "
+  	 << *(long *)itr->data()->value() << endl;
   }
   cout << endl;
 }

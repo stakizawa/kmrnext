@@ -9,7 +9,7 @@ namespace {
     DataTest() {
       value_ = 1;
       value_size_ = sizeof(int);
-      data_ = new Next::Data(&value_, value_size_);
+      data_ = new kmrnext::Data(&value_, value_size_);
     }
 
     virtual ~DataTest() {
@@ -26,19 +26,19 @@ namespace {
       // before the destructor).
     }
 
-    int value_;         // 1
-    size_t value_size_; // sizeof(int)
-    Next::Data *data_;  // Data(1, value_size_)
+    int value_;            // 1
+    size_t value_size_;    // sizeof(int)
+    kmrnext::Data *data_;  // Data(1, value_size_)
   };
 
   TEST_F(DataTest, Constructor) {
-    Next::Data d(&value_, value_size_);
+    kmrnext::Data d(&value_, value_size_);
     EXPECT_EQ(&value_, d.value());
     EXPECT_EQ(value_size_, d.size());
   }
 
   TEST_F(DataTest, Copy_deep) {
-    Next::Data d0(NULL, 0);
+    kmrnext::Data d0(NULL, 0);
     d0.copy_deep(*data_);
     // value is same
     EXPECT_EQ(*(int*)data_->value(), *(int*)d0.value());
@@ -47,7 +47,7 @@ namespace {
     EXPECT_EQ(data_->size(), d0.size());
 
     // If *value is already set, it throws a runtime_error.
-    Next::Data d1(&value_, value_size_);
+    kmrnext::Data d1(&value_, value_size_);
     EXPECT_THROW({d1.copy_deep(*data_);}, std::runtime_error);
   }
 }

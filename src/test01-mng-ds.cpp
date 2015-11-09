@@ -3,26 +3,26 @@
 
 using namespace std;
 
-const bool print = true;
+const bool kPrint = true;
 
-const int DimCell = 2;
-const int DimCell0 = 10;
-const int DimCell1 = 10;
-const size_t DSCellSizes[DimCell] = {DimCell0, DimCell1};
+const int kDimCell = 2;
+const int kDimCell0 = 10;
+const int kDimCell1 = 10;
+const size_t kDSCellSizes[kDimCell] = {kDimCell0, kDimCell1};
 
-const string DSUName0 = "DSU0";
-const string DSUName1 = "DSU1";
-const string DSUName2 = "DSU2";
-const string DSUName3 = "DSU3";
+const string kDSUName0 = "DSU0";
+const string kDSUName1 = "DSU1";
+const string kDSUName2 = "DSU2";
+const string kDSUName3 = "DSU3";
 
-const string File0 = "file0";
-const string File1 = "file1";
-const string File2 = "file2";
-const string File3 = "file3";
+const string kFile0 = "file0";
+const string kFile1 = "file1";
+const string kFile2 = "file2";
+const string kFile3 = "file3";
 
-void load_file(Next::DataStore& ds, const string& file);
-void print_ds(Next::DataStore& ds, const Next::View& v, const string& name,
-	      int count);
+void load_file(kmrnext::DataStore& ds, const string& file);
+void print_ds(kmrnext::DataStore& ds, const kmrnext::View& v,
+	      const string& name, int count);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -32,15 +32,15 @@ int
 main()
 {
   /////////// Create DataStores
-  Next::DataStore dsu0(DimCell);
-  Next::DataStore dsu1(DimCell);
-  Next::DataStore dsu2(DimCell);
-  Next::DataStore dsu3(DimCell);
-  dsu0.set(DSCellSizes);
-  dsu1.set(DSCellSizes);
-  dsu2.set(DSCellSizes);
-  dsu3.set(DSCellSizes);
-  if (print) {
+  kmrnext::DataStore dsu0(kDimCell);
+  kmrnext::DataStore dsu1(kDimCell);
+  kmrnext::DataStore dsu2(kDimCell);
+  kmrnext::DataStore dsu3(kDimCell);
+  dsu0.set(kDSCellSizes);
+  dsu1.set(kDSCellSizes);
+  dsu2.set(kDSCellSizes);
+  dsu3.set(kDSCellSizes);
+  if (kPrint) {
     cout << "0. Create DataStores" << endl;
     cout << "  DSCell0: " << dsu0.to_string() << endl;
     cout << "  DSCell1: " << dsu1.to_string() << endl;
@@ -50,63 +50,63 @@ main()
   }
 
   /////////// Load data from files
-  load_file(dsu0, File0);
-  load_file(dsu1, File1);
-  load_file(dsu2, File2);
-  load_file(dsu3, File3);
-  if (print) {
+  load_file(dsu0, kFile0);
+  load_file(dsu1, kFile1);
+  load_file(dsu2, kFile2);
+  load_file(dsu3, kFile3);
+  if (kPrint) {
     cout << "1. Load data to DataStores" << endl;
-    Next::View v(DimCell);
-    bool flag[DimCell] = {false, false};
+    kmrnext::View v(kDimCell);
+    bool flag[kDimCell] = {false, false};
     v.set(flag);
-    print_ds(dsu0, v, DSUName0, 10);
-    print_ds(dsu1, v, DSUName1, 10);
-    print_ds(dsu2, v, DSUName2, 10);
-    print_ds(dsu3, v, DSUName3, 10);
+    print_ds(dsu0, v, kDSUName0, 10);
+    print_ds(dsu1, v, kDSUName1, 10);
+    print_ds(dsu2, v, kDSUName2, 10);
+    print_ds(dsu3, v, kDSUName3, 10);
     cout << endl;
   }
 
   /////////// Conmbine DataStores to create a high-dimensinal DataStore
   // 1. Test one DataStore
-  Next::DataStore ds0(DimCell + 1);
-  vector<Next::DataStore*> dsus;
+  kmrnext::DataStore ds0(kDimCell + 1);
+  vector<kmrnext::DataStore*> dsus;
   dsus.push_back(&dsu0);
   ds0.set_from(dsus);
-  if (print) {
+  if (kPrint) {
     cout << "2. Increase dimension by set_from()" << endl;
-    Next::View v(DimCell + 1);
-    bool flag[DimCell + 1] = {false, false, false};
+    kmrnext::View v(kDimCell + 1);
+    bool flag[kDimCell + 1] = {false, false, false};
     v.set(flag);
     print_ds(ds0, v, "DS_Single", -1);
     cout << endl;
   }
   // 2. Test four DataStores
-  Next::DataStore ds1(DimCell + 1);
+  kmrnext::DataStore ds1(kDimCell + 1);
   dsus.push_back(&dsu1);
   dsus.push_back(&dsu2);
   dsus.push_back(&dsu3);
   ds1.set_from(dsus);
-  if (print) {
+  if (kPrint) {
     cout << "3. Combine four DataStores by set_from()" << endl;
-    Next::View v(DimCell + 1);
-    bool flag[DimCell + 1] = {false, false, false};
+    kmrnext::View v(kDimCell + 1);
+    bool flag[kDimCell + 1] = {false, false, false};
     v.set(flag);
     print_ds(ds1, v, "DS_Four", -1);
     cout << endl;
   }
 
   /////////// Split a DataStore to low-dimensional DataStores
-  Next::DataStore dsm0(DimCell - 1);
-  Next::DataStore dsm1(DimCell - 1);
-  Next::DataStore dsm2(DimCell - 1);
-  Next::DataStore dsm3(DimCell - 1);
-  Next::DataStore dsm4(DimCell - 1);
-  Next::DataStore dsm5(DimCell - 1);
-  Next::DataStore dsm6(DimCell - 1);
-  Next::DataStore dsm7(DimCell - 1);
-  Next::DataStore dsm8(DimCell - 1);
-  Next::DataStore dsm9(DimCell - 1);
-  vector<Next::DataStore*> dsms;
+  kmrnext::DataStore dsm0(kDimCell - 1);
+  kmrnext::DataStore dsm1(kDimCell - 1);
+  kmrnext::DataStore dsm2(kDimCell - 1);
+  kmrnext::DataStore dsm3(kDimCell - 1);
+  kmrnext::DataStore dsm4(kDimCell - 1);
+  kmrnext::DataStore dsm5(kDimCell - 1);
+  kmrnext::DataStore dsm6(kDimCell - 1);
+  kmrnext::DataStore dsm7(kDimCell - 1);
+  kmrnext::DataStore dsm8(kDimCell - 1);
+  kmrnext::DataStore dsm9(kDimCell - 1);
+  vector<kmrnext::DataStore*> dsms;
   dsms.push_back(&dsm0);
   dsms.push_back(&dsm1);
   dsms.push_back(&dsm2);
@@ -118,10 +118,10 @@ main()
   dsms.push_back(&dsm8);
   dsms.push_back(&dsm9);
   dsu0.split_to(dsms);
-  if (print) {
+  if (kPrint) {
     cout << "4. Split a DataStore to 10 DataStores by split_to()"  << endl;
-    Next::View v(DimCell - 1);
-    bool flag[DimCell - 1] = {false};
+    kmrnext::View v(kDimCell - 1);
+    bool flag[kDimCell - 1] = {false};
     v.set(flag);
     print_ds(*dsms.at(0), v, "DS_Smallest", -1);
     print_ds(*dsms.at(1), v, "DS_Smallest", -1);
@@ -132,28 +132,28 @@ main()
 }
 
 
-class DataLoader : public Next::DataStore::Loader<string> {
+class DataLoader : public kmrnext::DataStore::Loader<string> {
 public:
-  int operator()(Next::DataStore *ds, const string& file)
+  int operator()(kmrnext::DataStore *ds, const string& file)
   {
-    Next::Key key(DimCell);
-    for (int i = 0; i < DimCell0; i++) {
+    kmrnext::Key key(kDimCell);
+    for (int i = 0; i < kDimCell0; i++) {
       key.set_dim(0, i);
-      for (int j = 0; j < DimCell1; j++) {
+      for (int j = 0; j < kDimCell1; j++) {
     	key.set_dim(1, j);
 	long val;
-	if (file == File0) {
+	if (file == kFile0) {
 	  val = 1;
-	} else if (file == File1) {
+	} else if (file == kFile1) {
 	  val = 2;
-	} else if (file == File2) {
+	} else if (file == kFile2) {
 	  val = 3;
-	} else if (file == File3) {
+	} else if (file == kFile3) {
 	  val = 4;
 	} else {
 	  val = 0;
 	}
-	Next::Data d(&val, sizeof(long));
+	kmrnext::Data d(&val, sizeof(long));
 	ds->add(key, d);
       }
     }
@@ -162,7 +162,7 @@ public:
 };
 
 // A mapper class that prints all data.
-class DataStorePrinter : public Next::DataStore::Mapper {
+class DataStorePrinter : public kmrnext::DataStore::Mapper {
   int _max_count;
   string _padding;
 
@@ -170,8 +170,8 @@ public:
   DataStorePrinter(const int max_count, const string& padding)
     : _max_count(max_count), _padding(padding) {}
 
-  int operator()(Next::DataStore *inds, Next::DataStore *outds,
-		 Next::Key key, vector<Next::DataPack>& dps)
+  int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
+		 kmrnext::Key key, vector<kmrnext::DataPack>& dps)
   {
     //cout << _padding << "Key: " << key.to_string() << endl;
     cout << _padding << "Count: " << dps.size() << endl;
@@ -181,19 +181,19 @@ public:
       cout << _padding << "Values (all)" << endl;
     }
     int count = 0;
-    for (vector<Next::DataPack>::iterator itr = dps.begin();
+    for (vector<kmrnext::DataPack>::iterator itr = dps.begin();
     	 itr != dps.end(); itr++) {
       if (_max_count > 0 && count++ >= _max_count) {
     	break;
       }
-      cout << _padding << "  " << itr->key.to_string() << " : "
-    	   << *(long *)itr->data->value() << endl;
+      cout << _padding << "  " << itr->key().to_string() << " : "
+    	   << *(long *)itr->data()->value() << endl;
     }
     return 0;
   }
 };
 
-void load_file(Next::DataStore& ds, const string& file)
+void load_file(kmrnext::DataStore& ds, const string& file)
 {
   vector<string> files;
   files.push_back(file);
@@ -201,8 +201,8 @@ void load_file(Next::DataStore& ds, const string& file)
   ds.load_files(files, loader);
 }
 
-void print_ds(Next::DataStore& ds, const Next::View& v, const string& name,
-	      int count)
+void print_ds(kmrnext::DataStore& ds, const kmrnext::View& v,
+	      const string& name, int count)
 {
   cout << "  " << name << endl;
   DataStorePrinter dsp(count, "    ");

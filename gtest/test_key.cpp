@@ -50,13 +50,13 @@ namespace {
   };
 
   TEST_F(KeyTest, Constructor) {
-    Next::Key k(key_size_);
+    kmrnext::Key k(key_size_);
     EXPECT_EQ(key_size_, k.size());
-    EXPECT_THROW({Next::Key ke(key_size_error_);}, std::runtime_error);
+    EXPECT_THROW({kmrnext::Key ke(key_size_error_);}, std::runtime_error);
   }
 
   TEST_F(KeyTest, Dim) {
-    Next::Key k(key_size_);
+    kmrnext::Key k(key_size_);
     k.set(array_key0_);
     EXPECT_EQ(array_key0_[0], k.dim(0));
     EXPECT_EQ(array_key0_[1], k.dim(1));
@@ -66,7 +66,7 @@ namespace {
   }
 
   TEST_F(KeyTest, Set_dim) {
-    Next::Key k(key_size_);
+    kmrnext::Key k(key_size_);
     k.set(array_key0_);
     k.set_dim(0, 100);
     EXPECT_EQ((size_t)100, k.dim(0));
@@ -77,16 +77,16 @@ namespace {
   }
 
   TEST_F(KeyTest, To_string) {
-    Next::Key k(key_size_);
+    kmrnext::Key k(key_size_);
     k.set(array_key0_);
     std::string kstr = k.to_string();
     EXPECT_STREQ("<0,1,2>", kstr.c_str());
   }
 
   TEST_F(KeyTest, Equal) {
-    Next::Key k0(key_size_);
-    Next::Key k1(key_size_);
-    Next::Key k2(key_size_);
+    kmrnext::Key k0(key_size_);
+    kmrnext::Key k1(key_size_);
+    kmrnext::Key k2(key_size_);
     k0.set(array_key0_);
     k1.set(array_key0_);
     k2.set(array_key1_);

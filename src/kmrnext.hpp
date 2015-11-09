@@ -6,66 +6,66 @@
 #include <stdexcept>
 #include <vector>
 
-namespace Next {
+namespace kmrnext {
   using namespace std;
 
-  const size_t MaxDimensionSize = 8;
+  const size_t kMaxDimensionSize = 8;
 
   template <typename T>
   class Dimensional {
   protected:
-    size_t _size;
-    T _value[MaxDimensionSize];
+    size_t size_;
+    T value_[kMaxDimensionSize];
 
   public:
-    explicit Dimensional(size_t siz) : _size(siz)
+    explicit Dimensional(size_t siz) : size_(siz)
     {
-      if (_size > MaxDimensionSize) {
+      if (size_ > kMaxDimensionSize) {
 	ostringstream os;
-	os << "Dimension size should be less than " << (MaxDimensionSize + 1);
+	os << "Dimension size should be less than " << (kMaxDimensionSize + 1);
 	throw runtime_error(os.str());
       }
     }
 
     virtual void set(const T *val)
     {
-      for (size_t i = 0; i < _size; i++) {
-	_value[i] = val[i];
+      for (size_t i = 0; i < size_; i++) {
+	value_[i] = val[i];
       }
     }
 
     size_t size() const
     {
-      return _size;
+      return size_;
     }
 
     T dim(size_t idx) const
     {
-      if (idx >= _size) {
+      if (idx >= size_) {
 	ostringstream os;
-	os << "Index should be less than dimension size: " << _size;
+	os << "Index should be less than dimension size: " << size_;
 	throw runtime_error(os.str());
       }
-      return _value[idx];
+      return value_[idx];
     }
 
     void set_dim(size_t idx, T val)
     {
-      if (idx >= _size) {
+      if (idx >= size_) {
 	ostringstream os;
-	os << "Index should be less than dimension size: " << _size;
+	os << "Index should be less than dimension size: " << size_;
 	throw runtime_error(os.str());
       }
-      _value[idx] = val;
+      value_[idx] = val;
     }
 
     string to_string() const
     {
       ostringstream os;
       os << '<';
-      for (size_t i = 0; i < _size; i++) {
-	os << _value[i];
-	if (i < _size - 1) {
+      for (size_t i = 0; i < size_; i++) {
+	os << value_[i];
+	if (i < size_ - 1) {
 	  os << ',';
 	}
       }
@@ -75,11 +75,11 @@ namespace Next {
 
     bool operator==(const Dimensional<T>& rhs) const
     {
-      if (_size != rhs._size) {
+      if (size_ != rhs.size_) {
 	return false;
       }
-      for (size_t i = 0; i < _size; i++) {
-	if (_value[i] != rhs._value[i]) {
+      for (size_t i = 0; i < size_; i++) {
+	if (value_[i] != rhs.value_[i]) {
 	  return false;
 	}
       }
@@ -112,27 +112,27 @@ namespace Next {
   // A class that define view of data
   ///////////////////////////////////////////////////////////////////////////
   class Data {
-    void *_value;
-    size_t _value_size;
+    void *value_;
+    size_t value_size_;
 
   public:
-    Data() : _value(NULL), _value_size(0), _value_allocated(false) {}
+    Data() : value_(NULL), value_size_(0), value_allocated_(false) {}
 
     Data(void *val, const size_t val_siz)
-      : _value(val), _value_size(val_siz), _value_allocated(false) {}
+      : value_(val), value_size_(val_siz), value_allocated_(false) {}
 
     ~Data();
 
     void copy_deep(const Data& src);
 
     // It returns a pointer to the stored data.
-    void *value() { return _value; }
+    void *value() { return value_; }
 
     // It returns size of the stored data.
-    size_t size() { return _value_size; }
+    size_t size() { return value_size_; }
 
   private:
-    bool _value_allocated;
+    bool value_allocated_;
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -140,10 +140,13 @@ namespace Next {
   ///////////////////////////////////////////////////////////////////////////
   class DataPack {
   public:
-    Key key;
-    Data *data;
+    DataPack(const Key k, Data *d) : key_(k), data_(d) {}
 
-    DataPack(const Key k, Data *d) : key(k), data(d) {}
+    // It returns the key.
+    Key& key() { return key_; }
+
+    // It returns the stored data.
+    Data *data() { return data_; }
 
     /////////////////////////////////////////////////////////////////////////
     // A class that should be inherited by a classe that is used to dump
@@ -153,13 +156,17 @@ namespace Next {
     public:
       virtual string operator()(DataPack& dp) = 0;
     };
+
+  private:
+    Key key_;
+    Data *data_;
   };
 
   class DataStore : public Dimensional<size_t> {
   public:
     explicit DataStore(size_t siz)
-      : Dimensional<size_t>(siz), _data(NULL), _data_size(0),
-      _data_allocated(false) {}
+      : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
+      data_allocated_(false) {}
 
     ~DataStore();
 
@@ -223,8 +230,8 @@ namespace Next {
       // Check if the size of array is same as the multiple of dimension.
       size_t mi;
       size_t mdim = 1;
-      for (mi = 0; mi < _size; mi++) {
-	mdim *= _value[mi];
+      for (mi = 0; mi < size_; mi++) {
+	mdim *= value_[mi];
 	if (mdim == array.size()) {
 	  break;
 	}
@@ -235,27 +242,27 @@ namespace Next {
       }
 
       // Calculate size and dimension of Sub DS
-      size_t sub_ds_dim = _size - (mi + 1);
-      size_t sub_ds_dims[MaxDimensionSize];
+      size_t sub_ds_dim = size_ - (mi + 1);
+      size_t sub_ds_dims[kMaxDimensionSize];
       size_t sub_ds_siz = 1;
       for (size_t i = 0; i < sub_ds_dim; i++) {
-	sub_ds_dims[i] = _value[i + mi + 1];
-	sub_ds_siz *= _value[i + mi + 1];
+	sub_ds_dims[i] = value_[i + mi + 1];
+	sub_ds_siz *= value_[i + mi + 1];
       }
 
       size_t offset = 0;
       for (size_t i = 0; i < array.size(); i++) {
       	DataStore ds(sub_ds_dim);
-      	ds.set(sub_ds_dims, this->_data + offset);
+      	ds.set(sub_ds_dims, this->data_ + offset);
       	f(&ds, array[i]);
 	offset += sub_ds_siz;
       }
     }
 
   private:
-    Data *_data;
-    size_t _data_size;
-    bool _data_allocated;
+    Data *data_;
+    size_t data_size_;
+    bool data_allocated_;
 
     // It sets size of each dimension.
     // It just sets pointer to data, not performs malloc and memcpy.
