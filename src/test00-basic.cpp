@@ -13,7 +13,7 @@ const int kDimension2 = 2;
 const int kDim2_0 = 10;
 const int kDim2_1 = 10;
 
-void load_data(kmrnext::DataStore& ds);
+void load_data(kmrnext::DataStore *ds);
 void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp);
 void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
 			   kmrnext::Key& k, int count);
@@ -73,13 +73,15 @@ public:
 // Main starts from here.
 //////////////////////////////////////////////////////////////////////////////
 int
-main()
+main(int argc, char **argv)
 {
+  kmrnext::KMRNext *next = kmrnext::KMRNext::init(argc, argv);
+
   ///////////  Create a DataStore
-  kmrnext::DataStore ds1(kDimension3);
+  kmrnext::DataStore *ds1 = next->create_ds(kDimension3);
   size_t sizes3[kDimension3] = {kDim3_0, kDim3_1, kDim3_2};
-  ds1.set(sizes3);
-  cout << "DataStore: " << ds1.to_string() << endl;
+  ds1->set(sizes3);
+  cout << "DataStore: " << ds1->to_string() << endl;
 
   ///////////  Load data contents from a file
   load_data(ds1);
@@ -93,8 +95,8 @@ main()
   key2.set(kval2);
 
   ///////////  Get a data from a DataStore
-  kmrnext::DataPack dp1 = ds1.get(key1);
-  kmrnext::DataPack dp2 = ds1.get(key2);
+  kmrnext::DataPack dp1 = ds1->get(key1);
+  kmrnext::DataPack dp2 = ds1->get(key2);
   if (kPrint) {
     cout << "1. Get a data from a DataStore by get()" << endl;
     print_get_result(key1, dp1);
@@ -117,14 +119,14 @@ main()
   v4.set(flags4);
 
   ///////////  Get a data from a DataStore with a view
-  vector<kmrnext::DataPack> *dpvec1 = ds1.get(v1, key1);
-  vector<kmrnext::DataPack> *dpvec2 = ds1.get(v1, key2);
-  vector<kmrnext::DataPack> *dpvec3 = ds1.get(v2, key1);
-  vector<kmrnext::DataPack> *dpvec4 = ds1.get(v2, key2);
-  vector<kmrnext::DataPack> *dpvec5 = ds1.get(v3, key1);
-  vector<kmrnext::DataPack> *dpvec6 = ds1.get(v3, key2);
-  vector<kmrnext::DataPack> *dpvec7 = ds1.get(v4, key1);
-  vector<kmrnext::DataPack> *dpvec8 = ds1.get(v4, key2);
+  vector<kmrnext::DataPack> *dpvec1 = ds1->get(v1, key1);
+  vector<kmrnext::DataPack> *dpvec2 = ds1->get(v1, key2);
+  vector<kmrnext::DataPack> *dpvec3 = ds1->get(v2, key1);
+  vector<kmrnext::DataPack> *dpvec4 = ds1->get(v2, key2);
+  vector<kmrnext::DataPack> *dpvec5 = ds1->get(v3, key1);
+  vector<kmrnext::DataPack> *dpvec6 = ds1->get(v3, key2);
+  vector<kmrnext::DataPack> *dpvec7 = ds1->get(v4, key1);
+  vector<kmrnext::DataPack> *dpvec8 = ds1->get(v4, key2);
   if (kPrint) {
     cout << "2. Get data from a DataStore by get(view)" << endl;
     print_get_view_result(dpvec1, v1, key1, 10);
@@ -151,7 +153,7 @@ main()
   size_t sizes2[kDimension2] = {kDim2_0, kDim2_1};
   ds2.set(sizes2);
   Summarizer sumr;
-  ds1.map(&ds2, sumr, v2);
+  ds1->map(&ds2, sumr, v2);
   if (kPrint) {
     cout << "3. Apply map to each data in a DataStore" << endl;
     kmrnext::View v5(kDimension2);
@@ -162,6 +164,8 @@ main()
     cout << endl;
   }
 
+  delete ds1;
+  kmrnext::KMRNext::finalize();
   return 0;
 }
 
@@ -187,13 +191,13 @@ public:
   }
 };
 
-void load_data(kmrnext::DataStore& ds)
+void load_data(kmrnext::DataStore *ds)
 {
   vector<string> files;
   files.push_back("dummy1");
   //  files.push_back("dummy2");
   Loader loader;
-  ds.load_files(files, loader);
+  ds->load_files(files, loader);
 }
 
 void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp)

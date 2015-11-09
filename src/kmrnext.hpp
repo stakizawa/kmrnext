@@ -162,6 +162,9 @@ namespace kmrnext {
     Data *data_;
   };
 
+  ///////////////////////////////////////////////////////////////////////////
+  // A class that stores data
+  ///////////////////////////////////////////////////////////////////////////
   class DataStore : public Dimensional<size_t> {
   public:
     explicit DataStore(size_t siz)
@@ -285,6 +288,26 @@ namespace kmrnext {
 
     // It checks the arguments of map().
     void check_map_args(DataStore *outds, const View& view);
+  };
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Main class of KMRNext
+  ///////////////////////////////////////////////////////////////////////////
+  class KMRNext {
+  public:
+    // It initializes the whole system.
+    static KMRNext* init(int argc, char **argv);
+
+    // It finalizes the whole system.
+    static void finalize();
+
+    // It creates a DataStore with the specified dimension size.
+    DataStore* create_ds(size_t siz);
+
+  private:
+    static KMRNext *kmrnext_;
+
+    KMRNext() {}
   };
 
 }

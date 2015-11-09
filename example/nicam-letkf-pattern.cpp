@@ -43,7 +43,9 @@ public:
 int
 main(int argc, char **argv)
 {
-  DataStore* ds0 = new DataStore(kDimEnsembleData);
+  KMRNext *next = KMRNext::init(argc, argv);
+
+  DataStore* ds0 = next->create_ds(kDimEnsembleData);
   ds0->set(kEnsembleDataDimSizes);
   load_data(ds0);
   DataPrinter dp;
@@ -53,7 +55,7 @@ main(int argc, char **argv)
 
   for (int i = 0; i < kNumIteration; i++) {
     // run pseudo-NICAM
-    DataStore* ds1 = new DataStore(kDimEnsembleData);
+    DataStore* ds1 = next->create_ds(kDimEnsembleData);
     ds1->set(kEnsembleDataDimSizes);
     run_nicam(ds0, ds1);
     delete ds0;
@@ -62,7 +64,7 @@ main(int argc, char **argv)
 #endif
 
     // run pseudo-LETKF
-    ds0 = new DataStore(kDimEnsembleData);
+    ds0 = next->create_ds(kDimEnsembleData);
     ds0->set(kEnsembleDataDimSizes);
     run_letkf(ds1, ds0);
     delete ds1;
@@ -71,6 +73,7 @@ main(int argc, char **argv)
 #endif
   }
 
+  KMRNext::finalize();
   return 0;
 }
 
