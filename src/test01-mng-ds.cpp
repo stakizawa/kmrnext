@@ -171,7 +171,7 @@ public:
     : _max_count(max_count), _padding(padding) {}
 
   int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
-		 kmrnext::Key key, vector<kmrnext::DataPack>& dps)
+		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps)
   {
     //cout << _padding << "Key: " << key.to_string() << endl;
     cout << _padding << "Count: " << dps.size() << endl;

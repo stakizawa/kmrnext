@@ -176,8 +176,7 @@ namespace kmrnext {
     /////////////////////////////////////////////////////////////////////////
     class Mapper {
     public:
-      // TODO key can be a reference
-      virtual int operator()(DataStore *inds, DataStore *outds, Key key,
+      virtual int operator()(DataStore *inds, DataStore *outds, Key& key,
 			     vector<DataPack>& dps) = 0;
     };
 

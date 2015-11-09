@@ -104,7 +104,7 @@ void load_data(DataStore* ds)
 class PseudoNICAM : public DataStore::Mapper {
 public:
   int operator()(DataStore* inds, DataStore* outds,
-		 Key key, vector<DataPack>& dps)
+		 Key& key, vector<DataPack>& dps)
   {
     assert(dps.size() == (size_t)(kNumRegion * kNumLattice));
 
@@ -130,7 +130,7 @@ void run_nicam(DataStore* inds, DataStore* outds)
 class PseudoLETKF : public DataStore::Mapper {
 public:
   int operator()(DataStore* inds, DataStore* outds,
-		 Key key, vector<DataPack>& dps)
+		 Key& key, vector<DataPack>& dps)
   {
     assert(dps.size() == (size_t)kNumEnsemble);
 

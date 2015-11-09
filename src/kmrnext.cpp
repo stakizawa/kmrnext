@@ -205,7 +205,7 @@ namespace kmrnext {
 
       WrappedDumper(DataPack::Dumper& dmpr) : dumper_(dmpr) {}
       int operator()(DataStore *inds, DataStore *outds,
-		     Key key, vector<DataPack>& dps)
+		     Key& key, vector<DataPack>& dps)
       {
 	ostringstream os;
 	os << "Data Count: " << dps.size() << endl;

@@ -22,7 +22,7 @@ void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
 class Summarizer : public kmrnext::DataStore::Mapper {
 public:
   int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
-		 kmrnext::Key key, vector<kmrnext::DataPack>& dps)
+		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps)
   {
     long sum = 0;
     for (size_t i = 0; i < dps.size(); i++) {
@@ -46,7 +46,7 @@ public:
     : _max_count(max_count), _padding(padding) {}
 
   int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
-		 kmrnext::Key key, vector<kmrnext::DataPack>& dps)
+		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps)
   {
     cout << _padding << "Key: " << key.to_string() << endl;
     cout << _padding << "Count: " << dps.size() << endl;
