@@ -175,13 +175,13 @@ public:
   int operator()(kmrnext::DataStore *ds, const string& file)
   {
     kmrnext::Key key(kDimension3);
-    for (int i = 0; i < kDim3_0; i++) {
+    for (size_t i = 0; i < kDim3_0; i++) {
       key.set_dim(0, i);
-      for (int j = 0; j < kDim3_1; j++) {
+      for (size_t j = 0; j < kDim3_1; j++) {
 	key.set_dim(1, j);
-	for (int k = 0; k < kDim3_2; k++) {
+	for (size_t k = 0; k < kDim3_2; k++) {
 	  key.set_dim(2, k);
-	  long val = i*j*k;
+	  long val = (long)(i*j*k);
 	  kmrnext::Data d(&val, sizeof(long));
 	  ds->add(key, d);
 	}

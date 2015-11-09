@@ -54,15 +54,15 @@ namespace kmrnext {
       }
     }
 
+    virtual ~Dimensional() {};
+
     virtual void set(const T *val) {
       for (size_t i = 0; i < size_; i++) {
 	value_[i] = val[i];
       }
     }
 
-    size_t size() const {
-      return size_;
-    }
+    size_t size() const { return size_; }
 
     T dim(size_t idx) const {
       if (idx >= size_) {
@@ -191,7 +191,7 @@ namespace kmrnext {
       : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
       data_allocated_(false) {}
 
-    ~DataStore();
+    virtual ~DataStore();
 
     /////////////////////////////////////////////////////////////////////////
     // A class that should be inherited by a classe that is applied to

@@ -84,7 +84,7 @@ public:
   {
     Key key(kDimLatticeData);
     Data data((void*)&num, sizeof(int));
-    for (int i = 0; i < kNumLattice; i++) {
+    for (size_t i = 0; i < kNumLattice; i++) {
       key.set_dim(0, i);
       ds->add(key, data);
     }

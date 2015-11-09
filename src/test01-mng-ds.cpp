@@ -156,9 +156,9 @@ public:
   int operator()(kmrnext::DataStore *ds, const string& file)
   {
     kmrnext::Key key(kDimCell);
-    for (int i = 0; i < kDimCell0; i++) {
+    for (size_t i = 0; i < kDimCell0; i++) {
       key.set_dim(0, i);
-      for (int j = 0; j < kDimCell1; j++) {
+      for (size_t j = 0; j < kDimCell1; j++) {
     	key.set_dim(1, j);
 	long val;
 	if (file == kFile0) {
