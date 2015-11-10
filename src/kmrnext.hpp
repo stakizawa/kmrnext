@@ -54,10 +54,16 @@ namespace kmrnext {
   template <typename T>
   class Dimensional {
   protected:
+    /// The size of dimension
     size_t size_;
+    /// The sizes of each dimension
     T value_[kMaxDimensionSize];
 
   public:
+    /// \param[in] siz the size of dimension
+    /// \return        a new instance of Dimensional class
+    /// \exception std::runtime_error
+    ///                when siz exceeds the maximum dimension size
     explicit Dimensional(size_t siz) : size_(siz) {
       if (size_ > kMaxDimensionSize) {
 	ostringstream os;

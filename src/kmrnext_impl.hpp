@@ -1,7 +1,7 @@
 #ifndef KMRNEXT_IMPL_HPP
 #define KMRNEXT_IMPL_HPP
 
-#include "../config.h"
+#include "../config.hpp"
 
 #include "kmrnext.hpp"
 

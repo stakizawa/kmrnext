@@ -4,7 +4,7 @@
 AC_PREREQ([2.63])
 AC_INIT([KMR-Next], [1.0.0], [shinichiro.takizawa@riken.jp])
 AC_CONFIG_SRCDIR([src/Makefile])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_HEADERS([config.hpp])
 AC_CONFIG_FILES([config.make])
 
 AC_CONFIG_MACRO_DIR([m4/])

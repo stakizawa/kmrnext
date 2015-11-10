@@ -25,4 +25,4 @@ clean:
 .PHONY: distclean
 distclean: clean
 	cd src; make distclean
-	-rm -f config.status config.log config.h config.make
+	-rm -f config.status config.log config.hpp config.make

@@ -1,4 +1,4 @@
-/* config.h.in.  Generated from configure.ac by autoheader.  */
+/* config.hpp.in.  Generated from configure.ac by autoheader.  */
 
 /* Define if kmr backend is set */
 #undef BACKEND_KMR

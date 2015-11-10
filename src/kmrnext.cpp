@@ -1,4 +1,4 @@
-#include "../config.h"
+#include "../config.hpp"
 
 #include "kmrnext.hpp"
 #include "kmrnext_impl.hpp"
