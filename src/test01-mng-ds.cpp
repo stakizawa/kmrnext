@@ -5,9 +5,9 @@ using namespace std;
 
 const bool kPrint = true;
 
-const int kDimCell = 2;
-const int kDimCell0 = 10;
-const int kDimCell1 = 10;
+const size_t kDimCell = 2;
+const size_t kDimCell0 = 10;
+const size_t kDimCell1 = 10;
 const size_t kDSCellSizes[kDimCell] = {kDimCell0, kDimCell1};
 
 const string kDSUName0 = "DSU0";

@@ -5,13 +5,13 @@ using namespace std;
 
 const bool kPrint = true;
 
-const int kDimension3 = 3;
-const int kDim3_0 = 10;
-const int kDim3_1 = 10;
-const int kDim3_2 = 10;
-const int kDimension2 = 2;
-const int kDim2_0 = 10;
-const int kDim2_1 = 10;
+const size_t kDimension3 = 3;
+const size_t kDim3_0 = 10;
+const size_t kDim3_1 = 10;
+const size_t kDim3_2 = 10;
+const size_t kDimension2 = 2;
+const size_t kDim2_0 = 10;
+const size_t kDim2_1 = 10;
 
 void load_data(kmrnext::DataStore *ds);
 void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp);
