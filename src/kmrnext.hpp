@@ -3,12 +3,16 @@
 /// \file
 /// KMR Next Interface
 
+/// The backend runtime (SERIAL, KMR)
+#define BACKEND_KMR 1
+
 #include <stdexcept>
 #include <sstream>
 #include <vector>
-
-/// The backend runtime (SERIAL, KMR)
-#define BACKEND_KMR 1
+#ifdef BACKEND_KMR
+#include <mpi.h>
+#include <kmr.h>
+#endif
 
 namespace kmrnext {
   using namespace std;
@@ -43,12 +47,19 @@ namespace kmrnext {
     /// \return        an instance of DataStore
     DataStore* create_ds(size_t siz);
 
-    KMRNext() {}
-
-    virtual ~KMRNext() {}
-
   private:
     static KMRNext *kmrnext_;
+
+    KMRNext();
+
+    ~KMRNext();
+
+#ifdef BACKEND_KMR
+    MPI_Comm world_comm_;
+    KMR *mr_;
+    int nprocs_;
+    int rank_;
+#endif
   };
 
   ///////////////////////////////////////////////////////////////////////////

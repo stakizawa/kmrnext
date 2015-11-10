@@ -12,5 +12,5 @@ EXTRACT_STATIC    = NO
 PREDEFINED             = BACKEND_KMR
 USE_MDFILE_AS_MAINPAGE = README.md
 INPUT += README.md
-INPUT += src/kmrnext.hpp src/kmrnext_impl.hpp
-INPUT += src/kmrnext.cpp src/basic_data.cpp src/data_store.cpp
+INPUT += src/kmrnext.hpp src/basic_data.cpp
+INPUT += src/kmrnext.cpp src/kmrnext_kmr.cpp src/kmrnext_serial.cpp
