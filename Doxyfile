@@ -14,3 +14,4 @@ USE_MDFILE_AS_MAINPAGE = README.md
 INPUT += README.md
 INPUT += src/kmrnext.hpp src/basic_data.cpp
 INPUT += src/kmrnext.cpp src/kmrnext_kmr.cpp src/kmrnext_serial.cpp
+INPUT += src/data_store.cpp src/data_store_kmr.cpp src/data_store_serial.cpp
