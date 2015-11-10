@@ -30,10 +30,12 @@ namespace kmrnext {
     // It creates a DataStore with the specified dimension size.
     DataStore* create_ds(size_t siz);
 
+    KMRNext() {}
+
+    virtual ~KMRNext() {}
+
   private:
     static KMRNext *kmrnext_;
-
-    KMRNext() {}
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -189,7 +191,11 @@ namespace kmrnext {
   public:
     explicit DataStore(size_t siz)
       : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false) {}
+      data_allocated_(false), kmrnext_(NULL) {}
+
+    explicit DataStore(size_t siz, KMRNext *kn)
+      : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
+      data_allocated_(false), kmrnext_(kn) {}
 
     virtual ~DataStore();
 
@@ -284,6 +290,7 @@ namespace kmrnext {
     Data *data_;
     size_t data_size_;
     bool data_allocated_;
+    KMRNext *kmrnext_;
 
     // It sets size of each dimension.
     // It just sets pointer to data, not performs malloc and memcpy.

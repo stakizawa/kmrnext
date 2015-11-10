@@ -6,18 +6,18 @@
 using namespace std;
 using namespace kmrnext;
 
-const int kNumIteration = 10;
+const size_t kNumIteration = 10;
 
-const int kDimEnsembleData = 3;
-//const int kDimRegionData   = 2;
-const int kDimLatticeData  = 1;
+const size_t kDimEnsembleData = 3;
+//const size_t kDimRegionData   = 2;
+const size_t kDimLatticeData  = 1;
 
-const int kNumEnsemble = 2;
-const int kNumRegion   = 10;
+const size_t kNumEnsemble = 2;
+const size_t kNumRegion   = 10;
 #if DEBUG
-const int kNumLattice  = 10;
+const size_t kNumLattice  = 10;
 #else
-const int kNumLattice  = 1156;
+const size_t kNumLattice  = 1156;
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
@@ -53,7 +53,7 @@ main(int argc, char **argv)
   cout << ds0->dump(dp) << endl;
 #endif
 
-  for (int i = 0; i < kNumIteration; i++) {
+  for (size_t i = 0; i < kNumIteration; i++) {
     // run pseudo-NICAM
     DataStore* ds1 = next->create_ds(kDimEnsembleData);
     ds1->set(kEnsembleDataDimSizes);
@@ -95,9 +95,9 @@ public:
 void load_data(DataStore* ds)
 {
   vector<int> data_srcs;
-  for (int i = 0; i < kNumEnsemble; i++) {
-    for (int j = 0; j < kNumRegion; j++) {
-      data_srcs.push_back(j+1);
+  for (size_t i = 0; i < kNumEnsemble; i++) {
+    for (size_t j = 0; j < kNumRegion; j++) {
+      data_srcs.push_back((int)(j+1));
     }
   }
   DataLoader dl;

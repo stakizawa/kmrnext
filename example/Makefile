@@ -11,7 +11,7 @@ endif
 all: $(PROGS)
 
 nicam-letkf-pattern: nicam-letkf-pattern.o
-	$(CXX) -o $@ $^ $(LIB) $(DEPLIB)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 .cpp.o:
 	$(CXX) $(DEFS) $(CXXFLAGS) -I../src -c $<

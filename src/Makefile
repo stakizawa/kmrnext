@@ -1,6 +1,6 @@
 include ../config.make
 
-HEADERS = kmrnext.hpp
+HEADERS = kmrnext.hpp kmrnext_impl.hpp
 LIB     = libkmrnext.a
 OBJS    = kmrnext.o basic_data.o data_store.o
 TESTS   = test00-basic test01-mng-ds
@@ -26,10 +26,10 @@ else
 endif
 
 test00-basic: test00-basic.o $(LIB)
-	$(CXX) -o $@ $^ $(DEPLIB)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(DEPLIB)
 
 test01-mng-ds: test01-mng-ds.o $(LIB)
-	$(CXX) -o $@ $^ $(DEPLIB)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(DEPLIB)
 
 .PHONY: clean
 clean:
