@@ -1,5 +1,7 @@
 #ifndef KMRNEXT_HPP
 #define KMRNEXT_HPP
+/// \file
+/// KMR Next Interface
 
 #include <stdexcept>
 #include <sstream>
@@ -8,6 +10,7 @@
 namespace kmrnext {
   using namespace std;
 
+  /// Maximum dimension size of Key, View and DataStore
   const size_t kMaxDimensionSize = 8;
 
   class Key;
@@ -17,17 +20,24 @@ namespace kmrnext {
   class DataStore;
 
   ///////////////////////////////////////////////////////////////////////////
-  // Main class of KMRNext
+  /// A class that stores KMR Next runtime status
   ///////////////////////////////////////////////////////////////////////////
   class KMRNext {
   public:
-    // It initializes the whole system.
+    /// It initializes the whole system.
+    ///
+    /// \param[in] argc the number of command line arguments
+    /// \param[in] argv the command line arguments
+    /// \return         an instance of KMRNext class or its derived class
     static KMRNext* init(int argc, char **argv);
 
-    // It finalizes the whole system.
+    /// It finalizes the whole system.
     static void finalize();
 
-    // It creates a DataStore with the specified dimension size.
+    /// It creates a DataStore with the specified dimension size.
+    ///
+    /// \param[in] siz the dimension size of a new DataStore
+    /// \return        an instance of DataStore
     DataStore* create_ds(size_t siz);
 
     KMRNext() {}
@@ -39,7 +49,7 @@ namespace kmrnext {
   };
 
   ///////////////////////////////////////////////////////////////////////////
-  // Super class of multi-dimensional data class
+  /// Super class of multi-dimensional data class
   ///////////////////////////////////////////////////////////////////////////
   template <typename T>
   class Dimensional {
@@ -115,7 +125,7 @@ namespace kmrnext {
   };
 
   ///////////////////////////////////////////////////////////////////////////
-  // Key class
+  /// A class that represents key to access data
   ///////////////////////////////////////////////////////////////////////////
   class Key : public Dimensional<size_t> {
   public:
@@ -123,7 +133,7 @@ namespace kmrnext {
   };
 
   ///////////////////////////////////////////////////////////////////////////
-  // A class that define view of data
+  /// A class that defines view of a DataStore
   ///////////////////////////////////////////////////////////////////////////
   class View : public Dimensional<bool> {
   public:
@@ -131,7 +141,7 @@ namespace kmrnext {
   };
 
   ///////////////////////////////////////////////////////////////////////////
-  // A class that define view of data
+  /// A class that represents a data in a DataStore
   ///////////////////////////////////////////////////////////////////////////
   class Data {
     void *value_;
@@ -147,10 +157,10 @@ namespace kmrnext {
 
     void copy_deep(const Data& src);
 
-    // It returns a pointer to the stored data.
+    /// It returns a pointer to the stored data.
     void *value() { return value_; }
 
-    // It returns size of the stored data.
+    /// It returns size of the stored data.
     size_t size() { return value_size_; }
 
   private:
@@ -158,21 +168,23 @@ namespace kmrnext {
   };
 
   ///////////////////////////////////////////////////////////////////////////
-  // A class that stores a data ans its key
+  /// A class that stores a Data ans its Key
   ///////////////////////////////////////////////////////////////////////////
   class DataPack {
   public:
     DataPack(const Key k, Data *d) : key_(k), data_(d) {}
 
-    // It returns the key.
+    /// It returns the key.
     Key& key() { return key_; }
 
-    // It returns the stored data.
+    /// It returns the stored data.
     Data *data() { return data_; }
 
     /////////////////////////////////////////////////////////////////////////
-    // A class that should be inherited by a classe that is used to dump
-    // data in a DataStore.
+    /// A virtual class used for dumping data in a DataStore
+    ///
+    /// If you want to dump data in a DataStore, you should implement a class
+    ///	that inherites this class and then override operator() method.
     /////////////////////////////////////////////////////////////////////////
     class Dumper {
     public:
@@ -185,7 +197,7 @@ namespace kmrnext {
   };
 
   ///////////////////////////////////////////////////////////////////////////
-  // A class that stores data
+  /// A class that stores data
   ///////////////////////////////////////////////////////////////////////////
   class DataStore : public Dimensional<size_t> {
   public:
@@ -200,8 +212,11 @@ namespace kmrnext {
     virtual ~DataStore();
 
     /////////////////////////////////////////////////////////////////////////
-    // A class that should be inherited by a classe that is applied to
-    // each value in DataStore.
+    /// A virtual class used for applying a function to Data in a DataStore
+    ///
+    /// If you want to apply a function to each Data in a DataStore (Map),
+    /// you should implement a class that inherites this class and then
+    /// override operator() method.
     /////////////////////////////////////////////////////////////////////////
     class Mapper {
     public:
@@ -210,8 +225,11 @@ namespace kmrnext {
     };
 
     /////////////////////////////////////////////////////////////////////////
-    // A class that should be inherited by a classe that is used to load
-    // data to this DataStore.
+    /// A virtual class used for loading Data to a DataStore
+    ///
+    /// If you want to load Data from files or arrays to a DataStore,
+    /// you should implement a class that inherites this class and then
+    /// override operator() method.
     /////////////////////////////////////////////////////////////////////////
     template <typename Type>
     class Loader {
@@ -219,34 +237,34 @@ namespace kmrnext {
       virtual int operator()(DataStore *ds, const Type& param) = 0;
     };
 
-    // It sets size of each dimension.
+    /// It sets size of each dimension.
     virtual void set(const size_t *val);
 
-    // It adds a data to this DataStore.
+    /// It adds a data to this DataStore.
     void add(const Key& key, const Data& data);
 
-    // It gets a specified data from this DataStore.
+    /// It gets a specified data from this DataStore.
     DataPack get(const Key& key);
 
-    // It gets data whose keys are same when the specified view is applied.
+    /// It gets data whose keys are same when the specified view is applied.
     vector<DataPack>* get(const View& view, const Key& key);
 
-    // It sets Data from DataStores.
+    /// It sets Data from DataStores.
     void set_from(const vector<DataStore*>& dslist);
 
-    // It splits DataStore to low-dimensional DataStores.
+    /// It splits DataStore to low-dimensional DataStores.
     void split_to(vector<DataStore*>& dslist);
 
-    // It maps each data.
+    /// It maps each data.
     void map(DataStore* outds, Mapper& m, const View& view);
 
-    // It dumps data in the DataStore.
+    /// It dumps data in the DataStore.
     string dump(DataPack::Dumper& dumper);
 
-    // It loads files to the DataStore.
+    /// It loads files to the DataStore.
     void load_files(const vector<string>& files, Loader<string>& f);
 
-    // It loads data in an array to the DataStore.
+    /// It loads data in an array to the DataStore.
     template <typename Type>
     void load_array(const vector<Type>& array, Loader<Type>& f) {
       if (array.size() == 1) {

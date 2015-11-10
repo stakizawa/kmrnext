@@ -1,0 +1,16 @@
+PROJECT_NAME      = "KMR Next"
+GENERATE_LATEX    = NO
+GENERATE_HTML     = YES
+HTML_OUTPUT       = ./htmldoc
+SOURCE_BROWSER    = YES
+TAB_SIZE          = 8
+
+MARKDOWN_SUPPORT  = YES
+JAVADOC_AUTOBRIEF = YES
+EXTRACT_STATIC    = NO
+
+PREDEFINED             = BACKEND_KMR
+USE_MDFILE_AS_MAINPAGE = README.md
+INPUT += README.md
+INPUT += src/kmrnext.hpp src/kmrnext_impl.hpp
+INPUT += src/kmrnext.cpp src/basic_data.cpp src/data_store.cpp

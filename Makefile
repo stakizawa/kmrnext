@@ -11,6 +11,11 @@ configure: configure.ac config.make.in
 	autoheader
 	-rm -fr autom4te.cache
 
+.PHONY: htmldoc
+htmldoc:
+	rm -fr htmldoc
+	doxygen Doxyfile
+
 .PHONY: clean
 clean:
 	cd src; make clean
