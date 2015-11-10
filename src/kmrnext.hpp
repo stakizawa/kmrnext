@@ -7,6 +7,8 @@
 #include <sstream>
 #include <vector>
 
+#define BACKEND_KMR 1
+
 namespace kmrnext {
   using namespace std;
 

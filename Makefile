@@ -26,3 +26,4 @@ clean:
 distclean: clean
 	cd src; make distclean
 	-rm -f config.status config.log config.hpp config.make
+	-rm -fr htmldoc

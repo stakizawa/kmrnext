@@ -15,7 +15,7 @@ all: $(LIB)
 .Phony: tests
 tests: $(TESTS)
 
-libkmrnext.a: $(HEADERS) $(OBJS)
+libkmrnext.a: .update_header $(HEADERS) $(OBJS)
 	ar csr $@ $(OBJS)
 
 .cpp.o:
@@ -31,13 +31,20 @@ test00-basic: test00-basic.o $(LIB)
 test01-mng-ds: test01-mng-ds.o $(LIB)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(DEPLIB)
 
+.update_header:
+	cp kmrnext.hpp _kmrnext.hpp
+	sed -e "s/#define BACKEND_[A-Z]* 1/#define BACKEND_$(TARGET) 1/" \
+	< _kmrnext.hpp > kmrnext.hpp
+	touch .update_header
+	rm -f _kmrnext.hpp
+
 .PHONY: clean
 clean:
 	-rm -rf $(OBJS) $(TESTS) *.o *.d
 
 .PHONY: distclean
 distclean: clean
-	-rm -rf $(LIB)
+	-rm -rf $(LIB) .update_header
 
 -include *.d
 

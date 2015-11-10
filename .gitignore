@@ -4,3 +4,4 @@ config.make
 config.status
 src/*.d
 src/*.o
+src/.update_header
