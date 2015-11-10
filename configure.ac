@@ -73,10 +73,10 @@ fi
 
 # Checks the backend library
 AC_ARG_WITH([backend],
-	    [AS_HELP_STRING([--with-backend=@<:@none/kmr@:>@],
-			    [set thebackend parallel driver [default=none]])],
+	    [AS_HELP_STRING([--with-backend=@<:@serial/kmr@:>@],
+			    [set the runtime backend [default=serial]])],
 	    [with_backend=$withval],
-	    [with_backend=none])
+	    [with_backend=serial])
 if test "$with_backend" = "kmr"; then
     TARGET="KMR"
     AC_DEFINE([BACKEND_KMR], [1],
@@ -84,7 +84,7 @@ if test "$with_backend" = "kmr"; then
     CC=$MPICC
     CXX=$MPICXX
 else
-    # in case of "none"
+    # in case of "serial"
     TARGET="SERIAL"
 fi
 AC_SUBST(TARGET)

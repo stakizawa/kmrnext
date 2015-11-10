@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 
+/// The backend runtime (SERIAL, KMR)
 #define BACKEND_KMR 1
 
 namespace kmrnext {

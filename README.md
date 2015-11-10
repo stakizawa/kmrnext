@@ -6,25 +6,25 @@ BACKEND RUNTIME
 
 This software has two backends to manage data and tasks.
 
-* single
+* serial
 * kmr
 
-"single" backend uses only one node and "kmr" backend uses multiple nodes to
+"serial" backend uses only one node and "kmr" backend uses multiple nodes to
 run in parallel.
 
 INSTALL
 -------
 
-Building this software with the "single" backend requires a C++ compiler that
+Building this software with the "serial" backend requires a C++ compiler that
 supports C++98 standard.  Doing with the "kmr" backend requires an MPI
 library that supports MPI 2.2. and KMR (http://mt.aics.riken.jp/kmr), in
 addition.
 
 This software can be build by a usual building flow, `configure`, `make` and
 `make install`. To switch the backend, specify options to the configure
-script.  The default backend is "single".
+script.  The default backend is "serial".
 
-* configure with the "single" backend
+* configure with the "serial" backend
 
         $ ./configure --prefix=PATH_TO_INSTALL_DIR
         $ make
