@@ -26,15 +26,15 @@ script.  The default backend is "single".
 
 * configure with the "single" backend
 
-         $ ./configure --prefix=PATH_TO_INSTALL_DIR
-         $ make
-         $ make install
+        $ ./configure --prefix=PATH_TO_INSTALL_DIR
+        $ make
+        $ make install
 
 * configure with the "kmr" backend
 
-         $ ./configure --prefix=PATH_TO_INSTALL_DIR \
-           --with-backend=kmr --with-kmr=PATH_TO_KMR_DIR
-         $ make
-         $ make install
+        $ ./configure --prefix=PATH_TO_INSTALL_DIR \
+          --with-backend=kmr --with-kmr=PATH_TO_KMR_DIR
+        $ make
+        $ make install
 
 To enable DEBUG mode, specify `--enable-debug` option to the configure script.
