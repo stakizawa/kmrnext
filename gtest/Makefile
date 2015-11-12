@@ -33,10 +33,24 @@ GTEST_HOME = $(HOME)/lib/googletest-1.7.0
 all: $(TEST_MAIN)
 
 .cpp.o:
+ifeq ($(TARGET), KMR)
+	$(CXX) $(DEFS) $(CXXFLAGS) -I$(GTEST_HOME)/include \
+	-I$(KMRDIR)/include -I../src -c $<
+else
 	$(CXX) $(DEFS) $(CXXFLAGS) -I$(GTEST_HOME)/include -I../src -c $<
+endif
 
 test_all: test_main.o $(TEST_OBJS)
-	$(CXX) -o $@ $^ $(LIB) $(GTEST_HOME)/lib/libgtest.a $(DEPLIB) -lpthread
+	$(CXX)  $(LDFLAGS) -o $@ $^ $(LIB) $(GTEST_HOME)/lib/libgtest.a \
+	$(DEPLIB) -lpthread
+
+run_tests: $(TEST_MAIN)
+ifeq ($(TARGET), KMR)
+	mpiexec --tag-output -n 2 ./$(TEST_MAIN)
+else
+	./$(TEST_MAIN)
+endif
+
 
 .PHONY: clean
 clean:
