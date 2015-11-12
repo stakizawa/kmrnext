@@ -4,17 +4,26 @@
 #include <cstring>
 #include "kmrnext.hpp"
 
+/// The current implementation of KMR-based DataStore consumes huge amount
+/// of memory.  It uses just an array, dense matrix, to store Data, but
+/// actually it is sparse.  It should be modified.
+///
+/// The basic storategy for parallelization
+/// add        : each process adds data locally
+/// get        : a process that has the data broadcasts it
+/// get<view>  : the data is allgathered between all processes
+/// map        : input data is scattered and output data is written locally
+/// load_files : files are block-assigned to processes and load them locally
+
 namespace kmrnext {
 
   DataStore::~DataStore() {
-    // TODO correctly implement
     if (data_allocated_) {
       free(data_);
     }
   }
 
   void DataStore::set(const size_t *val) {
-    // TODO correctly implement
     if (data_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
     }
@@ -29,7 +38,6 @@ namespace kmrnext {
   }
 
   void DataStore::add(const Key& key, const Data& data) {
-    // TODO correctly implement
     check_key_range(key);
     size_t idx = key_to_index(key);
     Data *d = &(data_[idx]);
@@ -38,13 +46,18 @@ namespace kmrnext {
 
   DataPack DataStore::get(const Key& key) {
     // TODO correctly implement
+    throw runtime_error("Not implemented yet: get");
+#if 0
     check_key_range(key);
     size_t idx = key_to_index(key);
     return DataPack(key, &(data_[idx]));
+#endif
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
     // TODO correctly implement
+    throw runtime_error("Not implemented yet: get<view>");
+#if 0
     check_key_range(key);
     vector<DataPack> *dps = new vector<DataPack>();
     for (size_t i = 0; i < data_size_; i++) {
@@ -61,10 +74,13 @@ namespace kmrnext {
       }
     }
     return dps;
+#endif
   }
 
   void DataStore::set_from(const vector<DataStore*>& dslist) {
     // TODO correctly implement
+    throw runtime_error("Not implemented yet: set_from");
+#if 0
     if (dslist.size() == 0) {
       throw runtime_error("There should be at least one DataStore.");
     }
@@ -112,10 +128,13 @@ namespace kmrnext {
       memcpy(data_ + offset, src->data_, sizeof(Data) * src->data_size_);
       offset += src->data_size_;
     }
+#endif
   }
 
   void DataStore::split_to(vector<DataStore*>& dslist) {
     // TODO correctly implement
+    throw runtime_error("Not implemented yet: split_to");
+#if 0
     if (data_size_ == 0) {
       throw runtime_error("Data should be set.");
     }
@@ -142,10 +161,13 @@ namespace kmrnext {
       memcpy(dst->data_, data_ + offset, sizeof(Data) * dst->data_size_);
       offset += dst->data_size_;
     }
+#endif
   }
 
   void DataStore::map(DataStore* outds, Mapper& m, const View& view) {
     // TODO correctly implement
+    throw runtime_error("Not implemented yet: map");
+#if 0
     check_map_args(outds, view);
     if (data_size_ == 0) {
       return;
@@ -172,15 +194,18 @@ namespace kmrnext {
       Key viewed_key = key_to_viewed_key(dps.at(0).key(), view);
       m(this, outds, viewed_key, dps);
     }
+#endif
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
-    // TODO correctly implement
+    // TODO same as SERIAL
     load_array(files, f);
   }
 
   string DataStore::dump(DataPack::Dumper& dumper) {
     // TODO correctly implement
+    throw runtime_error("Not implemented yet");
+#if 0
     class WrappedDumper : public Mapper {
     public:
       string result_;
@@ -208,10 +233,10 @@ namespace kmrnext {
 
     map(NULL, dmpr, view);
     return dmpr.result_;
+#endif
   }
 
   void DataStore::set(const size_t *val, Data *dat_ptr) {
-    // TODO correctly implement
     if (data_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
     }

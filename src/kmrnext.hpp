@@ -47,6 +47,14 @@ namespace kmrnext {
     /// \return        an instance of DataStore
     DataStore* create_ds(size_t siz);
 
+#ifdef BACKEND_KMR
+    /// It returns MPI processes.
+    int nprocs() { return nprocs_; }
+
+    /// It returns rank of this process.
+    int rank() { return rank_; }
+#endif
+
   private:
     static KMRNext *kmrnext_;
 
@@ -55,10 +63,14 @@ namespace kmrnext {
     ~KMRNext();
 
 #ifdef BACKEND_KMR
+    // MPI_Comm where the KMRNext instance belongs
     MPI_Comm world_comm_;
-    KMR *mr_;
+    // Number of processes in the MPI_Comm
     int nprocs_;
+    // Rank of this process in the MPI_Comm
     int rank_;
+    // KMR instance to be used
+    KMR *mr_;
 #endif
   };
 
@@ -282,13 +294,32 @@ namespace kmrnext {
     string dump(DataPack::Dumper& dumper);
 
     /// It loads files to the DataStore.
+    ///
+    /// \param[in] files the array of files to be loaded
+    /// \param[in] f     the function object used to load each files
+    /// \exception std::runtime_error
+    ///                when there is a mismatch between the number of files
+    ///                and dimension sizes of the DataStore.
     void load_files(const vector<string>& files, Loader<string>& f);
 
     /// It loads data in an array to the DataStore.
+    ///
+    /// \param[in] array the array of data to be loaded
+    /// \param[in] f     the function object used to load each data in
+    ///                  the array
+    /// \exception std::runtime_error
+    ///                when there is a mismatch between the size of array
+    ///                and dimension sizes of the DataStore.
     template <typename Type>
     void load_array(const vector<Type>& array, Loader<Type>& f) {
       if (array.size() == 1) {
+#ifdef BACKEND_SERIAL
 	f(this, array[0]);
+#elif defined BACKEND_KMR
+	if (kmrnext_->rank() == 0) {
+	  f(this, array[0]);
+	}
+#endif
 	return;
       }
 
@@ -315,8 +346,22 @@ namespace kmrnext {
 	sub_ds_siz *= value_[i + mi + 1];
       }
 
+#ifdef BACKEND_SERIAL
+      size_t start = 0;
+      size_t end = array.size();
       size_t offset = 0;
-      for (size_t i = 0; i < array.size(); i++) {
+#elif defined BACKEND_KMR
+      // Calculate files assignment to ranks
+      size_t quotient = array.size() / kmrnext_->nprocs();
+      size_t remain   = array.size() % kmrnext_->nprocs();
+      size_t start = kmrnext_->rank() * quotient +
+	(((size_t)kmrnext_->rank() < remain)? kmrnext_->rank() : remain);
+      size_t end = start + quotient +
+	(((size_t)kmrnext_->rank() < remain)? 1 : 0);
+      size_t offset = start * sub_ds_siz;
+#endif
+
+      for (size_t i = start; i < end; i++) {
       	DataStore ds(sub_ds_dim);
       	ds.set(sub_ds_dims, this->data_ + offset);
       	f(&ds, array[i]);
