@@ -53,6 +53,9 @@ namespace kmrnext {
 
     /// It returns rank of this process.
     int rank() { return rank_; }
+
+    /// It returns a KMR object.
+    KMR *kmr() { return mr_; };
 #endif
 
   private:
@@ -195,8 +198,19 @@ namespace kmrnext {
     /// It returns size of the stored data.
     size_t size() { return value_size_; }
 
+#ifdef BACKEND_KMR
+    /// It sets that this Data is shared among processes.
+    void shared() { shared_ = true; }
+
+    /// It returns true if this Data is shared among processes.
+    bool is_shared() { return shared_; }
+#endif
+
   private:
     bool value_allocated_;
+#ifdef BACKEND_KMR
+    bool shared_;
+#endif
   };
 
   ///////////////////////////////////////////////////////////////////////////

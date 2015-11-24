@@ -9,8 +9,10 @@
 /// actually it is sparse.  It should be modified.
 ///
 /// The basic storategy for parallelization
-/// add        : each process adds data locally
+/// add        : rank 0 process adds data locally in case of serial context
+///              each process adds data locally in case of parallel context
 /// get        : a process that has the data broadcasts it
+///              separate implementation in serial/parallel context?
 /// get<view>  : the data is allgathered between all processes
 /// map        : input data is scattered and output data is written locally
 /// load_files : files are block-assigned to processes and load them locally
@@ -39,19 +41,53 @@ namespace kmrnext {
 
   void DataStore::add(const Key& key, const Data& data) {
     check_key_range(key);
-    size_t idx = key_to_index(key);
-    Data *d = &(data_[idx]);
-    d->copy_deep(data);
+    // TODO implement the context of Map/Load_files
+    if (kmrnext_->rank() == 0) {
+      size_t idx = key_to_index(key);
+      Data *d = &(data_[idx]);
+      d->copy_deep(data);
+    }
   }
 
   DataPack DataStore::get(const Key& key) {
-    // TODO correctly implement
-    throw runtime_error("Not implemented yet: get");
-#if 0
     check_key_range(key);
     size_t idx = key_to_index(key);
+    if (data_[idx].is_shared()) {
+      return DataPack(key, &(data_[idx]));
+    }
+
+    KMR_KVS *snd = kmr_create_kvs(kmrnext_->kmr(),
+				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
+    KMR_KVS *rcv = kmr_create_kvs(kmrnext_->kmr(),
+				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
+    // TODO change to KMR_KV_POINTER_OWNED/KMR_KV_POINTER_UNMANAGED
+    if (data_[idx].value() != NULL) {
+      struct kmr_kv_box kv;
+      kv.klen = (int)sizeof(size_t);
+      kv.vlen = (int)data_[idx].size();
+      kv.k.i  = idx;
+      kv.v.p  = (const char*)data_[idx].value();
+      kmr_add_kv(snd, kv);
+    }
+    kmr_add_kv_done(snd);
+    kmr_replicate(snd, rcv, kmr_noopt);
+    long local_count;
+    kmr_local_element_count(rcv, &local_count);
+    if (local_count != 1) {
+      kmr_free_kvs(rcv);
+      throw runtime_error("The gotten data should be exactly one.");
+    }
+    struct kmr_kv_box kv;
+    kmr_take_one(rcv, &kv);
+    if (data_[idx].value() == NULL) {
+      // Copy data for future access.
+      Data rcvdat((void*)kv.v.p, kv.vlen);
+      data_[idx].copy_deep(rcvdat);
+    }
+    data_[idx].shared();
+    kmr_free_kvs(rcv);
+
     return DataPack(key, &(data_[idx]));
-#endif
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
@@ -204,7 +240,7 @@ namespace kmrnext {
 
   string DataStore::dump(DataPack::Dumper& dumper) {
     // TODO correctly implement
-    throw runtime_error("Not implemented yet");
+    throw runtime_error("Not implemented yet: dump");
 #if 0
     class WrappedDumper : public Mapper {
     public:
