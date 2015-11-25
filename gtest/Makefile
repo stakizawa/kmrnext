@@ -9,7 +9,7 @@
 #
 include ../config.make
 
-CXXFLAGS = -DDEBUG -g -O2 -Wall -std=c++98 -fopenmp
+CXXFLAGS = -DDEBUG -g -O0 -Wall -std=c++98 -fopenmp
 LIB      = ../src/libkmrnext.a
 
 ifeq ($(TARGET), KMR)

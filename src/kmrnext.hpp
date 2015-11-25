@@ -249,11 +249,11 @@ namespace kmrnext {
   public:
     explicit DataStore(size_t siz)
       : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false), kmrnext_(NULL) {}
+      data_allocated_(false), parallel_(false), kmrnext_(NULL) {}
 
     explicit DataStore(size_t siz, KMRNext *kn)
       : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false), kmrnext_(kn) {}
+      data_allocated_(false), parallel_(false), kmrnext_(kn) {}
 
     virtual ~DataStore();
 
@@ -376,17 +376,24 @@ namespace kmrnext {
 #endif
 
       for (size_t i = start; i < end; i++) {
-      	DataStore ds(sub_ds_dim);
+      	DataStore ds(sub_ds_dim, this->kmrnext_);
       	ds.set(sub_ds_dims, this->data_ + offset);
+	ds.parallel_ = true;
       	f(&ds, array[i]);
 	offset += sub_ds_siz;
       }
     }
 
   private:
+    // Pointer to stored Data
     Data *data_;
+    // Size of data_
     size_t data_size_;
+    // True if the data_ is already allocated
     bool data_allocated_;
+    // True if the DataStore should be processed in parallel
+    bool parallel_;
+    // A KMRNext object that stores execution status
     KMRNext *kmrnext_;
 
     // It sets size of each dimension.

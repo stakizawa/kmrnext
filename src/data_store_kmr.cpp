@@ -41,8 +41,7 @@ namespace kmrnext {
 
   void DataStore::add(const Key& key, const Data& data) {
     check_key_range(key);
-    // TODO implement the context of Map/Load_files
-    if (kmrnext_->rank() == 0) {
+    if (parallel_ || kmrnext_->rank() == 0) {
       size_t idx = key_to_index(key);
       Data *d = &(data_[idx]);
       d->copy_deep(data);

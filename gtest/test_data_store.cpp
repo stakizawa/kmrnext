@@ -3,6 +3,8 @@
 #include <sstream>
 #include "kmrnext.hpp"
 
+extern kmrnext::KMRNext *gNext;
+
 namespace {
 
   class DataStoreTest : public ::testing::Test {
@@ -56,7 +58,7 @@ namespace {
       d1value_ = 2;
       d1_ = new kmrnext::Data(&d1value_, sizeof(long));
 
-      ds0_ = new kmrnext::DataStore(ds_size_);
+      ds0_ = new kmrnext::DataStore(ds_size_, gNext);
       ds0_->set(array_ds0_);
       kmrnext::Key tk(ds_size_);
       for (size_t i = 0; i < 2; i++) {
@@ -70,7 +72,7 @@ namespace {
       	}
       }
 
-      ds1_ = new kmrnext::DataStore(2);
+      ds1_ = new kmrnext::DataStore(2, gNext);
       size_t ary_ds1[2] = {2, 2};
       ds1_->set(ary_ds1);
       kmrnext::Key ds1key(2);
@@ -82,7 +84,7 @@ namespace {
       	}
       }
 
-      ds2_ = new kmrnext::DataStore(2);
+      ds2_ = new kmrnext::DataStore(2, gNext);
       size_t ary_ds2[2] = {2, 1};
       ds2_->set(ary_ds2);
       kmrnext::Key ds2key(2);
@@ -94,7 +96,7 @@ namespace {
       	}
       }
 
-      ds3_ = new kmrnext::DataStore(1);
+      ds3_ = new kmrnext::DataStore(1, gNext);
       size_t ary_ds3[1] = {2};
       ds3_->set(ary_ds3);
       kmrnext::Key ds3key(1);
@@ -155,14 +157,14 @@ namespace {
   };
 
   TEST_F(DataStoreTest, Constructor) {
-    kmrnext::DataStore ds(ds_size_);
+    kmrnext::DataStore ds(ds_size_, gNext);
     EXPECT_EQ(ds_size_, ds.size());
-    EXPECT_THROW({kmrnext::DataStore dse(ds_size_error_);},
+    EXPECT_THROW({kmrnext::DataStore dse(ds_size_error_, gNext);},
 		 std::runtime_error);
   }
 
   TEST_F(DataStoreTest, Set) {
-    kmrnext::DataStore ds(ds_size_);
+    kmrnext::DataStore ds(ds_size_, gNext);
     ds.set(array_ds0_);
     EXPECT_EQ(array_ds0_[0], ds.dim(0));
     EXPECT_EQ(array_ds0_[1], ds.dim(1));
@@ -176,7 +178,7 @@ namespace {
 
   TEST_F(DataStoreTest, Add) {
     // assume that ds.get() works fine
-    kmrnext::DataStore ds(ds_size_);
+    kmrnext::DataStore ds(ds_size_, gNext);
     ds.set(array_ds0_);
     ds.add(*key0_, *d0_);
     kmrnext::DataPack dp = ds.get(*key0_);
@@ -231,7 +233,7 @@ namespace {
     vec0.push_back(ds1_);
     vec0.push_back(ds1_);
     vec0.push_back(ds1_);
-    kmrnext::DataStore mds0(3);
+    kmrnext::DataStore mds0(3, gNext);
     mds0.set_from(vec0);
     EXPECT_EQ((size_t)3, mds0.dim(0));
     EXPECT_EQ(ds1_->dim(0), mds0.dim(1));
@@ -242,13 +244,13 @@ namespace {
 
     // If the given vector is empty, it throws a runtime_error.
     std::vector<kmrnext::DataStore*> vec1;
-    kmrnext::DataStore mds1(3);
+    kmrnext::DataStore mds1(3, gNext);
     EXPECT_THROW({mds1.set_from(vec1);}, std::runtime_error);
 
     // If the given vector has one DataStore, it performs as usual.
     std::vector<kmrnext::DataStore*> vec2;
     vec2.push_back(ds1_);
-    kmrnext::DataStore mds2(3);
+    kmrnext::DataStore mds2(3, gNext);
     mds2.set_from(vec2);
     EXPECT_EQ((size_t)1, mds2.dim(0));
     EXPECT_EQ(ds1_->dim(0), mds2.dim(1));
@@ -258,7 +260,7 @@ namespace {
     EXPECT_THROW({mds2.get(*key2_);}, std::runtime_error); // not exist
 
     // If the data is already set, it throws a runtime_error
-    kmrnext::DataStore mds3(3);
+    kmrnext::DataStore mds3(3, gNext);
     size_t array_mds3[3] = {3, 2, 2};
     mds3.set(array_mds3);
     EXPECT_THROW({mds3.set_from(vec0);}, std::runtime_error);
@@ -268,7 +270,7 @@ namespace {
     std::vector<kmrnext::DataStore*> vec4;
     vec4.push_back(ds1_);
     vec4.push_back(ds2_);
-    kmrnext::DataStore mds4(3);
+    kmrnext::DataStore mds4(3, gNext);
     EXPECT_THROW({mds4.set_from(vec4);}, std::runtime_error);
 
     // If the dimensions of merged DataStores are not same,
@@ -276,15 +278,15 @@ namespace {
     std::vector<kmrnext::DataStore*> vec5;
     vec5.push_back(ds1_);
     vec5.push_back(ds3_);
-    kmrnext::DataStore mds5(3);
+    kmrnext::DataStore mds5(3, gNext);
     EXPECT_THROW({mds5.set_from(vec5);}, std::runtime_error);
   }
 
   TEST_F(DataStoreTest, Split_to) {
     // assume that ds.get() works fine
     std::vector<kmrnext::DataStore*> vec0;
-    kmrnext::DataStore sds00(ds_size_ - 1);
-    kmrnext::DataStore sds01(ds_size_ - 1);
+    kmrnext::DataStore sds00(ds_size_ - 1, gNext);
+    kmrnext::DataStore sds01(ds_size_ - 1, gNext);
     vec0.push_back(&sds00);
     vec0.push_back(&sds01);
     ds0_->split_to(vec0);
@@ -304,8 +306,8 @@ namespace {
 
     // If target DataStore has only one dimension, it throws runtime_errror.
     std::vector<kmrnext::DataStore*> vec1;
-    kmrnext::DataStore sds10(1);
-    kmrnext::DataStore sds11(1);
+    kmrnext::DataStore sds10(1, gNext);
+    kmrnext::DataStore sds11(1, gNext);
     vec1.push_back(&sds10);
     vec1.push_back(&sds11);
     EXPECT_THROW({ds3_->split_to(vec1);}, std::runtime_error);
@@ -317,9 +319,9 @@ namespace {
     // If more vector than the top-level dimension of the target DataStore
     // is given, it throws runtime_error.
     std::vector<kmrnext::DataStore*> vec3;
-    kmrnext::DataStore sds30(ds_size_ - 1);
-    kmrnext::DataStore sds31(ds_size_ - 1);
-    kmrnext::DataStore sds32(ds_size_ - 1);
+    kmrnext::DataStore sds30(ds_size_ - 1, gNext);
+    kmrnext::DataStore sds31(ds_size_ - 1, gNext);
+    kmrnext::DataStore sds32(ds_size_ - 1, gNext);
     vec3.push_back(&sds30);
     vec3.push_back(&sds31);
     vec3.push_back(&sds32);
@@ -349,14 +351,14 @@ namespace {
     // assume that ds.get() works fine
     Summarizer mapper;
 
-    kmrnext::DataStore ods0(ds_size_);
+    kmrnext::DataStore ods0(ds_size_, gNext);
     ods0.set(array_ds0_);
     ds0_->map(&ods0, mapper, *v0_);
     EXPECT_EQ(2, *(long*)ods0.get(*key0_).data()->value());
     EXPECT_EQ(2, *(long*)ods0.get(*key1_).data()->value());
     EXPECT_EQ(2, *(long*)ods0.get(*key2_).data()->value());
 
-    kmrnext::DataStore ods1(2);
+    kmrnext::DataStore ods1(2, gNext);
     size_t ary_ods1[2] = {2,2};
     ods1.set(ary_ods1);
     ds0_->map(&ods1, mapper, *v1_);
@@ -371,7 +373,7 @@ namespace {
 
     // If the dimension of view does not match that of the input DataStore,
     // it throws runtime_error.
-    kmrnext::DataStore ods2(ds_size_);
+    kmrnext::DataStore ods2(ds_size_, gNext);
     ods2.set(array_ds0_);
     EXPECT_THROW({ds1_->map(&ods2, mapper, *v0_);}, std::runtime_error);
   }
@@ -419,7 +421,7 @@ namespace {
     DataLoader2D loader2d(ds0_->dim(1), ds0_->dim(2));
 
     // Test 0
-    kmrnext::DataStore ds0(ds_size_);
+    kmrnext::DataStore ds0(ds_size_, gNext);
     ds0.set(array_ds0_);
     std::vector<int> vec0;
     for (size_t i = 0; i < ds0.dim(0); i++) {
@@ -433,7 +435,7 @@ namespace {
     EXPECT_EQ(2, *(long*)ds0.get(*key2_).data()->value());
 
     // Test 1
-    kmrnext::DataStore ds1(ds_size_);
+    kmrnext::DataStore ds1(ds_size_, gNext);
     ds1.set(array_ds0_);
     std::vector<int> vec1;
     for (size_t i = 0; i < ds1.dim(0); i++) {
@@ -446,7 +448,7 @@ namespace {
 
     // IF the size of array is not same as the multiple of dimension size
     // of the DataStore, it throws runtime_error.
-    kmrnext::DataStore ds2(ds_size_);
+    kmrnext::DataStore ds2(ds_size_, gNext);
     ds2.set(array_ds0_);
     std::vector<int> vec2;
     for (size_t i = 0; i < ds_size_error_; i++) {
