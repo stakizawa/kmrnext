@@ -19,6 +19,21 @@
 
 namespace kmrnext {
 
+  /// It copies a key-value to vector<DataPack>.
+  ///
+  /// It is a KMR mapper function.  Key of the key-value should be an
+  /// integer and value of the key-value should be a DataPack.  It also
+  /// sets shared flags to data in the DataStore.
+  int mapper_get_view(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+		      KMR_KVS *kvo, void *p, const long i);
+
+  /// Parameter for mapper_get_view
+  typedef struct {
+    DataStore *ds;
+    Data *data;
+    vector<DataPack> *dps;
+  } param_mapper_get_view;
+
   DataStore::~DataStore() {
     if (data_allocated_) {
       free(data_);
@@ -90,26 +105,51 @@ namespace kmrnext {
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
-    // TODO correctly implement
-    throw runtime_error("Not implemented yet: get<view>");
-#if 0
     check_key_range(key);
     vector<DataPack> *dps = new vector<DataPack>();
+
+    KMR_KVS *snd = kmr_create_kvs(kmrnext_->kmr(),
+				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
+    KMR_KVS *rcv = kmr_create_kvs(kmrnext_->kmr(),
+				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
+    // TODO change to KMR_KV_POINTER_OWNED/KMR_KV_POINTER_UNMANAGED
     for (size_t i = 0; i < data_size_; i++) {
+      if (data_[i].value() == NULL) {
+	continue;
+      }
       Key tmpkey = index_to_key(i);
-      bool store = true;
+      bool match = true;
       for (size_t j = 0; j < size_; j++) {
 	if (view.dim(j) && key.dim(j) != tmpkey.dim(j)) {
-	  store = false;
+	  match = false;
 	  break;
 	}
       }
-      if (store) {
-	dps->push_back(DataPack(tmpkey, &(data_[i])));
+      if (match) {
+	if (data_[i].is_shared()) {
+	  // the data is already replicated
+	  dps->push_back(DataPack(tmpkey, &(data_[i])));
+	  continue;
+	} else {
+	  // replicate the data
+	  struct kmr_kv_box kv;
+	  kv.klen = (int)sizeof(size_t);
+	  kv.vlen = (int)data_[i].size();
+	  kv.k.i  = i;
+	  kv.v.p  = (const char*)data_[i].value();
+	  kmr_add_kv(snd, kv);
+	}
       }
     }
+    kmr_add_kv_done(snd);
+    kmr_replicate(snd, rcv, kmr_noopt);
+    param_mapper_get_view param;
+    param.ds = this;
+    param.data = data_;
+    param.dps = dps;
+    kmr_map(rcv, NULL, (void*)&param, kmr_noopt, kmrnext::mapper_get_view);
+
     return dps;
-#endif
   }
 
   void DataStore::set_from(const vector<DataStore*>& dslist) {
@@ -233,7 +273,6 @@ namespace kmrnext {
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
-    // TODO same as SERIAL
     load_array(files, f);
   }
 
@@ -384,6 +423,20 @@ namespace kmrnext {
       throw runtime_error("Dimension size of the input DataStore and "
 			  "view should be same.");
     }
+  }
+
+  int mapper_get_view(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+		      KMR_KVS *kvo, void *p, const long i) {
+    param_mapper_get_view *param = (param_mapper_get_view *)p;
+    size_t idx = kv0.k.i;
+    Key key = param->ds->index_to_key(idx);
+    if (param->data[idx].value() == NULL) {
+      Data data((void*)kv0.v.p, kv0.vlen);
+      param->data[idx].copy_deep(data);
+    }
+    param->data[idx].shared();
+    param->dps->push_back(DataPack(key, &(param->data[idx])));
+    return MPI_SUCCESS;
   }
 
 }

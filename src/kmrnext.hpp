@@ -384,6 +384,12 @@ namespace kmrnext {
       }
     }
 
+    /// It returns the index of Data calculated from the specified Key.
+    size_t key_to_index(const Key& key);
+
+    /// It returns a Key of the specified indexed Data.
+    Key index_to_key(const size_t index);
+
   private:
     // Pointer to stored Data
     Data *data_;
@@ -400,17 +406,11 @@ namespace kmrnext {
     // It just sets pointer to data, not performs malloc and memcpy.
     void set(const size_t *val, Data *dat_ptr);
 
-    // It returns the index of Data calculated from the specified Key.
-    size_t key_to_index(const Key& key);
-
-    // It returns a Key of the specified indexed Data.
-    Key index_to_key(const size_t index);
-
     // It returns the index of Data calculated from the specified Key when
     // the specified view is applied.
     size_t key_to_viwed_index(const Key& key, const View& view);
 
-    // It converts the specified key by applying the specified View.
+    // It converts the specified Key by applying the specified View.
     Key key_to_viewed_key(const Key& key, const View& view);
 
     // It checks if dimensions of key are inside the range.
