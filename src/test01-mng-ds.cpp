@@ -1,7 +1,12 @@
 #include <iostream>
 #include "kmrnext.hpp"
+#ifdef BACKEND_KMR
+#include <mpi.h>
+#endif
 
 using namespace std;
+
+int rank = 0;
 
 const bool kPrint = true;
 
@@ -21,6 +26,7 @@ const string kFile2 = "file2";
 const string kFile3 = "file3";
 
 void load_file(kmrnext::DataStore *ds, const string& file);
+bool prints();
 void print_ds(kmrnext::DataStore *ds, const kmrnext::View& v,
 	      const string& name, int count);
 
@@ -33,6 +39,10 @@ main(int argc, char **argv)
 {
   kmrnext::KMRNext *next = kmrnext::KMRNext::init(argc, argv);
 
+#ifdef BACKEND_KMR
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+
   /////////// Create DataStores
   kmrnext::DataStore *dsu0 = next->create_ds(kDimCell);
   kmrnext::DataStore *dsu1 = next->create_ds(kDimCell);
@@ -42,7 +52,7 @@ main(int argc, char **argv)
   dsu1->set(kDSCellSizes);
   dsu2->set(kDSCellSizes);
   dsu3->set(kDSCellSizes);
-  if (kPrint) {
+  if (prints()) {
     cout << "0. Create DataStores" << endl;
     cout << "  DSCell0: " << dsu0->to_string() << endl;
     cout << "  DSCell1: " << dsu1->to_string() << endl;
@@ -56,7 +66,7 @@ main(int argc, char **argv)
   load_file(dsu1, kFile1);
   load_file(dsu2, kFile2);
   load_file(dsu3, kFile3);
-  if (kPrint) {
+  if (prints()) {
     cout << "1. Load data to DataStores" << endl;
     kmrnext::View v(kDimCell);
     bool flag[kDimCell] = {false, false};
@@ -74,7 +84,7 @@ main(int argc, char **argv)
   vector<kmrnext::DataStore*> dsus;
   dsus.push_back(dsu0);
   ds0->set_from(dsus);
-  if (kPrint) {
+  if (prints()) {
     cout << "2. Increase dimension by set_from()" << endl;
     kmrnext::View v(kDimCell + 1);
     bool flag[kDimCell + 1] = {false, false, false};
@@ -89,7 +99,7 @@ main(int argc, char **argv)
   dsus.push_back(dsu2);
   dsus.push_back(dsu3);
   ds1->set_from(dsus);
-  if (kPrint) {
+  if (prints()) {
     cout << "3. Combine four DataStores by set_from()" << endl;
     kmrnext::View v(kDimCell + 1);
     bool flag[kDimCell + 1] = {false, false, false};
@@ -122,7 +132,7 @@ main(int argc, char **argv)
   dsms.push_back(dsm8);
   dsms.push_back(dsm9);
   dsu0->split_to(dsms);
-  if (kPrint) {
+  if (prints()) {
     cout << "4. Split a DataStore to 10 DataStores by split_to()"  << endl;
     kmrnext::View v(kDimCell - 1);
     bool flag[kDimCell - 1] = {false};
@@ -190,7 +200,8 @@ public:
     : _max_count(max_count), _padding(padding) {}
 
   int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
-		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps)
+		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps,
+		 kmrnext::DataStore::MapEnvironment& env)
   {
     //cout << _padding << "Key: " << key.to_string() << endl;
     cout << _padding << "Count: " << dps.size() << endl;
@@ -218,6 +229,11 @@ void load_file(kmrnext::DataStore *ds, const string& file)
   files.push_back(file);
   DataLoader loader;
   ds->load_files(files, loader);
+}
+
+bool prints()
+{
+  return (rank == 0) && kPrint;
 }
 
 void print_ds(kmrnext::DataStore *ds, const kmrnext::View& v,

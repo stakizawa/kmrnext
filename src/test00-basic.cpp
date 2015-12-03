@@ -1,7 +1,12 @@
 #include <iostream>
 #include "kmrnext.hpp"
+#ifdef BACKEND_KMR
+#include <mpi.h>
+#endif
 
 using namespace std;
+
+int rank = 0;
 
 const bool kPrint = true;
 
@@ -14,6 +19,8 @@ const size_t kDim2_0 = 10;
 const size_t kDim2_1 = 10;
 
 void load_data(kmrnext::DataStore *ds);
+bool prints();
+void print_data_store(kmrnext::DataStore *ds);
 void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp);
 void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
 			   kmrnext::Key& k, int count);
@@ -22,7 +29,8 @@ void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
 class Summarizer : public kmrnext::DataStore::Mapper {
 public:
   int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
-		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps)
+		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps,
+		 kmrnext::DataStore::MapEnvironment& env)
   {
     long sum = 0;
     for (size_t i = 0; i < dps.size(); i++) {
@@ -46,7 +54,8 @@ public:
     : _max_count(max_count), _padding(padding) {}
 
   int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
-		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps)
+		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps,
+		 kmrnext::DataStore::MapEnvironment& env)
   {
     cout << _padding << "Key: " << key.to_string() << endl;
     cout << _padding << "Count: " << dps.size() << endl;
@@ -77,11 +86,15 @@ main(int argc, char **argv)
 {
   kmrnext::KMRNext *next = kmrnext::KMRNext::init(argc, argv);
 
+#ifdef BACKEND_KMR
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+
   ///////////  Create a DataStore
   kmrnext::DataStore *ds1 = next->create_ds(kDimension3);
   size_t sizes3[kDimension3] = {kDim3_0, kDim3_1, kDim3_2};
   ds1->set(sizes3);
-  cout << "DataStore: " << ds1->to_string() << endl;
+  print_data_store(ds1);
 
   ///////////  Load data contents from a file
   load_data(ds1);
@@ -97,7 +110,7 @@ main(int argc, char **argv)
   ///////////  Get a data from a DataStore
   kmrnext::DataPack dp1 = ds1->get(key1);
   kmrnext::DataPack dp2 = ds1->get(key2);
-  if (kPrint) {
+  if (prints()) {
     cout << "1. Get a data from a DataStore by get()" << endl;
     print_get_result(key1, dp1);
     print_get_result(key2, dp2);
@@ -127,7 +140,7 @@ main(int argc, char **argv)
   vector<kmrnext::DataPack> *dpvec6 = ds1->get(v3, key2);
   vector<kmrnext::DataPack> *dpvec7 = ds1->get(v4, key1);
   vector<kmrnext::DataPack> *dpvec8 = ds1->get(v4, key2);
-  if (kPrint) {
+  if (prints()) {
     cout << "2. Get data from a DataStore by get(view)" << endl;
     print_get_view_result(dpvec1, v1, key1, 10);
     print_get_view_result(dpvec2, v1, key2, 10);
@@ -149,20 +162,21 @@ main(int argc, char **argv)
   delete dpvec8;
 
   ///////////  Apply map functions
-  kmrnext::DataStore ds2(kDimension2);
+  kmrnext::DataStore *ds2 = next->create_ds(kDimension2);
   size_t sizes2[kDimension2] = {kDim2_0, kDim2_1};
-  ds2.set(sizes2);
+  ds2->set(sizes2);
   Summarizer sumr;
-  ds1->map(&ds2, sumr, v2);
-  if (kPrint) {
+  ds1->map(ds2, sumr, v2);
+  if (prints()) {
     cout << "3. Apply map to each data in a DataStore" << endl;
     kmrnext::View v5(kDimension2);
     bool flags5[kDimension2] = {false, false};
     v5.set(flags5);
     DataStorePrinter printer(-1, "  ");
-    ds2.map(NULL, printer, v5);
+    ds2->map(NULL, printer, v5);
     cout << endl;
   }
+  delete ds2;
 
   delete ds1;
   kmrnext::KMRNext::finalize();
@@ -198,6 +212,18 @@ void load_data(kmrnext::DataStore *ds)
   //  files.push_back("dummy2");
   Loader loader;
   ds->load_files(files, loader);
+}
+
+bool prints()
+{
+  return (rank == 0) && kPrint;
+}
+
+void print_data_store(kmrnext::DataStore *ds)
+{
+  if (rank == 0) {
+    cout << "DataStore: " << ds->to_string() << endl;
+  }
 }
 
 void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp)
