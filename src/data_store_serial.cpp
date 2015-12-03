@@ -151,7 +151,6 @@ namespace kmrnext {
     }
 
     vector< vector<DataPack> > dpgroups(nkeys);
-
     for (size_t i = 0; i < data_size_; i++) {
       Key tmpkey = index_to_key(i);
       size_t viewed_idx = key_to_viwed_index(tmpkey, view);
@@ -159,10 +158,12 @@ namespace kmrnext {
       dps.push_back(DataPack(tmpkey, &(data_[i])));
     }
 
+    MapEnvironment env;
+    env.rank = 0;
     for (size_t i = 0; i < dpgroups.size(); i++) {
       vector<DataPack> &dps = dpgroups.at(i);
       Key viewed_key = key_to_viewed_key(dps.at(0).key(), view);
-      m(this, outds, viewed_key, dps);
+      m(this, outds, viewed_key, dps, env);
     }
   }
 
@@ -178,7 +179,8 @@ namespace kmrnext {
 
       WrappedDumper(DataPack::Dumper& dmpr) : dumper_(dmpr) {}
       int operator()(DataStore *inds, DataStore *outds,
-		     Key& key, vector<DataPack>& dps)
+		     Key& key, vector<DataPack>& dps,
+		     MapEnvironment& env)
       {
 	ostringstream os;
 	os << "Data Count: " << dps.size() << endl;

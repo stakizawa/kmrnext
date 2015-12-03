@@ -258,6 +258,24 @@ namespace kmrnext {
     virtual ~DataStore();
 
     /////////////////////////////////////////////////////////////////////////
+    /// A class that stores map function execution environment
+    ///
+    /// When you call DataStore.Map() to a DataStore, the execution
+    /// environment of a Data is set to this class.
+    /////////////////////////////////////////////////////////////////////////
+    struct MapEnvironment {
+      /// Process id.
+      ///
+      /// In case of Serial backend driver, it is 0.
+      /// In case of KMR backend driver, it is a MPI rank in MPI_COMM_WORLD.
+      int rank;
+#ifdef BACKEND_KMR
+      /// MPI_Comm used for processes a Value between processes.
+      MPI_Comm mpi_comm;
+#endif
+    };
+
+    /////////////////////////////////////////////////////////////////////////
     /// A virtual class used for applying a function to Data in a DataStore
     ///
     /// If you want to apply a function to each Data in a DataStore (Map),
@@ -266,8 +284,9 @@ namespace kmrnext {
     /////////////////////////////////////////////////////////////////////////
     class Mapper {
     public:
-      virtual int operator()(DataStore *inds, DataStore *outds, Key& key,
-			     vector<DataPack>& dps) = 0;
+      virtual int operator()(DataStore *inds, DataStore *outds,
+			     Key& key, vector<DataPack>& dps,
+			     MapEnvironment& env) = 0;
     };
 
     /////////////////////////////////////////////////////////////////////////

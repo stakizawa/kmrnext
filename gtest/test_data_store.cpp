@@ -332,7 +332,8 @@ namespace {
   class Summarizer : public kmrnext::DataStore::Mapper {
   public:
     int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
-		   kmrnext::Key& key, std::vector<kmrnext::DataPack>& dps)
+		   kmrnext::Key& key, std::vector<kmrnext::DataPack>& dps,
+		   kmrnext::DataStore::MapEnvironment& env)
     {
       long sum = 0;
       for (size_t i = 0; i < dps.size(); i++) {
