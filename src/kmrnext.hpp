@@ -199,6 +199,12 @@ namespace kmrnext {
     size_t size() { return value_size_; }
 
 #ifdef BACKEND_KMR
+    /// It returns rank of owner process of this Data.
+    int owner() { return owner_; };
+
+    /// It sets owner of this Data.
+    void set_owner(int rank) { owner_ = rank; }
+
     /// It sets that this Data is shared among processes.
     void shared() { shared_ = true; }
 
@@ -209,6 +215,7 @@ namespace kmrnext {
   private:
     bool value_allocated_;
 #ifdef BACKEND_KMR
+    int owner_;
     bool shared_;
 #endif
   };
@@ -249,11 +256,13 @@ namespace kmrnext {
   public:
     explicit DataStore(size_t siz)
       : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false), parallel_(false), kmrnext_(NULL) {}
+      data_allocated_(false), parallel_(false),
+      kmrnext_(NULL) {}
 
     explicit DataStore(size_t siz, KMRNext *kn)
       : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false), parallel_(false), kmrnext_(kn) {}
+      data_allocated_(false), parallel_(false),
+      kmrnext_(kn) {}
 
     virtual ~DataStore();
 
@@ -403,11 +412,11 @@ namespace kmrnext {
       }
     }
 
-    /// It returns the index of Data calculated from the specified Key.
-    size_t key_to_index(const Key& key);
-
     /// It returns a Key of the specified indexed Data.
     Key index_to_key(const size_t index);
+
+    /// It converts the specified Key by applying the specified View.
+    Key key_to_viewed_key(const Key& key, const View& view);
 
   private:
     // Pointer to stored Data
@@ -425,12 +434,12 @@ namespace kmrnext {
     // It just sets pointer to data, not performs malloc and memcpy.
     void set(const size_t *val, Data *dat_ptr);
 
+    // It returns the index of Data calculated from the specified Key.
+    size_t key_to_index(const Key& key);
+
     // It returns the index of Data calculated from the specified Key when
     // the specified view is applied.
     size_t key_to_viwed_index(const Key& key, const View& view);
-
-    // It converts the specified Key by applying the specified View.
-    Key key_to_viewed_key(const Key& key, const View& view);
 
     // It checks if dimensions of key are inside the range.
     void check_key_range(const Key& key);

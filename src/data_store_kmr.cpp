@@ -34,6 +34,23 @@ namespace kmrnext {
     vector<DataPack> *dps;
   } param_mapper_get_view;
 
+  /// It maps Datas in a DataStore.
+  ///
+  /// It is a KMR mapper function.  Key and value of the key-value should
+  /// be an integer that represents index of Key-Data vactor.
+  int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+		 KMR_KVS *kvo, void *p, const long i);
+
+  /// Parameter for mapper_map
+  typedef struct {
+    DataStore::Mapper& mapper;
+    DataStore *ids;
+    DataStore *ods;
+    const View& view;
+    DataStore::MapEnvironment& env;
+    vector< vector<DataPack> >& dpgroups;
+  } param_mapper_map;
+
   DataStore::~DataStore() {
     if (data_allocated_) {
       free(data_);
@@ -59,6 +76,7 @@ namespace kmrnext {
     if (parallel_ || kmrnext_->rank() == 0) {
       size_t idx = key_to_index(key);
       Data *d = &(data_[idx]);
+      d->set_owner(kmrnext_->rank());
       d->copy_deep(data);
     }
   }
@@ -143,10 +161,7 @@ namespace kmrnext {
     }
     kmr_add_kv_done(snd);
     kmr_replicate(snd, rcv, kmr_noopt);
-    param_mapper_get_view param;
-    param.ds = this;
-    param.data = data_;
-    param.dps = dps;
+    param_mapper_get_view param = { this, data_, dps };
     kmr_map(rcv, NULL, (void*)&param, kmr_noopt, kmrnext::mapper_get_view);
 
     return dps;
@@ -240,9 +255,6 @@ namespace kmrnext {
   }
 
   void DataStore::map(DataStore* outds, Mapper& m, const View& view) {
-    // TODO correctly implement
-    throw runtime_error("Not implemented yet: map");
-#if 0
     check_map_args(outds, view);
     if (data_size_ == 0) {
       return;
@@ -256,20 +268,33 @@ namespace kmrnext {
     }
 
     vector< vector<DataPack> > dpgroups(nkeys);
-
     for (size_t i = 0; i < data_size_; i++) {
+      if (data_[i].value() == NULL ||
+	  (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank())) {
+	continue;
+      }
       Key tmpkey = index_to_key(i);
       size_t viewed_idx = key_to_viwed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
       dps.push_back(DataPack(tmpkey, &(data_[i])));
     }
 
-    for (size_t i = 0; i < dpgroups.size(); i++) {
-      vector<DataPack> &dps = dpgroups.at(i);
-      Key viewed_key = key_to_viewed_key(dps.at(0).key(), view);
-      m(this, outds, viewed_key, dps);
+    KMR_KVS *ikvs = kmr_create_kvs(kmrnext_->kmr(),
+				   KMR_KV_INTEGER, KMR_KV_INTEGER);
+    for (size_t i = 0; i < nkeys; i++) {
+      struct kmr_kv_box kv;
+      kv.klen = (int)sizeof(size_t);
+      kv.vlen = (int)sizeof(size_t);
+      kv.k.i  = i;
+      kv.v.i  = i;
+      kmr_add_kv(ikvs, kv);
     }
-#endif
+    kmr_add_kv_done(ikvs);
+
+    MapEnvironment env = { kmrnext_->rank(), MPI_COMM_NULL };
+    param_mapper_map param = { m, this, outds, view, env, dpgroups };
+    // TODO kmr_map_world
+    kmr_map(ikvs, NULL, (void*)&param, kmr_noopt, kmrnext::mapper_map);
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
@@ -436,6 +461,20 @@ namespace kmrnext {
     }
     param->data[idx].shared();
     param->dps->push_back(DataPack(key, &(param->data[idx])));
+    return MPI_SUCCESS;
+  }
+
+  int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+		 KMR_KVS *kvo, void *p, const long i) {
+    param_mapper_map *param = (param_mapper_map *)p;
+    size_t idx = kv0.k.i;
+    vector<DataPack>& dps = param->dpgroups.at(idx);
+    if (dps.size() != 0) {
+      Key viewed_key =
+	param->ids->key_to_viewed_key(dps.at(0).key(), param->view);
+      param->env.mpi_comm = kvi->c.mr->comm;
+      param->mapper(param->ids, param->ods, viewed_key, dps, param->env);
+    }
     return MPI_SUCCESS;
   }
 
