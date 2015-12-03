@@ -168,9 +168,6 @@ namespace kmrnext {
   }
 
   void DataStore::set_from(const vector<DataStore*>& dslist) {
-    // TODO correctly implement
-    throw runtime_error("Not implemented yet: set_from");
-#if 0
     if (dslist.size() == 0) {
       throw runtime_error("There should be at least one DataStore.");
     }
@@ -218,13 +215,9 @@ namespace kmrnext {
       memcpy(data_ + offset, src->data_, sizeof(Data) * src->data_size_);
       offset += src->data_size_;
     }
-#endif
   }
 
   void DataStore::split_to(vector<DataStore*>& dslist) {
-    // TODO correctly implement
-    throw runtime_error("Not implemented yet: split_to");
-#if 0
     if (data_size_ == 0) {
       throw runtime_error("Data should be set.");
     }
@@ -251,7 +244,6 @@ namespace kmrnext {
       memcpy(dst->data_, data_ + offset, sizeof(Data) * dst->data_size_);
       offset += dst->data_size_;
     }
-#endif
   }
 
   void DataStore::map(DataStore* outds, Mapper& m, const View& view) {
@@ -312,7 +304,8 @@ namespace kmrnext {
 
       WrappedDumper(DataPack::Dumper& dmpr) : dumper_(dmpr) {}
       int operator()(DataStore *inds, DataStore *outds,
-		     Key& key, vector<DataPack>& dps)
+		     Key& key, vector<DataPack>& dps,
+		     MapEnvironment& env)
       {
 	ostringstream os;
 	os << "Data Count: " << dps.size() << endl;

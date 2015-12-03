@@ -369,15 +369,18 @@ namespace {
     // If the input and output DataStores are same, it throws runtime_error.
     EXPECT_THROW({ds0_->map(ds0_, mapper, *v0_);}, std::runtime_error);
 
-    // If the output DataStore already has some value, it throws runtime_error.
-    // TODO check future.
-
     // If the dimension of view does not match that of the input DataStore,
     // it throws runtime_error.
     kmrnext::DataStore ods2(ds_size_, gNext);
     ods2.set(array_ds0_);
     EXPECT_THROW({ds1_->map(&ods2, mapper, *v0_);}, std::runtime_error);
   }
+
+#if 0
+  // TODO for kmr backend
+  TEST_F(DataStoreTest, Map_kmr) {
+  }
+#endif
 
   class DataLoader1D : public kmrnext::DataStore::Loader<int> {
     size_t size_;
