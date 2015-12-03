@@ -191,7 +191,7 @@ namespace kmrnext {
 	  expected_data_size = calc_data_size;
 	} else {
 	  if (expected_data_size != calc_data_size) {
-	    throw runtime_error("Data count one of DataStore is wrong.");
+	    throw runtime_error("Data count of one of DataStore is wrong.");
 	  }
 	}
       }
@@ -230,7 +230,16 @@ namespace kmrnext {
 	 << ", but " << dslist.size() << ".";
       throw runtime_error(os.str());
     }
-    // TODO check if the size of each DataStore in dslist is same.
+    {
+      // Check each DataStore in the vector
+      size_t expected_dim_size = size_ - 1;
+      for (vector<DataStore*>::iterator itr = dslist.begin();
+	   itr != dslist.end(); itr++) {
+	if (expected_dim_size != (*itr)->size_) {
+	  throw runtime_error("Dimension size of one of DataStore is wrong.");
+	}
+      }
+    }
 
     size_t split_dims[kMaxDimensionSize];
     for (size_t i = 1; i < size_; i++) {
