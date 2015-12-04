@@ -34,7 +34,7 @@ AC_SUBST(STD_CXX)
 AC_SUBST(WARN_CC)
 AC_SUBST(WARN_CXX)
 
-# The default CFLAGS and CXXFLAGS are remoted
+# The default CFLAGS and CXXFLAGS are removed
 case "$CC" in
 gcc)
     CFLAGS=""
@@ -48,7 +48,7 @@ fccpx)
     CFLAGS="-Kfast,preex -Xg"
     CXXFLAGS="-Kfast,preex -Xg"
     STD_CC="-std=gnu99"
-    STD_CXX="-std=c++98"
+    STD_CXX="-std=gnu++98"
     WARN_CC=""
     WARN_CXX=""
     ;;
