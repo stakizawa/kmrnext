@@ -283,19 +283,22 @@ namespace kmrnext {
     KMR_KVS *ikvs = kmr_create_kvs(kmrnext_->kmr(),
 				   KMR_KV_INTEGER, KMR_KV_INTEGER);
     for (size_t i = 0; i < nkeys; i++) {
-      struct kmr_kv_box kv;
-      kv.klen = (int)sizeof(size_t);
-      kv.vlen = (int)sizeof(size_t);
-      kv.k.i  = i;
-      kv.v.i  = i;
-      kmr_add_kv(ikvs, kv);
+      vector<DataPack> &dps = dpgroups.at(i);
+      if (dps.size() > 0) {
+	struct kmr_kv_box kv;
+	kv.klen = (int)sizeof(size_t);
+	kv.vlen = (int)sizeof(size_t);
+	kv.k.i  = i;
+	kv.v.i  = i;
+	kmr_add_kv(ikvs, kv);
+      }
     }
     kmr_add_kv_done(ikvs);
 
     MapEnvironment env = { kmrnext_->rank(), MPI_COMM_NULL };
     param_mapper_map param = { m, this, outds, view, env, dpgroups };
-    // TODO kmr_map_world
-    kmr_map(ikvs, NULL, (void*)&param, kmr_noopt, kmrnext::mapper_map);
+    kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
+				kmrnext_->rank(), kmrnext::mapper_map);
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
@@ -303,9 +306,6 @@ namespace kmrnext {
   }
 
   string DataStore::dump(DataPack::Dumper& dumper) {
-    // TODO correctly implement
-    throw runtime_error("Not implemented yet: dump");
-#if 0
     class WrappedDumper : public Mapper {
     public:
       string result_;
@@ -317,12 +317,33 @@ namespace kmrnext {
 		     MapEnvironment& env)
       {
 	ostringstream os;
-	os << "Data Count: " << dps.size() << endl;
 	for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	     itr++) {
 	  os << dumper_(*itr);
 	}
-	result_ = os.str();
+	int local_len = (int)os.str().size();
+	const char *local_cstr = os.str().c_str();
+	int nprocs;
+	MPI_Comm_size(env.mpi_comm, &nprocs);
+	int *local_lens = (int*)malloc(sizeof(int) * nprocs);
+	MPI_Allgather(&local_len, 1, MPI_LONG, local_lens, 1, MPI_LONG,
+		      env.mpi_comm);
+	int total_len = 0;
+	int *displs = (int*)malloc(sizeof(int) * nprocs);
+	for (int i = 0; i < nprocs; i++) {
+	  displs[i] = total_len;
+	  total_len += local_lens[i];
+	}
+	total_len += 1; // +1 for '\0'
+	char *total_cstr = (char*)malloc(sizeof(char) * total_len);
+	MPI_Allgatherv(local_cstr, local_len, MPI_CHAR,
+		       total_cstr, local_lens, displs, MPI_CHAR, env.mpi_comm);
+	total_cstr[total_len - 1] = '\0';
+
+	result_.append(total_cstr);
+	free(total_cstr);
+	free(displs);
+	free(local_lens);
 	return 0;
       }
     } dmpr(dumper);
@@ -331,10 +352,49 @@ namespace kmrnext {
     for (size_t i = 0; i < size_; i++) {
       view.set_dim(i, false);
     }
-
     map(NULL, dmpr, view);
-    return dmpr.result_;
-#endif
+    // find master
+    int token = (dmpr.result_.size() > 0)? kmrnext_->rank() : -1;
+    int master;
+    MPI_Allreduce(&token, &master, 1, MPI_INT, MPI_MAX, kmrnext_->kmr()->comm);
+    // bcast string
+    int length = (int)dmpr.result_.size() + 1;
+    MPI_Bcast(&length, 1, MPI_LONG, master, kmrnext_->kmr()->comm);
+    char *result_cstr = (char *)malloc(sizeof(char) * length);
+    if (kmrnext_->rank() == master) {
+      memcpy(result_cstr, dmpr.result_.c_str(), sizeof(char) * length);
+    }
+    MPI_Bcast(result_cstr, length, MPI_CHAR, master, kmrnext_->kmr()->comm);
+    string result(result_cstr);
+    free(result_cstr);
+    return result;
+  }
+
+  long DataStore::count() {
+    class Counter : public Mapper {
+    public:
+      long result_;
+      Counter() : result_(0) {}
+      int operator()(DataStore *inds, DataStore *outds,
+		     Key& key, vector<DataPack>& dps,
+		     MapEnvironment& env)
+      {
+	long local_count = dps.size();
+	MPI_Allreduce(&local_count, &result_, 1, MPI_LONG, MPI_SUM,
+	 	      env.mpi_comm);
+	return 0;
+      }
+    } counter;
+
+    View view(size_);
+    for (size_t i = 0; i < size_; i++) {
+      view.set_dim(i, false);
+    }
+    map(NULL, counter, view);
+    long result;
+    MPI_Allreduce(&counter.result_, &result, 1, MPI_LONG, MPI_MAX,
+		  kmrnext_->kmr()->comm);
+    return result;
   }
 
   void DataStore::set(const size_t *val, Data *dat_ptr) {
