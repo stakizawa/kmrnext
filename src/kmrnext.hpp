@@ -335,6 +335,9 @@ namespace kmrnext {
     /// It dumps data in the DataStore.
     string dump(DataPack::Dumper& dumper);
 
+    /// It returns stored data count.
+    long count();
+
     /// It loads files to the DataStore.
     ///
     /// \param[in] files the array of files to be loaded

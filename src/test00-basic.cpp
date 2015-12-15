@@ -9,6 +9,7 @@ using namespace std;
 int rank = 0;
 
 const bool kPrint = true;
+const int  kDumpCount = 20;
 
 const size_t kDimension3 = 3;
 const size_t kDim3_0 = 10;
@@ -19,8 +20,8 @@ const size_t kDim2_0 = 10;
 const size_t kDim2_1 = 10;
 
 void load_data(kmrnext::DataStore *ds);
-bool prints();
-void print_data_store(kmrnext::DataStore *ds);
+void print_line(string str);
+void print_data_store(string ds_str, string padding_str, int count);
 void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp);
 void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
 			   kmrnext::Key& k, int count);
@@ -30,8 +31,7 @@ class Summarizer : public kmrnext::DataStore::Mapper {
 public:
   int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
 		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps,
-		 kmrnext::DataStore::MapEnvironment& env)
-  {
+		 kmrnext::DataStore::MapEnvironment& env) {
     long sum = 0;
     for (size_t i = 0; i < dps.size(); i++) {
       kmrnext::DataPack& dp = dps.at(i);
@@ -44,36 +44,14 @@ public:
   }
 };
 
-// A mapper class that prints all data.
-class DataStorePrinter : public kmrnext::DataStore::Mapper {
-  int _max_count;
-  string _padding;
-
+// A class for dumping a DataPack
+class DPPrinter : public kmrnext::DataPack::Dumper {
 public:
-  DataStorePrinter(const int max_count, const string& padding)
-    : _max_count(max_count), _padding(padding) {}
-
-  int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
-		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps,
-		 kmrnext::DataStore::MapEnvironment& env)
-  {
-    cout << _padding << "Key: " << key.to_string() << endl;
-    cout << _padding << "Count: " << dps.size() << endl;
-    if (_max_count > 0) {
-      cout << _padding << "Values (top" << _max_count << ")" << endl;
-    } else {
-      cout << _padding << "Values (all)" << endl;
-    }
-    int count = 0;
-    for (vector<kmrnext::DataPack>::iterator itr = dps.begin();
-    	 itr != dps.end(); itr++) {
-      if (_max_count > 0 && count++ >= _max_count) {
-    	break;
-      }
-      cout << _padding << "  " << itr->key().to_string() << " : "
-    	   << *(long *)itr->data()->value() << endl;
-    }
-    return 0;
+  string operator()(kmrnext::DataPack& dp) {
+    ostringstream os;
+    os << "  " << dp.key().to_string() << " : "
+       << *(long*)dp.data()->value() << endl;
+    return os.str();
   }
 };
 
@@ -82,9 +60,9 @@ public:
 // Main starts from here.
 //////////////////////////////////////////////////////////////////////////////
 int
-main(int argc, char **argv)
-{
+main(int argc, char **argv) {
   kmrnext::KMRNext *next = kmrnext::KMRNext::init(argc, argv);
+  DPPrinter printer;
 
 #ifdef BACKEND_KMR
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -94,10 +72,23 @@ main(int argc, char **argv)
   kmrnext::DataStore *ds1 = next->create_ds(kDimension3);
   size_t sizes3[kDimension3] = {kDim3_0, kDim3_1, kDim3_2};
   ds1->set(sizes3);
-  print_data_store(ds1);
+  if (kPrint) {
+    print_line("0. Create a DataStore");
+    print_line("  DataStore: " + ds1->to_string());
+    print_line("");
+  }
 
   ///////////  Load data contents from a file
   load_data(ds1);
+  if (kPrint) {
+    print_line("1. Load data to a DataStore");
+    ostringstream os;
+    os << "  Count of valid data in the DataStore: " << ds1->count();
+    print_line(os.str());
+    print_line("  Contents of the DataStore");
+    print_data_store(ds1->dump(printer), "  ", kDumpCount);
+    print_line("");
+  }
 
   ///////////  Setup keys
   kmrnext::Key key1(kDimension3);
@@ -110,11 +101,11 @@ main(int argc, char **argv)
   ///////////  Get a data from a DataStore
   kmrnext::DataPack dp1 = ds1->get(key1);
   kmrnext::DataPack dp2 = ds1->get(key2);
-  if (prints()) {
-    cout << "1. Get a data from a DataStore by get()" << endl;
+  if (kPrint) {
+    print_line("2. Get a data from a DataStore by get()");
     print_get_result(key1, dp1);
     print_get_result(key2, dp2);
-    cout << endl;
+    print_line("");
   }
 
   ///////////  Setup views
@@ -140,17 +131,17 @@ main(int argc, char **argv)
   vector<kmrnext::DataPack> *dpvec6 = ds1->get(v3, key2);
   vector<kmrnext::DataPack> *dpvec7 = ds1->get(v4, key1);
   vector<kmrnext::DataPack> *dpvec8 = ds1->get(v4, key2);
-  if (prints()) {
-    cout << "2. Get data from a DataStore by get(view)" << endl;
-    print_get_view_result(dpvec1, v1, key1, 10);
-    print_get_view_result(dpvec2, v1, key2, 10);
-    print_get_view_result(dpvec3, v2, key1, 10);
-    print_get_view_result(dpvec4, v2, key2, 10);
-    print_get_view_result(dpvec5, v3, key1, 10);
-    print_get_view_result(dpvec6, v3, key2, 10);
-    print_get_view_result(dpvec7, v4, key1, 10);
-    print_get_view_result(dpvec8, v4, key2, 10);
-    cout << endl;
+  if (kPrint) {
+    print_line("3. Get data from a DataStore by get(view)");
+    print_get_view_result(dpvec1, v1, key1, kDumpCount);
+    print_get_view_result(dpvec2, v1, key2, kDumpCount);
+    print_get_view_result(dpvec3, v2, key1, kDumpCount);
+    print_get_view_result(dpvec4, v2, key2, kDumpCount);
+    print_get_view_result(dpvec5, v3, key1, kDumpCount);
+    print_get_view_result(dpvec6, v3, key2, kDumpCount);
+    print_get_view_result(dpvec7, v4, key1, kDumpCount);
+    print_get_view_result(dpvec8, v4, key2, kDumpCount);
+    print_line("");
   }
   delete dpvec1;
   delete dpvec2;
@@ -167,14 +158,13 @@ main(int argc, char **argv)
   ds2->set(sizes2);
   Summarizer sumr;
   ds1->map(ds2, sumr, v2);
-  if (prints()) {
-    cout << "3. Apply map to each data in a DataStore" << endl;
-    kmrnext::View v5(kDimension2);
-    bool flags5[kDimension2] = {false, false};
-    v5.set(flags5);
-    DataStorePrinter printer(-1, "  ");
-    ds2->map(NULL, printer, v5);
-    cout << endl;
+  if (kPrint) {
+    print_line("4. Apply map to each data in a DataStore");
+    ostringstream os;
+    os << "  Generated data count: " << ds2->count();
+    print_line(os.str());
+    print_data_store(ds2->dump(printer), "  ", kDumpCount);
+    print_line("");
   }
   delete ds2;
 
@@ -186,8 +176,7 @@ main(int argc, char **argv)
 
 class Loader : public kmrnext::DataStore::Loader<string> {
 public:
-  int operator()(kmrnext::DataStore *ds, const string& file)
-  {
+  int operator()(kmrnext::DataStore *ds, const string& file) {
     kmrnext::Key key(kDimension3);
     for (size_t i = 0; i < kDim3_0; i++) {
       key.set_dim(0, i);
@@ -205,8 +194,7 @@ public:
   }
 };
 
-void load_data(kmrnext::DataStore *ds)
-{
+void load_data(kmrnext::DataStore *ds) {
   vector<string> files;
   files.push_back("dummy1");
   //  files.push_back("dummy2");
@@ -214,20 +202,32 @@ void load_data(kmrnext::DataStore *ds)
   ds->load_files(files, loader);
 }
 
-bool prints()
-{
-  return (rank == 0) && kPrint;
+void print_line(string str) {
+  if (rank != 0) return;
+  cout << str << endl;
 }
 
-void print_data_store(kmrnext::DataStore *ds)
-{
-  if (rank == 0) {
-    cout << "DataStore: " << ds->to_string() << endl;
+void print_data_store(string ds_str, string padding_str, int count) {
+  if (rank != 0) return;
+  if (count > 0) {
+    cout << "  Values (top" << count << ")" << endl;
+  } else {
+    cout << "  Values (all)" << endl;
+  }
+  int cnt = 0;
+  istringstream is(ds_str);
+  string str;
+  while(getline(is, str, '\n')) {
+    if (count > 0 && cnt >= count) {
+      break;
+    }
+    cnt += 1;
+    cout << padding_str << str << endl;
   }
 }
 
-void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp)
-{
+void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp) {
+  if (rank != 0) return;
   cout << "  Query key: " << key.to_string()
        << "    Result: " << dp.key().to_string() << ": "
        << *(long *)dp.data()->value()
@@ -235,8 +235,8 @@ void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp)
 }
 
 void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
-			   kmrnext::Key& k, int count)
-{
+			   kmrnext::Key& k, int count) {
+  if (rank != 0) return;
   cout << "  Condition" << endl;
   cout << "    view: " << v.to_string() << ", key: " << k.to_string() << endl;
   cout << "  Result" << endl;

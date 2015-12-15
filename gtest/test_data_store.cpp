@@ -450,7 +450,7 @@ namespace {
     EXPECT_EQ(1, *(long*)ds1.get(*key1_).data()->value());
     EXPECT_EQ(2, *(long*)ds1.get(*key2_).data()->value());
 
-    // IF the size of array is not same as the multiple of dimension size
+    // If the size of array is not same as the multiple of dimension size
     // of the DataStore, it throws runtime_error.
     kmrnext::DataStore ds2(ds_size_, gNext);
     ds2.set(array_ds0_);
@@ -473,9 +473,34 @@ namespace {
 
   TEST_F(DataStoreTest, Dump) {
     DS0Printer ptr0;
-    std::string expected0 = "Data Count: 8\n1,1,1,1,1,1,1,1,";
+    std::string expected0 = "1,1,1,1,1,1,1,1,";
     std::string actual0 = ds0_->dump(ptr0);
     EXPECT_STREQ(expected0.c_str(), actual0.c_str());
+
+    // If the DataStore is not inisialized yet, it returns "".
+    kmrnext::DataStore ds1(ds_size_, gNext);
+    std::string expected1 = "";
+    std::string actual1 = ds1.dump(ptr0);
+    EXPECT_STREQ(expected1.c_str(), actual1.c_str());
+    ds1.set(array_ds0_);
+    std::string expected2 = "";
+    std::string actual2 = ds1.dump(ptr0);
+    EXPECT_STREQ(expected2.c_str(), actual2.c_str());
+  }
+
+  TEST_F(DataStoreTest, Count) {
+    // assume that ds.set() and add() work fine
+    EXPECT_EQ(8, ds0_->count());
+
+    // If the DataStore is not inisialized yet, it returns 0.
+    kmrnext::DataStore ds1(ds_size_, gNext);
+    EXPECT_EQ(0, ds1.count());
+    ds1.set(array_ds0_);
+    EXPECT_EQ(0, ds1.count());
+
+    // If one Data is added, it returns 1.
+    ds1.add(*key0_, *d0_);
+    EXPECT_EQ(1, ds1.count());
   }
 
 }

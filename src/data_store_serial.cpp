@@ -161,6 +161,9 @@ namespace kmrnext {
 
     vector< vector<DataPack> > dpgroups(nkeys);
     for (size_t i = 0; i < data_size_; i++) {
+      if (data_[i].value() == NULL) {
+	continue;
+      }
       Key tmpkey = index_to_key(i);
       size_t viewed_idx = key_to_viwed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
@@ -171,8 +174,10 @@ namespace kmrnext {
     env.rank = 0;
     for (size_t i = 0; i < dpgroups.size(); i++) {
       vector<DataPack> &dps = dpgroups.at(i);
-      Key viewed_key = key_to_viewed_key(dps.at(0).key(), view);
-      m(this, outds, viewed_key, dps, env);
+      if (dps.size() > 0) {
+	Key viewed_key = key_to_viewed_key(dps.at(0).key(), view);
+	m(this, outds, viewed_key, dps, env);
+      }
     }
   }
 
@@ -192,7 +197,6 @@ namespace kmrnext {
 		     MapEnvironment& env)
       {
 	ostringstream os;
-	os << "Data Count: " << dps.size() << endl;
 	for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	     itr++) {
 	  os << dumper_(*itr);
@@ -209,6 +213,28 @@ namespace kmrnext {
 
     map(NULL, dmpr, view);
     return dmpr.result_;
+  }
+
+  long DataStore::count() {
+    class Counter : public Mapper {
+    public:
+      long result_;
+      Counter() : result_(0) {}
+      int operator()(DataStore *inds, DataStore *outds,
+		     Key& key, vector<DataPack>& dps,
+		     MapEnvironment& env)
+      {
+	result_ = dps.size();
+	return 0;
+      }
+    } counter;
+
+    View view(size_);
+    for (size_t i = 0; i < size_; i++) {
+      view.set_dim(i, false);
+    }
+    map(NULL, counter, view);
+    return counter.result_;
   }
 
   void DataStore::set(const size_t *val, Data *dat_ptr) {
