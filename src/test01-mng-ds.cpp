@@ -9,6 +9,7 @@ using namespace std;
 int rank = 0;
 
 const bool kPrint = true;
+const int  kDumpCount = 20;
 
 const size_t kDimCell = 2;
 const size_t kDimCell0 = 10;
@@ -26,9 +27,9 @@ const string kFile2 = "file2";
 const string kFile3 = "file3";
 
 void load_file(kmrnext::DataStore *ds, const string& file);
-bool prints();
-void print_ds(kmrnext::DataStore *ds, const kmrnext::View& v,
-	      const string& name, int count);
+void print_line(string str);
+void print_data_store(kmrnext::DataStore *ds, string name, string padding,
+		      int count);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -52,13 +53,13 @@ main(int argc, char **argv)
   dsu1->set(kDSCellSizes);
   dsu2->set(kDSCellSizes);
   dsu3->set(kDSCellSizes);
-  if (prints()) {
-    cout << "0. Create DataStores" << endl;
-    cout << "  DSCell0: " << dsu0->to_string() << endl;
-    cout << "  DSCell1: " << dsu1->to_string() << endl;
-    cout << "  DSCell2: " << dsu2->to_string() << endl;
-    cout << "  DSCell3: " << dsu3->to_string() << endl;
-    cout << endl;
+  if (kPrint) {
+    print_line("0. Create DataStores");
+    print_line("  DSCell0: " + dsu0->to_string());
+    print_line("  DSCell1: " + dsu1->to_string());
+    print_line("  DSCell2: " + dsu2->to_string());
+    print_line("  DSCell3: " + dsu3->to_string());
+    print_line("");
   }
 
   /////////// Load data from files
@@ -66,16 +67,13 @@ main(int argc, char **argv)
   load_file(dsu1, kFile1);
   load_file(dsu2, kFile2);
   load_file(dsu3, kFile3);
-  if (prints()) {
-    cout << "1. Load data to DataStores" << endl;
-    kmrnext::View v(kDimCell);
-    bool flag[kDimCell] = {false, false};
-    v.set(flag);
-    print_ds(dsu0, v, kDSUName0, 10);
-    print_ds(dsu1, v, kDSUName1, 10);
-    print_ds(dsu2, v, kDSUName2, 10);
-    print_ds(dsu3, v, kDSUName3, 10);
-    cout << endl;
+  if (kPrint) {
+    print_line("1. Load data to DataStores");
+    print_data_store(dsu0, kDSUName0, "  ", kDumpCount);
+    print_data_store(dsu1, kDSUName1, "  ", kDumpCount);
+    print_data_store(dsu2, kDSUName2, "  ", kDumpCount);
+    print_data_store(dsu3, kDSUName3, "  ", kDumpCount);
+    print_line("");
   }
 
   /////////// Conmbine DataStores to create a high-dimensinal DataStore
@@ -84,13 +82,10 @@ main(int argc, char **argv)
   vector<kmrnext::DataStore*> dsus;
   dsus.push_back(dsu0);
   ds0->set_from(dsus);
-  if (prints()) {
-    cout << "2. Increase dimension by set_from()" << endl;
-    kmrnext::View v(kDimCell + 1);
-    bool flag[kDimCell + 1] = {false, false, false};
-    v.set(flag);
-    print_ds(ds0, v, "DS_Single", -1);
-    cout << endl;
+  if (kPrint) {
+    print_line("2. Increase dimension by set_from()");
+    print_data_store(ds0, "DS_Single", "  ", -1);
+    print_line("");
   }
   delete ds0;
   // 2. Test four DataStores
@@ -99,13 +94,10 @@ main(int argc, char **argv)
   dsus.push_back(dsu2);
   dsus.push_back(dsu3);
   ds1->set_from(dsus);
-  if (prints()) {
-    cout << "3. Combine four DataStores by set_from()" << endl;
-    kmrnext::View v(kDimCell + 1);
-    bool flag[kDimCell + 1] = {false, false, false};
-    v.set(flag);
-    print_ds(ds1, v, "DS_Four", -1);
-    cout << endl;
+  if (kPrint) {
+    print_line("3. Combine four DataStores by set_from()");
+    print_data_store(ds1, "DS_Four", "  ", -1);
+    print_line("");
   }
   delete ds1;
 
@@ -132,14 +124,11 @@ main(int argc, char **argv)
   dsms.push_back(dsm8);
   dsms.push_back(dsm9);
   dsu0->split_to(dsms);
-  if (prints()) {
-    cout << "4. Split a DataStore to 10 DataStores by split_to()"  << endl;
-    kmrnext::View v(kDimCell - 1);
-    bool flag[kDimCell - 1] = {false};
-    v.set(flag);
-    print_ds(dsms.at(0), v, "DS_Smallest", -1);
-    print_ds(dsms.at(1), v, "DS_Smallest", -1);
-    cout << endl;
+  if (kPrint) {
+    print_line("4. Split a DataStore to 10 DataStores by split_to()" );
+    print_data_store(dsms.at(0), "DS_Smallest0", "  ", -1);
+    print_data_store(dsms.at(1), "DS_Smallest1", "  ", -1);
+    print_line("");
   }
   delete dsm0;
   delete dsm1;
@@ -190,39 +179,6 @@ public:
   }
 };
 
-// A mapper class that prints all data.
-class DataStorePrinter : public kmrnext::DataStore::Mapper {
-  int _max_count;
-  string _padding;
-
-public:
-  DataStorePrinter(const int max_count, const string& padding)
-    : _max_count(max_count), _padding(padding) {}
-
-  int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
-		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps,
-		 kmrnext::DataStore::MapEnvironment& env)
-  {
-    //cout << _padding << "Key: " << key.to_string() << endl;
-    cout << _padding << "Count: " << dps.size() << endl;
-    if (_max_count > 0) {
-      cout << _padding << "Values (top" << _max_count << ")" << endl;
-    } else {
-      cout << _padding << "Values (all)" << endl;
-    }
-    int count = 0;
-    for (vector<kmrnext::DataPack>::iterator itr = dps.begin();
-    	 itr != dps.end(); itr++) {
-      if (_max_count > 0 && count++ >= _max_count) {
-    	break;
-      }
-      cout << _padding << "  " << itr->key().to_string() << " : "
-    	   << *(long *)itr->data()->value() << endl;
-    }
-    return 0;
-  }
-};
-
 void load_file(kmrnext::DataStore *ds, const string& file)
 {
   vector<string> files;
@@ -231,15 +187,46 @@ void load_file(kmrnext::DataStore *ds, const string& file)
   ds->load_files(files, loader);
 }
 
-bool prints()
-{
-  return (rank == 0) && kPrint;
+void print_line(string str) {
+  if (rank != 0) return;
+  cout << str << endl;
 }
 
-void print_ds(kmrnext::DataStore *ds, const kmrnext::View& v,
-	      const string& name, int count)
-{
-  cout << "  " << name << endl;
-  DataStorePrinter dsp(count, "    ");
-  ds->map(NULL, dsp, v);
+// A class for dumping a DataPack
+class DPPrinter : public kmrnext::DataPack::Dumper {
+  string padding_;
+public:
+  DPPrinter(string padding) : padding_(padding) {}
+  string operator()(kmrnext::DataPack& dp) {
+    ostringstream os;
+    os << padding_ << dp.key().to_string() << " : "
+       << *(long*)dp.data()->value() << endl;
+    return os.str();
+  }
+};
+
+void print_data_store(kmrnext::DataStore *ds, string name, string padding,
+		      int count) {
+  long ds_count = ds->count();
+  DPPrinter printer(padding + padding);
+  string ds_str = ds->dump(printer);
+  if (rank != 0) return;
+
+  cout << padding << name << ": " << ds->to_string() << endl;
+  cout << padding << "  Count of data in the DataStore: " << ds_count << endl;
+  if (count > 0) {
+    cout << padding << "  Values (top" << count << ")" << endl;
+  } else {
+    cout << padding << "  Values (all)" << endl;
+  }
+  int cnt = 0;
+  istringstream is(ds_str);
+  string str;
+  while(getline(is, str, '\n')) {
+    if (count > 0 && cnt >= count) {
+      break;
+    }
+    cnt += 1;
+    cout << padding << str << endl;
+  }
 }

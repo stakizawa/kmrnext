@@ -21,7 +21,7 @@ const size_t kDim2_1 = 10;
 
 void load_data(kmrnext::DataStore *ds);
 void print_line(string str);
-void print_data_store(string ds_str, string padding_str, int count);
+void print_data_store(kmrnext::DataStore *ds, string padding, int count);
 void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp);
 void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
 			   kmrnext::Key& k, int count);
@@ -44,17 +44,6 @@ public:
   }
 };
 
-// A class for dumping a DataPack
-class DPPrinter : public kmrnext::DataPack::Dumper {
-public:
-  string operator()(kmrnext::DataPack& dp) {
-    ostringstream os;
-    os << "  " << dp.key().to_string() << " : "
-       << *(long*)dp.data()->value() << endl;
-    return os.str();
-  }
-};
-
 
 //////////////////////////////////////////////////////////////////////////////
 // Main starts from here.
@@ -62,7 +51,6 @@ public:
 int
 main(int argc, char **argv) {
   kmrnext::KMRNext *next = kmrnext::KMRNext::init(argc, argv);
-  DPPrinter printer;
 
 #ifdef BACKEND_KMR
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -82,11 +70,7 @@ main(int argc, char **argv) {
   load_data(ds1);
   if (kPrint) {
     print_line("1. Load data to a DataStore");
-    ostringstream os;
-    os << "  Count of valid data in the DataStore: " << ds1->count();
-    print_line(os.str());
-    print_line("  Contents of the DataStore");
-    print_data_store(ds1->dump(printer), "  ", kDumpCount);
+    print_data_store(ds1, "  ", kDumpCount);
     print_line("");
   }
 
@@ -160,10 +144,8 @@ main(int argc, char **argv) {
   ds1->map(ds2, sumr, v2);
   if (kPrint) {
     print_line("4. Apply map to each data in a DataStore");
-    ostringstream os;
-    os << "  Generated data count: " << ds2->count();
-    print_line(os.str());
-    print_data_store(ds2->dump(printer), "  ", kDumpCount);
+    print_line("  Output DataStore");
+    print_data_store(ds2, "    ", kDumpCount);
     print_line("");
   }
   delete ds2;
@@ -207,12 +189,28 @@ void print_line(string str) {
   cout << str << endl;
 }
 
-void print_data_store(string ds_str, string padding_str, int count) {
+// A class for dumping a DataPack
+class DPPrinter : public kmrnext::DataPack::Dumper {
+public:
+  string operator()(kmrnext::DataPack& dp) {
+    ostringstream os;
+    os << "  " << dp.key().to_string() << " : "
+       << *(long*)dp.data()->value() << endl;
+    return os.str();
+  }
+};
+
+void print_data_store(kmrnext::DataStore *ds, string padding, int count) {
+  long ds_count = ds->count();
+  DPPrinter printer;
+  string ds_str = ds->dump(printer);
   if (rank != 0) return;
+
+  cout << padding << "Count of data in the DataStore: " << ds_count << endl;
   if (count > 0) {
-    cout << "  Values (top" << count << ")" << endl;
+    cout << padding << "Values (top" << count << ")" << endl;
   } else {
-    cout << "  Values (all)" << endl;
+    cout << padding << "Values (all)" << endl;
   }
   int cnt = 0;
   istringstream is(ds_str);
@@ -222,7 +220,7 @@ void print_data_store(string ds_str, string padding_str, int count) {
       break;
     }
     cnt += 1;
-    cout << padding_str << str << endl;
+    cout << padding << str << endl;
   }
 }
 
