@@ -323,7 +323,7 @@ namespace kmrnext {
 	}
 	string dumped = os.str();
 	int local_len = (int)dumped.size();
-	const char *local_cstr = dumped.c_str();
+	char *local_cstr = (char*)dumped.c_str();
 	int nprocs;
 	MPI_Comm_size(env.mpi_comm, &nprocs);
 	int *local_lens = (int*)malloc(sizeof(int) * nprocs);
