@@ -321,12 +321,13 @@ namespace kmrnext {
 	     itr++) {
 	  os << dumper_(*itr);
 	}
-	int local_len = (int)os.str().size();
-	const char *local_cstr = os.str().c_str();
+	string dumped = os.str();
+	int local_len = (int)dumped.size();
+	const char *local_cstr = dumped.c_str();
 	int nprocs;
 	MPI_Comm_size(env.mpi_comm, &nprocs);
 	int *local_lens = (int*)malloc(sizeof(int) * nprocs);
-	MPI_Allgather(&local_len, 1, MPI_LONG, local_lens, 1, MPI_LONG,
+	MPI_Allgather(&local_len, 1, MPI_INT, local_lens, 1, MPI_INT,
 		      env.mpi_comm);
 	int total_len = 0;
 	int *displs = (int*)malloc(sizeof(int) * nprocs);
@@ -360,7 +361,7 @@ namespace kmrnext {
     master = (master == -1)? 0 : master;
     // bcast string
     int length = (int)dmpr.result_.size() + 1;
-    MPI_Bcast(&length, 1, MPI_LONG, master, kmrnext_->kmr()->comm);
+    MPI_Bcast(&length, 1, MPI_INT, master, kmrnext_->kmr()->comm);
     char *result_cstr = (char *)malloc(sizeof(char) * length);
     if (kmrnext_->rank() == master) {
       memcpy(result_cstr, dmpr.result_.c_str(), sizeof(char) * length);
