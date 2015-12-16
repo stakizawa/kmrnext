@@ -376,12 +376,6 @@ namespace {
     EXPECT_THROW({ds1_->map(&ods2, mapper, *v0_);}, std::runtime_error);
   }
 
-#if 0
-  // TODO for kmr backend
-  TEST_F(DataStoreTest, Map_kmr) {
-  }
-#endif
-
   class DataLoader1D : public kmrnext::DataStore::Loader<int> {
     size_t size_;
   public:
