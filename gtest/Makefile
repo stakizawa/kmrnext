@@ -12,12 +12,13 @@ include ../config.make
 CXXFLAGS = -DDEBUG -g -O0 -Wall -std=c++98 -fopenmp
 LIB      = ../src/libkmrnext.a
 
-ifeq ($(TARGET), KMR)
-    DEPLIB += $(KMRDIR)/lib/libkmr.a
-endif
-
 TEST_OBJS = test_key.o test_data.o test_data_store.o
 TEST_MAIN = test_all
+
+ifeq ($(TARGET), KMR)
+    DEPLIB += $(KMRDIR)/lib/libkmr.a
+    TEST_OBJS += test_data_store_kmr.o
+endif
 
 # google test path
 # The headers and libraries should be located under the directory as follows.

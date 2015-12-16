@@ -92,14 +92,19 @@ namespace kmrnext {
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
     KMR_KVS *rcv = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
-    // TODO change to KMR_KV_POINTER_OWNED/KMR_KV_POINTER_UNMANAGED
     if (data_[idx].value() != NULL) {
+      size_t snd_siz = sizeof(int) + data_[idx].size();
+      char *snd_buf = (char*)malloc(sizeof(char) * snd_siz);
+      int owner = kmrnext_->rank();
+      memcpy(snd_buf, &owner, sizeof(int));
+      memcpy(snd_buf + sizeof(int), data_[idx].value(), data_[idx].size());
       struct kmr_kv_box kv;
-      kv.klen = (int)sizeof(size_t);
-      kv.vlen = (int)data_[idx].size();
+      kv.klen = (int)sizeof(long);
+      kv.vlen = (int)snd_siz;
       kv.k.i  = idx;
-      kv.v.p  = (const char*)data_[idx].value();
+      kv.v.p  = snd_buf;
       kmr_add_kv(snd, kv);
+      free(snd_buf);
     }
     kmr_add_kv_done(snd);
     kmr_replicate(snd, rcv, kmr_noopt);
@@ -113,8 +118,11 @@ namespace kmrnext {
     kmr_take_one(rcv, &kv);
     if (data_[idx].value() == NULL) {
       // Copy data for future access.
-      Data rcvdat((void*)kv.v.p, kv.vlen);
+      int owner;
+      memcpy(&owner, kv.v.p, sizeof(int));
+      Data rcvdat((void*)((char*)kv.v.p + sizeof(int)), kv.vlen - sizeof(int));
       data_[idx].copy_deep(rcvdat);
+      data_[idx].set_owner(owner);
     }
     data_[idx].shared();
     kmr_free_kvs(rcv);
@@ -150,12 +158,18 @@ namespace kmrnext {
 	  continue;
 	} else {
 	  // replicate the data
+	  size_t snd_siz = sizeof(int) + data_[i].size();
+	  char *snd_buf = (char*)malloc(sizeof(char) * snd_siz);
+	  int owner = kmrnext_->rank();
+	  memcpy(snd_buf, &owner, sizeof(int));
+	  memcpy(snd_buf + sizeof(int), data_[i].value(), data_[i].size());
 	  struct kmr_kv_box kv;
 	  kv.klen = (int)sizeof(size_t);
-	  kv.vlen = (int)data_[i].size();
+	  kv.vlen = (int)snd_siz;
 	  kv.k.i  = i;
-	  kv.v.p  = (const char*)data_[i].value();
+	  kv.v.p  = snd_buf;
 	  kmr_add_kv(snd, kv);
+	  free(snd_buf);
 	}
       }
     }
@@ -520,8 +534,11 @@ namespace kmrnext {
     size_t idx = kv0.k.i;
     Key key = param->ds->index_to_key(idx);
     if (param->data[idx].value() == NULL) {
-      Data data((void*)kv0.v.p, kv0.vlen);
+      int owner;
+      memcpy(&owner, kv0.v.p, sizeof(int));
+      Data data((void*)((char*)kv0.v.p + sizeof(int)), kv0.vlen - sizeof(int));
       param->data[idx].copy_deep(data);
+      param->data[idx].set_owner(owner);
     }
     param->data[idx].shared();
     param->dps->push_back(DataPack(key, &(param->data[idx])));
