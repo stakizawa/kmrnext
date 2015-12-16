@@ -357,6 +357,7 @@ namespace kmrnext {
     int token = (dmpr.result_.size() > 0)? kmrnext_->rank() : -1;
     int master;
     MPI_Allreduce(&token, &master, 1, MPI_INT, MPI_MAX, kmrnext_->kmr()->comm);
+    master = (master == -1)? 0 : master;
     // bcast string
     int length = (int)dmpr.result_.size() + 1;
     MPI_Bcast(&length, 1, MPI_LONG, master, kmrnext_->kmr()->comm);
