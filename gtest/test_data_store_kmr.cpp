@@ -54,21 +54,6 @@ namespace {
       init_key(&k2_33_, 2, ary_k2_33);
     }
 
-    // void init_data_store(kmrnext::DataStore **dsp, size_t size,
-    // 			 size_t *array, kmrnext::Data *d) {
-    //   *dsp = new kmrnext::DataStore(size, gNext);
-    //   kmrnext::DataStore *ds = *dsp;
-    //   ds->set(array);
-    //   size_t ndata = 1;
-    //   for (size_t i = 0; i < size; i++) {
-    // 	ndata *= array[i];
-    //   }
-    //   for (size_t i = 0; i < ndata; i++) {
-    // 	kmrnext::Key k = ds->index_to_key(i);
-    // 	ds->add(k, *d);
-    //   }
-    // }
-
     void init_key(kmrnext::Key **kp, size_t size, size_t *array) {
       *kp = new kmrnext::Key(size);
       (*kp)->set(array);
@@ -90,6 +75,7 @@ namespace {
     virtual ~KMRDataStoreTest() {
       delete ds2_array_;
       delete ds2_;
+      delete ds2_owners_;
       delete k2_00_;
       delete k2_11_;
       delete k2_22_;
@@ -136,19 +122,19 @@ namespace {
     EXPECT_EQ(owners[3], ds0.get(*k2_33_).data()->owner());
   }
 
-#if 0
   TEST_F(KMRDataStoreTest, Get_view) {
-    // dummy codes
-    EXPECT_EQ(1, *(int*)ds2_->get(*k2_00_).data()->value());
-    EXPECT_EQ(2, *(int*)ds2_->get(*k2_11_).data()->value());
-    EXPECT_EQ(3, *(int*)ds2_->get(*k2_22_).data()->value());
-    EXPECT_EQ(4, *(int*)ds2_->get(*k2_33_).data()->value());
-    EXPECT_EQ(ds2_owners_[0], ds2_->get(*k2_00_).data()->owner());
-    EXPECT_EQ(ds2_owners_[1], ds2_->get(*k2_11_).data()->owner());
-    EXPECT_EQ(ds2_owners_[2], ds2_->get(*k2_22_).data()->owner());
-    EXPECT_EQ(ds2_owners_[3], ds2_->get(*k2_33_).data()->owner());
+    // Check owners when View<T, F> is given.
+    kmrnext::View v0(2);
+    bool flags0[2] = {true, false};
+    v0.set(flags0);
+    std::vector<kmrnext::DataPack> *vec0 = ds2_->get(v0, *k2_00_);
+    EXPECT_EQ(4, (int)vec0->size());
+    for (std::vector<kmrnext::DataPack>:: iterator itr = vec0->begin();
+	 itr != vec0->end(); itr++) {
+      EXPECT_EQ(ds2_owners_[0], (*itr).data()->owner());
+    }
+    delete vec0;
   }
-#endif
 
 #if 0
   TEST_F(KMRDataStoreTest, Set_from) {
@@ -160,9 +146,41 @@ namespace {
   }
 #endif
 
-#if 0
+
+  // A mapper class that just copies a data in the input DataStore to the
+  // output DataStore.
+  class Copier : public kmrnext::DataStore::Mapper {
+  public:
+    int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
+		   kmrnext::Key& key, std::vector<kmrnext::DataPack>& dps,
+		   kmrnext::DataStore::MapEnvironment& env)
+    {
+      kmrnext::DataPack& dp = dps.at(0);
+      outds->add(key, *dp.data());
+      // int val = *(int*)(dp.data()->value());
+      // kmrnext::Data d(&val, sizeof(int));
+      // outds->add(key, d);
+      return 0;
+    }
+  };
+
   TEST_F(KMRDataStoreTest, Map) {
+    // Check owners
+    kmrnext::DataStore ods0(2, gNext);
+    ods0.set(ds2_array_);
+    Copier mapper;
+    kmrnext::View v0(2);
+    bool flags0[2] = {true, true};
+    v0.set(flags0);
+    ds2_->map(&ods0, mapper, v0);
+    EXPECT_EQ(1, *(int*)ods0.get(*k2_00_).data()->value());
+    EXPECT_EQ(2, *(int*)ods0.get(*k2_11_).data()->value());
+    EXPECT_EQ(3, *(int*)ods0.get(*k2_22_).data()->value());
+    EXPECT_EQ(4, *(int*)ods0.get(*k2_33_).data()->value());
+    EXPECT_EQ(ds2_owners_[0], ods0.get(*k2_00_).data()->owner());
+    EXPECT_EQ(ds2_owners_[1], ods0.get(*k2_11_).data()->owner());
+    EXPECT_EQ(ds2_owners_[2], ods0.get(*k2_22_).data()->owner());
+    EXPECT_EQ(ds2_owners_[3], ods0.get(*k2_33_).data()->owner());
   }
-#endif
 
 }

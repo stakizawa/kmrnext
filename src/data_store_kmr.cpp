@@ -310,6 +310,7 @@ namespace kmrnext {
     kmr_add_kv_done(ikvs);
 
     MapEnvironment env = { kmrnext_->rank(), MPI_COMM_NULL };
+    if (outds) { outds->parallel_ = true; }
     param_mapper_map param = { m, this, outds, view, env, dpgroups };
     kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
 				kmrnext_->rank(), kmrnext::mapper_map);
