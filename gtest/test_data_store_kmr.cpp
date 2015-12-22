@@ -1,6 +1,7 @@
 // This test tests DataStore class for KMR backend.
 #include <gtest/gtest.h>
 #include <sstream>
+#include <cassert>
 #include <mpi.h>
 #include "kmrnext.hpp"
 
@@ -149,12 +150,18 @@ namespace {
 
   // A mapper class that just copies a data in the input DataStore to the
   // output DataStore.
-  class Copier : public kmrnext::DataStore::Mapper {
+  class Copier0 : public kmrnext::DataStore::Mapper {
   public:
     int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
 		   kmrnext::Key& key, std::vector<kmrnext::DataPack>& dps,
 		   kmrnext::DataStore::MapEnvironment& env)
     {
+      {
+	assert(dps.size() == 1);
+	int nprocs;
+	MPI_Comm_size(env.mpi_comm, &nprocs);
+	assert(nprocs == 1);
+      }
       kmrnext::DataPack& dp = dps.at(0);
       outds->add(key, *dp.data());
       // int val = *(int*)(dp.data()->value());
@@ -164,15 +171,59 @@ namespace {
     }
   };
 
+  // A mapper class that collects data in the input DataStores of each
+  // process to the master process (keyed-rank) and adds them on the process.
+  // Only the master process emits data to the output DataStore.
+  class Summarizer0 : public kmrnext::DataStore::Mapper {
+    int nprocs_parent_;
+    int *masters_;
+
+  public:
+    Summarizer0(int nprocs, int *masters) :
+      nprocs_parent_(nprocs), masters_(masters) {}
+    int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
+		   kmrnext::Key& key, std::vector<kmrnext::DataPack>& dps,
+		   kmrnext::DataStore::MapEnvironment& env)
+    {
+      {
+	int nprocs;
+	MPI_Comm_size(env.mpi_comm, &nprocs);
+	if (nprocs_parent_ >= 4) {
+	  assert(dps.size() == 1);
+	  assert(nprocs == 4);
+	} else {
+	  assert(nprocs == nprocs_parent_);
+	}
+      }
+      int master = masters_[key.dim(0)];
+      int val = 0;
+      if (dps.size() == 1) {
+	val = *(int*)(dps.at(0).data()->value());
+      } else {
+	for (std::vector<kmrnext::DataPack>:: iterator itr = dps.begin();
+	     itr != dps.end(); itr++) {
+	  val += *(int*)(*itr).data()->value();
+	}
+      }
+      int res;
+      MPI_Reduce(&val, &res, 1, MPI_INT, MPI_SUM, master, env.mpi_comm);
+      if (env.rank == master) {
+	kmrnext::Data d(&res, sizeof(int));
+	outds->add(key, d);
+      }
+      return 0;
+    }
+  };
+
   TEST_F(KMRDataStoreTest, Map) {
-    // Check owners
+    // Check owners in case of Serial Mapper
     kmrnext::DataStore ods0(2, gNext);
     ods0.set(ds2_array_);
-    Copier mapper;
+    Copier0 mapper0;
     kmrnext::View v0(2);
     bool flags0[2] = {true, true};
     v0.set(flags0);
-    ds2_->map(&ods0, mapper, v0);
+    ds2_->map(&ods0, mapper0, v0);
     EXPECT_EQ(1, *(int*)ods0.get(*k2_00_).data()->value());
     EXPECT_EQ(2, *(int*)ods0.get(*k2_11_).data()->value());
     EXPECT_EQ(3, *(int*)ods0.get(*k2_22_).data()->value());
@@ -181,6 +232,33 @@ namespace {
     EXPECT_EQ(ds2_owners_[1], ods0.get(*k2_11_).data()->owner());
     EXPECT_EQ(ds2_owners_[2], ods0.get(*k2_22_).data()->owner());
     EXPECT_EQ(ds2_owners_[3], ods0.get(*k2_33_).data()->owner());
+
+    // Check owners in case of Parallel Mapper
+    kmrnext::DataStore ods1(1, gNext);
+    size_t ods1_array[1] = {4};
+    ods1.set(ods1_array);
+    Summarizer0 mapper1(nprocs, ds2_owners_);
+    kmrnext::View v1(2);
+    bool flags1[2] = {false, true};
+    v1.set(flags1);
+    ds2_->map(&ods1, mapper1, v1);
+    kmrnext::Key k1_0(1), k1_1(1), k1_2(1), k1_3(1);
+    size_t ary_k1_0[1] = {0};
+    size_t ary_k1_1[1] = {1};
+    size_t ary_k1_2[1] = {2};
+    size_t ary_k1_3[1] = {3};
+    k1_0.set(ary_k1_0);
+    k1_1.set(ary_k1_1);
+    k1_2.set(ary_k1_2);
+    k1_3.set(ary_k1_3);
+    EXPECT_EQ(10, *(int*)ods1.get(k1_0).data()->value());
+    EXPECT_EQ(10, *(int*)ods1.get(k1_1).data()->value());
+    EXPECT_EQ(10, *(int*)ods1.get(k1_2).data()->value());
+    EXPECT_EQ(10, *(int*)ods1.get(k1_3).data()->value());
+    EXPECT_EQ(ds2_owners_[0], ods1.get(k1_0).data()->owner());
+    EXPECT_EQ(ds2_owners_[1], ods1.get(k1_1).data()->owner());
+    EXPECT_EQ(ds2_owners_[2], ods1.get(k1_2).data()->owner());
+    EXPECT_EQ(ds2_owners_[3], ods1.get(k1_3).data()->owner());
   }
 
 }
