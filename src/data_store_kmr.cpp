@@ -110,21 +110,24 @@ namespace kmrnext {
     kmr_replicate(snd, rcv, kmr_noopt);
     long local_count;
     kmr_local_element_count(rcv, &local_count);
-    if (local_count != 1) {
+    if (local_count > 1) {
       kmr_free_kvs(rcv);
-      throw runtime_error("The gotten data should be exactly one.");
+      throw runtime_error("There are too many data.");
     }
-    struct kmr_kv_box kv;
-    kmr_take_one(rcv, &kv);
-    if (data_[idx].value() == NULL) {
-      // Copy data for future access.
-      int owner;
-      memcpy(&owner, kv.v.p, sizeof(int));
-      Data rcvdat((void*)((char*)kv.v.p + sizeof(int)), kv.vlen - sizeof(int));
-      data_[idx].copy_deep(rcvdat);
-      data_[idx].set_owner(owner);
+    if (local_count == 1) {
+      struct kmr_kv_box kv;
+      kmr_take_one(rcv, &kv);
+      if (data_[idx].value() == NULL) {
+	// Copy data for future access.
+	int owner;
+	memcpy(&owner, kv.v.p, sizeof(int));
+	Data rcvdat((void*)((char*)kv.v.p + sizeof(int)),
+		    kv.vlen - sizeof(int));
+	data_[idx].copy_deep(rcvdat);
+	data_[idx].set_owner(owner);
+      }
+      data_[idx].shared();
     }
-    data_[idx].shared();
     kmr_free_kvs(rcv);
 
     return DataPack(key, &(data_[idx]));

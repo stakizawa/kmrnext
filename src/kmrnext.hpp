@@ -318,6 +318,8 @@ namespace kmrnext {
     void add(const Key& key, const Data& data);
 
     /// It gets a specified data from this DataStore.
+    ///
+    /// If the data does not exist, it returns NULL data.
     DataPack get(const Key& key);
 
     /// It gets data whose keys are same when the specified view is applied.

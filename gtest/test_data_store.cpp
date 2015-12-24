@@ -104,6 +104,9 @@ namespace {
       	ds3key.set_dim(0, i);
 	ds3_->add(ds3key, *d1_);
       }
+
+      ds4_ = new kmrnext::DataStore(3, gNext);
+      ds4_->set(array_ds0_);
     }
 
     virtual ~DataStoreTest() {
@@ -125,6 +128,7 @@ namespace {
       delete ds1_;
       delete ds2_;
       delete ds3_;
+      delete ds4_;
     }
 
     size_t ds_size_;          // 3
@@ -154,6 +158,7 @@ namespace {
     kmrnext::DataStore *ds1_; // DataStore(Dim:{2,2},   Data:d1_)
     kmrnext::DataStore *ds2_; // DataStore(Dim:{2,1},   Data:d1_)
     kmrnext::DataStore *ds3_; // DataStore(Dim:{2},     Data:d1_)
+    kmrnext::DataStore *ds4_; // DataStore(Dim:{2,2,2}, Data:NULL)
   };
 
   TEST_F(DataStoreTest, Constructor) {
@@ -193,10 +198,15 @@ namespace {
   }
 
   TEST_F(DataStoreTest, Get) {
-    kmrnext::DataPack dp = ds0_->get(*key0_);
-    EXPECT_EQ(*key0_, dp.key());
-    EXPECT_EQ(*(long*)d0_->value(), *(long*)dp.data()->value());
-    EXPECT_EQ(d0_->size(), dp.data()->size());
+    kmrnext::DataPack dp0 = ds0_->get(*key0_);
+    EXPECT_EQ(*key0_, dp0.key());
+    EXPECT_EQ(*(long*)d0_->value(), *(long*)dp0.data()->value());
+    EXPECT_EQ(d0_->size(), dp0.data()->size());
+
+    // If the data of the specified Key is not set, it returns NULL.
+    kmrnext::DataPack dp1 = ds4_->get(*key0_);
+    EXPECT_EQ(*key0_, dp1.key());
+    EXPECT_EQ(NULL, dp1.data()->value());
 
     // If dimension sizes of Key and DataStore are not same,
     // it throws a runtime_error.
