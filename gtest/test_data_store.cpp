@@ -237,6 +237,37 @@ namespace {
     EXPECT_THROW({ds0_->get(*v0_, *ekey1_);}, std::runtime_error);
   }
 
+  TEST_F(DataStoreTest, Remove) {
+    kmrnext::DataPack dp0 = ds0_->remove(*key0_);
+    EXPECT_EQ(*key0_, dp0.key());
+    EXPECT_EQ(*(long*)d0_->value(), *(long*)dp0.data()->value());
+    EXPECT_EQ(d0_->size(), dp0.data()->size());
+    // If the data is correctly remove, the following get returns NULL.
+    kmrnext::DataPack dp1 = ds0_->get(*key0_);
+    EXPECT_EQ(*key0_, dp1.key());
+    EXPECT_EQ(NULL, dp1.data()->value());
+    // If the data is correctly remove, the new Data can be set to
+    // the same Key.
+    EXPECT_NO_THROW({ds0_->add(*key0_, *d1_);});
+    kmrnext::DataPack dp2 = ds0_->get(*key0_);
+    EXPECT_EQ(*key0_, dp2.key());
+    EXPECT_EQ(*(long*)d1_->value(), *(long*)dp2.data()->value());
+    EXPECT_EQ(d1_->size(), dp2.data()->size());
+
+    // If the data of the specified Kye is not set, it returns NULL.
+    kmrnext::DataPack dp3 = ds4_->remove(*key0_);
+    EXPECT_EQ(*key0_, dp3.key());
+    EXPECT_EQ(NULL, dp3.data()->value());
+
+    // If dimension sizes of Key and DataStore are not same,
+    // it throws a runtime_error.
+    EXPECT_THROW({ds0_->get(*key2d0_);}, std::runtime_error);
+    // If a dimension is out of range, it throws a runtime_error.
+    EXPECT_THROW({ds0_->get(*ekey0_);}, std::runtime_error);
+    // If all dimensions are out of range, it throws a runtime_error.
+    EXPECT_THROW({ds0_->get(*ekey1_);}, std::runtime_error);
+  }
+
   TEST_F(DataStoreTest, Set_from) {
     // assume that ds.get() works fine
     std::vector<kmrnext::DataStore*> vec0;

@@ -179,18 +179,16 @@ namespace kmrnext {
   /// A class that represents a data in a DataStore
   ///////////////////////////////////////////////////////////////////////////
   class Data {
-    void *value_;
-    size_t value_size_;
-
   public:
-    Data() : value_(NULL), value_size_(0), value_allocated_(false) {}
+    Data();
 
-    Data(void *val, const size_t val_siz)
-      : value_(val), value_size_(val_siz), value_allocated_(false) {}
+    Data(void *val, const size_t val_siz);
 
     ~Data();
 
     void copy_deep(const Data& src);
+
+    void copy_shallow(const Data& src);
 
     /// It returns a pointer to the stored data.
     void *value() { return value_; }
@@ -213,6 +211,8 @@ namespace kmrnext {
 #endif
 
   private:
+    void *value_;
+    size_t value_size_;
     bool value_allocated_;
 #ifdef BACKEND_KMR
     int owner_;
@@ -319,11 +319,16 @@ namespace kmrnext {
 
     /// It gets a specified data from this DataStore.
     ///
-    /// If the data does not exist, it returns NULL data.
+    /// If the data does not exist, it returns NULL data.(TODO comment)
     DataPack get(const Key& key);
 
     /// It gets data whose keys are same when the specified view is applied.
     vector<DataPack>* get(const View& view, const Key& key);
+
+    /// It removes a specified data from this DataStore.
+    ///
+    /// If the data does not exist, it returns NULL data.(TODO comment)
+    DataPack remove(const Key& key);
 
     /// It sets Data from DataStores.
     void set_from(const vector<DataStore*>& dslist);

@@ -76,8 +76,8 @@ namespace kmrnext {
     if (parallel_ || kmrnext_->rank() == 0) {
       size_t idx = key_to_index(key);
       Data *d = &(data_[idx]);
-      d->set_owner(kmrnext_->rank());
       d->copy_deep(data);
+      d->set_owner(kmrnext_->rank());
     }
   }
 
@@ -141,7 +141,6 @@ namespace kmrnext {
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
     KMR_KVS *rcv = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
-    // TODO change to KMR_KV_POINTER_OWNED/KMR_KV_POINTER_UNMANAGED
     for (size_t i = 0; i < data_size_; i++) {
       if (data_[i].value() == NULL) {
 	continue;
@@ -182,6 +181,17 @@ namespace kmrnext {
     kmr_map(rcv, NULL, (void*)&param, kmr_noopt, kmrnext::mapper_get_view);
 
     return dps;
+  }
+
+  DataPack DataStore::remove(const Key& key) {
+    DataPack dp0 = get(key);
+    Data *d = new Data();
+    d->copy_shallow(*(dp0.data()));
+    if (dp0.data()->value() != NULL) {
+      size_t idx = key_to_index(key);
+      memset(&(data_[idx]), 0, sizeof(Data));
+    }
+    return DataPack(key, d);
   }
 
   void DataStore::set_from(const vector<DataStore*>& dslist) {

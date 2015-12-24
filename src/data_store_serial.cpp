@@ -58,6 +58,15 @@ namespace kmrnext {
     return dps;
   }
 
+  DataPack DataStore::remove(const Key& key) {
+    check_key_range(key);
+    size_t idx = key_to_index(key);
+    Data *d = new Data();
+    d->copy_shallow(data_[idx]);
+    memset(&(data_[idx]), 0, sizeof(Data));
+    return DataPack(key, d);
+  }
+
   void DataStore::set_from(const vector<DataStore*>& dslist) {
     if (dslist.size() == 0) {
       throw runtime_error("There should be at least one DataStore.");
