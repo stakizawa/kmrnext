@@ -23,9 +23,12 @@ const size_t kNumLattice  = 1156;
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
   {kNumEnsemble, kNumRegion, kNumLattice};
 
+const bool kPrint = true;
+
 void load_data(DataStore* ds);
 void run_nicam(DataStore* inds, DataStore* outds);
 void run_letkf(DataStore* inds, DataStore* outds);
+bool to_print();
 
 class DataPrinter : public DataPack::Dumper {
 public:
@@ -50,17 +53,27 @@ main(int argc, char **argv)
   load_data(ds0);
   DataPrinter dp;
 #if DEBUG
-  cout << ds0->dump(dp) << endl;
+  string str0 = ds0->dump(dp);
+  if (to_print()) {
+    cout << str0 << endl;
+  }
 #endif
 
   for (size_t i = 0; i < kNumIteration; i++) {
+    if (to_print()) {
+      cout << "Iteration[" << i << "] starts." << endl;
+    }
+
     // run pseudo-NICAM
     DataStore* ds1 = next->create_ds(kDimEnsembleData);
     ds1->set(kEnsembleDataDimSizes);
     run_nicam(ds0, ds1);
     delete ds0;
 #if DEBUG
-    cout << ds1->dump(dp) << endl;
+    string str1 = ds1->dump(dp);
+    if (to_print()) {
+      cout << str1 << endl;
+    }
 #endif
 
     // run pseudo-LETKF
@@ -69,8 +82,15 @@ main(int argc, char **argv)
     run_letkf(ds1, ds0);
     delete ds1;
 #if DEBUG
-    cout << ds0->dump(dp) << endl;
+    string str2 = ds0->dump(dp);
+    if (to_print()) {
+      cout << str2 << endl;
+    }
 #endif
+
+    if (to_print()) {
+      cout << "Iteration[" << i << "] ends." << endl;
+    }
   }
 
   KMRNext::finalize();
@@ -156,4 +176,15 @@ void run_letkf(DataStore* inds, DataStore* outds)
   bool view_flag[3] = {false, true, true};
   view.set(view_flag);
   inds->map(outds, mapper, view);
+}
+
+bool to_print()
+{
+#ifdef BACKEND_SERIAL
+  return kPrint;
+#elif defined BACKEND_KMR
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  return kPrint && (rank == 0);
+#endif
 }

@@ -14,7 +14,11 @@ nicam-letkf-pattern: nicam-letkf-pattern.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 .cpp.o:
+ifeq ($(TARGET), KMR)
+	$(CXX) $(DEFS) $(CXXFLAGS) -I../src -I$(KMRDIR)/include -c $<
+else
 	$(CXX) $(DEFS) $(CXXFLAGS) -I../src -c $<
+endif
 
 .PHONY: clean
 clean:
