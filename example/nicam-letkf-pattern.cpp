@@ -130,7 +130,15 @@ public:
 		 Key& key, vector<DataPack>& dps,
 		 DataStore::MapEnvironment& env)
   {
+#ifdef BACKEND_SERIAL
     assert(dps.size() == (size_t)(kNumRegion * kNumLattice));
+#elif defined BACKEND_KMR
+    size_t local_count = dps.size();
+    size_t total_count;
+    MPI_Allreduce(&local_count, &total_count, 1, MPI_INT, MPI_SUM,
+		  env.mpi_comm);
+    assert(total_count == (size_t)(kNumRegion * kNumLattice));
+#endif
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
@@ -157,7 +165,15 @@ public:
 		 Key& key, vector<DataPack>& dps,
 		 DataStore::MapEnvironment& env)
   {
+#ifdef BACKEND_SERIAL
     assert(dps.size() == (size_t)kNumEnsemble);
+#elif defined BACKEND_KMR
+    size_t local_count = dps.size();
+    size_t total_count;
+    MPI_Allreduce(&local_count, &total_count, 1, MPI_INT, MPI_SUM,
+		  env.mpi_comm);
+    assert(total_count == (size_t)kNumEnsemble);
+#endif
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
