@@ -135,7 +135,7 @@ public:
 #elif defined BACKEND_KMR
     size_t local_count = dps.size();
     size_t total_count;
-    MPI_Allreduce(&local_count, &total_count, 1, MPI_INT, MPI_SUM,
+    MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
     assert(total_count == (size_t)(kNumRegion * kNumLattice));
 #endif
@@ -170,7 +170,7 @@ public:
 #elif defined BACKEND_KMR
     size_t local_count = dps.size();
     size_t total_count;
-    MPI_Allreduce(&local_count, &total_count, 1, MPI_INT, MPI_SUM,
+    MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
     assert(total_count == (size_t)kNumEnsemble);
 #endif
