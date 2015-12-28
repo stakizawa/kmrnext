@@ -3,8 +3,8 @@
 # - CentOS Linux 6.7
 #   - gcc 4.4.7
 #   - google test 1.7.0
-# - OSX 10.11
-#   - Apple LLVM version 7.0.0
+# - K computer
+#   - fujitsu compiler (latest)
 #   - google test 1.7.0
 #
 include ../config.make
