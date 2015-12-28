@@ -36,7 +36,7 @@ namespace {
       ds2_array_[1] = 4;
       std::vector<int> ds2_vec;
       for (size_t i = 0; i < ds2_array_[0]; i++) {
-	ds2_vec.push_back(i + 1);
+	ds2_vec.push_back((int)i + 1);
       }
       ds2_owners_ = new int[4];
       init_owners(ds2_owners_, 4);
@@ -61,13 +61,13 @@ namespace {
     }
 
     void init_owners(int *owners, size_t size) {
-      size_t quotient = size / nprocs;
-      size_t remain   = size % nprocs;
-      for (size_t i = 0; i < (size_t)nprocs; i++) {
-	size_t start = i * quotient + ((i < remain)? i : remain);
-	size_t end = start + quotient + ((i < remain)? 1 : 0);
-	if (start >= size) { break; }
-	for (size_t j = start; j < end; j++) {
+      int quotient = (int)(size / (size_t)nprocs);
+      int remain   = (int)(size % (size_t)nprocs);
+      for (int i = 0; i < nprocs; i++) {
+	int start = i * quotient + ((i < remain)? i : remain);
+	int end = start + quotient + ((i < remain)? 1 : 0);
+	if ((size_t)start >= size) { break; }
+	for (int j = start; j < end; j++) {
 	  owners[j] = i;
 	}
       }
@@ -107,7 +107,7 @@ namespace {
     // Correctly load data by each process
     std::vector<int> vec0;
     for (size_t i = 0; i < ds_size[0]; i++) {
-      vec0.push_back(i + 1);
+      vec0.push_back((int)i + 1);
     }
     init_owners(owners, 4);
     kmrnext::DataStore ds0(2, gNext);

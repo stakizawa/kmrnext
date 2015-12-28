@@ -633,6 +633,7 @@ WARN_CXX
 WARN_CC
 STD_CXX
 STD_CC
+SYSENV
 MPICXX
 MPILIBS
 MPICC
@@ -4055,7 +4056,8 @@ fi
 
 
 
-# The default CFLAGS and CXXFLAGS are remoted
+
+# The default CFLAGS and CXXFLAGS are removed
 case "$CC" in
 gcc)
     CFLAGS=""
@@ -4064,6 +4066,7 @@ gcc)
     STD_CXX="-std=c++98"
     WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
     WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
+    SYSENV="GNULINUX"
     ;;
 fccpx)
     CFLAGS="-Kfast,preex -Xg"
@@ -4072,6 +4075,7 @@ fccpx)
     STD_CXX="-std=gnu++98"
     WARN_CC=""
     WARN_CXX=""
+    SYSENV="K_FX"
     ;;
 esac
 

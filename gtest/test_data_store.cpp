@@ -465,7 +465,7 @@ namespace {
     std::vector<int> vec0;
     for (size_t i = 0; i < ds0.dim(0); i++) {
       for (size_t j = 0; j < ds0.dim(1); j++) {
-	vec0.push_back(j+1);
+	vec0.push_back((int)j+1);
       }
     }
     ds0.load_array(vec0, loader1d);
@@ -478,7 +478,7 @@ namespace {
     ds1.set(array_ds0_);
     std::vector<int> vec1;
     for (size_t i = 0; i < ds1.dim(0); i++) {
-      vec1.push_back(i+1);
+      vec1.push_back((int)i+1);
     }
     ds1.load_array(vec1, loader2d);
     EXPECT_EQ(1, *(long*)ds1.get(*key0_).data()->value());
@@ -491,7 +491,7 @@ namespace {
     ds2.set(array_ds0_);
     std::vector<int> vec2;
     for (size_t i = 0; i < ds_size_error_; i++) {
-      vec2.push_back(i+1);
+      vec2.push_back((int)i+1);
     }
     EXPECT_THROW({ds2.load_array(vec2, loader2d);}, std::runtime_error);
   }

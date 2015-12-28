@@ -29,6 +29,7 @@ AX_MPI
 AX_OPENMP([OPENMP_CXXFLAGS=$ax_cv_cxx_openmp])
 
 # Checks other compiler flags
+AC_SUBST(SYSENV)
 AC_SUBST(STD_CC)
 AC_SUBST(STD_CXX)
 AC_SUBST(WARN_CC)
@@ -43,6 +44,7 @@ gcc)
     STD_CXX="-std=c++98"
     WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
     WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
+    SYSENV="GNULINUX"
     ;;
 fccpx)
     CFLAGS="-Kfast,preex -Xg"
@@ -51,6 +53,7 @@ fccpx)
     STD_CXX="-std=gnu++98"
     WARN_CC=""
     WARN_CXX=""
+    SYSENV="K_FX"
     ;;
 esac
 

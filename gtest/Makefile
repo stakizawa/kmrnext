@@ -9,11 +9,13 @@
 #
 include ../config.make
 
-CXXFLAGS = -DDEBUG -g -O0 -Wall -std=c++98 -fopenmp
 LIB      = ../src/libkmrnext.a
-
 TEST_OBJS = test_key.o test_data.o test_data_store.o
 TEST_MAIN = test_all
+
+ifeq ($(SYSENV), GNULINUX)
+    CXXFLAGS += --std=gnu++0x
+endif
 
 ifeq ($(TARGET), KMR)
     DEPLIB += $(KMRDIR)/lib/libkmr.a
@@ -52,7 +54,8 @@ else
 	./$(TEST_MAIN)
 endif
 
-
 .PHONY: clean
 clean:
-	-rm -rf $(TEST_MAIN) $(TESTS) *.o
+	-rm -rf $(TEST_MAIN) $(TESTS) *.o *.d
+
+-include *.d
