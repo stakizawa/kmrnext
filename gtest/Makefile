@@ -17,6 +17,10 @@ ifeq ($(SYSENV), GNULINUX)
     CXXFLAGS += --std=gnu++0x
 endif
 
+ifeq ($(SYSENV), K_FX)
+    CXXFLAGS += -DGTEST_HAS_TR1_TUPLE=0
+endif
+
 ifeq ($(TARGET), KMR)
     DEPLIB += $(KMRDIR)/lib/libkmr.a
     TEST_OBJS += test_data_store_kmr.o
