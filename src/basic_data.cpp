@@ -32,7 +32,7 @@ namespace kmrnext {
     if (value_ != NULL) {
       throw runtime_error("Data is already set value.");
     }
-    value_ = static_cast<void*>(calloc(src.value_size_, sizeof(void*)));
+    value_ = static_cast<void*>(calloc(src.value_size_, sizeof(char)));
     memcpy(value_, src.value_, src.value_size_);
     value_size_ = src.value_size_;
     value_allocated_ = true;
