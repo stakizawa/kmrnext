@@ -555,6 +555,11 @@ namespace kmrnext {
       param->data[idx].set_owner(owner);
     }
     param->data[idx].shared();
+#ifdef _OPENMP
+    #pragma omp critical
+    // As a KMR map function is run in parallel by OpenMP, shared resources
+    // should be modified in critical regions.
+#endif
     param->dps->push_back(DataPack(key, &(param->data[idx])));
     return MPI_SUCCESS;
   }
