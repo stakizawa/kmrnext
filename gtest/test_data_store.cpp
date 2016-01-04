@@ -417,15 +417,15 @@ namespace {
     EXPECT_THROW({ds1_->map(&ods2, mapper, *v0_);}, std::runtime_error);
   }
 
-  class DataLoader1D : public kmrnext::DataStore::Loader<int> {
+  class DataLoader1D : public kmrnext::DataStore::Loader<long> {
     size_t size_;
   public:
     DataLoader1D(size_t siz) : size_(siz) {}
 
-    int operator()(kmrnext::DataStore *ds, const int& num)
+    int operator()(kmrnext::DataStore *ds, const long& num)
     {
       kmrnext::Key key(1);
-      kmrnext::Data data((void*)&num, sizeof(int));
+      kmrnext::Data data((void*)&num, sizeof(long));
       for (size_t i = 0; i < size_; i++) {
 	key.set_dim(0, i);
 	ds->add(key, data);
@@ -434,16 +434,16 @@ namespace {
     }
   };
 
-  class DataLoader2D : public kmrnext::DataStore::Loader<int> {
+  class DataLoader2D : public kmrnext::DataStore::Loader<long> {
     size_t size0_;
     size_t size1_;
   public:
     DataLoader2D(size_t siz0, size_t siz1) : size0_(siz0), size1_(siz1) {}
 
-    int operator()(kmrnext::DataStore *ds, const int& num)
+    int operator()(kmrnext::DataStore *ds, const long& num)
     {
       kmrnext::Key key(2);
-      kmrnext::Data data((void*)&num, sizeof(int));
+      kmrnext::Data data((void*)&num, sizeof(long));
       for (size_t i = 0; i < size0_; i++) {
 	key.set_dim(0, i);
 	for (size_t j = 0; j < size1_; j++) {
@@ -455,7 +455,7 @@ namespace {
     }
   };
 
-  class DataLoader3D : public kmrnext::DataStore::Loader<int> {
+  class DataLoader3D : public kmrnext::DataStore::Loader<long> {
     size_t size0_;
     size_t size1_;
     size_t size2_;
@@ -463,10 +463,10 @@ namespace {
     DataLoader3D(size_t siz0, size_t siz1, size_t siz2)
       : size0_(siz0), size1_(siz1), size2_(siz2) {}
 
-    int operator()(kmrnext::DataStore *ds, const int& num)
+    int operator()(kmrnext::DataStore *ds, const long& num)
     {
       kmrnext::Key key(3);
-      kmrnext::Data data((void*)&num, sizeof(int));
+      kmrnext::Data data((void*)&num, sizeof(long));
       for (size_t i = 0; i < size0_; i++) {
 	key.set_dim(0, i);
 	for (size_t j = 0; j < size1_; j++) {
@@ -489,10 +489,10 @@ namespace {
     // Test 0: DataLoader1D, load 2x2 times
     kmrnext::DataStore ds0(ds_size_, gNext);
     ds0.set(array_ds0_);
-    std::vector<int> vec0;
+    std::vector<long> vec0;
     for (size_t i = 0; i < ds0.dim(0); i++) {
       for (size_t j = 0; j < ds0.dim(1); j++) {
-	vec0.push_back((int)j+1);
+	vec0.push_back((long)j+1);
       }
     }
     ds0.load_array(vec0, loader1d);
@@ -503,9 +503,9 @@ namespace {
     // Test 1: DataLoader2D, load 2 times
     kmrnext::DataStore ds1(ds_size_, gNext);
     ds1.set(array_ds0_);
-    std::vector<int> vec1;
+    std::vector<long> vec1;
     for (size_t i = 0; i < ds1.dim(0); i++) {
-      vec1.push_back((int)i+1);
+      vec1.push_back((long)i+1);
     }
     ds1.load_array(vec1, loader2d);
     EXPECT_EQ(1, *(long*)ds1.get(*key0_).data()->value());
@@ -515,7 +515,7 @@ namespace {
     // Test 2: DataLoader3D, load once
     kmrnext::DataStore ds2(ds_size_, gNext);
     ds2.set(array_ds0_);
-    std::vector<int> vec2;
+    std::vector<long> vec2;
     vec2.push_back(1);
     ds2.load_array(vec2, loader3d);
     EXPECT_EQ(1, *(long*)ds2.get(*key0_).data()->value());
@@ -526,9 +526,9 @@ namespace {
     // of the DataStore, it throws runtime_error.
     kmrnext::DataStore ds3(ds_size_, gNext);
     ds3.set(array_ds0_);
-    std::vector<int> vec3;
+    std::vector<long> vec3;
     for (size_t i = 0; i < ds_size_error_; i++) {
-      vec3.push_back((int)i+1);
+      vec3.push_back((long)i+1);
     }
     EXPECT_THROW({ds3.load_array(vec3, loader2d);}, std::runtime_error);
   }
