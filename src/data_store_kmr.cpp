@@ -76,7 +76,14 @@ namespace kmrnext {
     if (parallel_ || kmrnext_->rank() == 0) {
       size_t idx = key_to_index(key);
       Data *d = &(data_[idx]);
-      d->copy_deep(data);
+      try {
+	d->copy_deep(data);
+      }
+      catch (runtime_error& e) {
+	cerr << "Failed to add a data to DataStore" << to_string()
+	     << " at Key" << key.to_string() << "." << endl;
+	throw e;
+      }
       d->set_owner(kmrnext_->rank());
     }
   }
