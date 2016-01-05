@@ -14,12 +14,17 @@ const size_t kDimEnsembleData = 3;
 //const size_t kDimRegionData   = 2;
 const size_t kDimLatticeData  = 1;
 
-const size_t kNumEnsemble = 2;
-const size_t kNumRegion   = 10;
 #if DEBUG
-const size_t kNumLattice  = 10;
+const size_t kNumEnsemble  = 2;
+const size_t kNumRegion    = 10;
+const size_t kNumLattice   = 10;
+const size_t kElementCount = 1;
 #else
-const size_t kNumLattice  = 1156;
+const size_t kNumEnsemble  = 64;
+const size_t kNumRegion    = 10;
+const size_t kNumLattice   = 1156;
+// Assume that each lattice has 6160 KB of data (6160 = 1540 * 4)
+const size_t kElementCount = 1540;
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
@@ -38,7 +43,12 @@ public:
   string operator()(DataPack& dp)
   {
     ostringstream os;
-    os << dp.key().to_string() << " : " << *(int*)(dp.data()->value()) << endl;
+    os << dp.key().to_string() << " : ";
+    int *data = (int*)dp.data()->value();
+    for (size_t i = 0; i < kElementCount; i++) {
+      os << data[i] << " ";
+    }
+    os << endl;
     return os.str();
   }
 };
@@ -103,11 +113,17 @@ public:
   int operator()(DataStore* ds, const int& num)
   {
     Key key(kDimLatticeData);
-    Data data((void*)&num, sizeof(int));
+    int *data_val = new int[kElementCount];
+    for (size_t i = 0; i < kElementCount; i++) {
+      data_val[i] = num;
+    }
+    Data data((void*)data_val, sizeof(int) * kElementCount);
+
     for (size_t i = 0; i < kNumLattice; i++) {
       key.set_dim(0, i);
       ds->add(key, data);
     }
+    delete data_val;
     return 0;
   }
 };
@@ -130,6 +146,7 @@ public:
 		 Key& key, vector<DataPack>& dps,
 		 DataStore::MapEnvironment& env)
   {
+#if DEBUG
 #ifdef BACKEND_SERIAL
     assert(dps.size() == (size_t)(kNumRegion * kNumLattice));
 #elif defined BACKEND_KMR
@@ -139,12 +156,18 @@ public:
 		  env.mpi_comm);
     assert(total_count == (size_t)(kNumRegion * kNumLattice));
 #endif
+#endif
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
-      int newval = *(int*)itr->data()->value() + 1;
-      Data data(&newval, itr->data()->size());
+      int *data_new = new int[kElementCount];
+      int *data_old = (int*)itr->data()->value();
+      for (size_t i = 0; i < kElementCount; i++) {
+	data_new[i] = data_old[i] + 1;
+      }
+      Data data(data_new, itr->data()->size());
       outds->add(itr->key(), data);
+      delete data_new;
     }
     return 0;
   }
@@ -165,6 +188,7 @@ public:
 		 Key& key, vector<DataPack>& dps,
 		 DataStore::MapEnvironment& env)
   {
+#if DEBUG
 #ifdef BACKEND_SERIAL
     assert(dps.size() == (size_t)kNumEnsemble);
 #elif defined BACKEND_KMR
@@ -174,12 +198,18 @@ public:
 		  env.mpi_comm);
     assert(total_count == (size_t)kNumEnsemble);
 #endif
+#endif
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
-      int newval = *(int*)itr->data()->value() - 1;
-      Data data(&newval, itr->data()->size());
+      int *data_new = new int[kElementCount];
+      int *data_old = (int*)itr->data()->value();
+      for (size_t i = 0; i < kElementCount; i++) {
+	data_new[i] = data_old[i] - 1;
+      }
+      Data data(data_new, itr->data()->size());
       outds->add(itr->key(), data);
+      delete data_new;
     }
     return 0;
   }
