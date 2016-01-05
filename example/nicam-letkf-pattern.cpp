@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
+#include <ctime>
 #include "kmrnext.hpp"
 
 using namespace std;
@@ -18,7 +19,7 @@ const size_t kDimLatticeData  = 1;
 const size_t kNumEnsemble  = 2;
 const size_t kNumRegion    = 10;
 const size_t kNumLattice   = 10;
-const size_t kElementCount = 1;
+const size_t kElementCount = 2;
 #else
 const size_t kNumEnsemble  = 64;
 const size_t kNumRegion    = 10;
@@ -31,12 +32,6 @@ const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
   {kNumEnsemble, kNumRegion, kNumLattice};
 
 const bool kPrint = true;
-
-void load_data(DataStore* ds);
-void run_nicam(DataStore* inds, DataStore* outds);
-void run_letkf(DataStore* inds, DataStore* outds);
-void print_line(string& str);
-void print_line(ostringstream& os);
 
 class DataPrinter : public DataPack::Dumper {
 public:
@@ -52,6 +47,44 @@ public:
     return os.str();
   }
 };
+
+struct Time {
+  double loop_start;
+  double loop_finish;
+
+  double nicam_start;
+  double nicam_finish;
+  double letkf_start;
+  double letkf_finish;
+
+  double nicam_invoke;
+  double nicam_cleanup;
+  double letkf_invoke;
+  double letkf_cleanup;
+
+  double loop() {
+    return (loop_finish - loop_start) / 10E9;
+  }
+  double nicam() {
+    return (nicam_finish - nicam_start) / 10E9;
+  }
+  double letkf() {
+    return (letkf_finish - letkf_start) / 10E9;
+  }
+  double nicam_launch() {
+    return (nicam_cleanup - nicam_invoke) / 10E9;
+  }
+  double letkf_launch() {
+    return (letkf_cleanup - letkf_invoke) / 10E9;
+  }
+};
+
+void load_data(DataStore* ds);
+void run_nicam(DataStore* inds, DataStore* outds, Time& time);
+void run_letkf(DataStore* inds, DataStore* outds, Time& time);
+void print_line(string& str);
+void print_line(ostringstream& os);
+double gettime();
 
 //////////////////////////////////////////////////////////////////////////////
 // Main starts from here.
@@ -77,11 +110,13 @@ main(int argc, char **argv)
     ostringstream os0;
     os0 << "Iteration[" << i << "] starts.";
     print_line(os0);
+    Time time;
+    time.loop_start = gettime();
 
     // run pseudo-NICAM
     DataStore* ds1 = next->create_ds(kDimEnsembleData);
     ds1->set(kEnsembleDataDimSizes);
-    run_nicam(ds0, ds1);
+    run_nicam(ds0, ds1, time);
     delete ds0;
 #if DEBUG
     string str1 = ds1->dump(dp);
@@ -91,15 +126,20 @@ main(int argc, char **argv)
     // run pseudo-LETKF
     ds0 = next->create_ds(kDimEnsembleData);
     ds0->set(kEnsembleDataDimSizes);
-    run_letkf(ds1, ds0);
+    run_letkf(ds1, ds0, time);
     delete ds1;
 #if DEBUG
     string str2 = ds0->dump(dp);
     print_line(str2);
 #endif
 
+    time.loop_finish = gettime();
     ostringstream os1;
-    os1 << "Iteration[" << i << "] ends.";
+    os1 << "Iteration[" << i << "] ends in " << time.loop() << " sec." << endl;
+    os1 << "  Invoking NICAM takes " << time.nicam_launch() << " sec." << endl;
+    os1 << "    NICAM consumes " << time.nicam() << " sec." << endl;
+    os1 << "  Invoking LETKF takes " << time.letkf_launch() << " sec." << endl;
+    os1 << "    LETKF consumes " << time.letkf() << " sec." << endl;
     print_line(os1);
   }
 
@@ -141,7 +181,10 @@ void load_data(DataStore* ds)
 }
 
 class PseudoNICAM : public DataStore::Mapper {
+  Time& time_;
 public:
+  PseudoNICAM(Time& time) : time_(time) {};
+
   int operator()(DataStore* inds, DataStore* outds,
 		 Key& key, vector<DataPack>& dps,
 		 DataStore::MapEnvironment& env)
@@ -158,6 +201,7 @@ public:
 #endif
 #endif
 
+    time_.nicam_start = gettime();
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
@@ -169,21 +213,27 @@ public:
       outds->add(itr->key(), data);
       delete data_new;
     }
+    time_.nicam_finish = gettime();
     return 0;
   }
 };
 
-void run_nicam(DataStore* inds, DataStore* outds)
+void run_nicam(DataStore* inds, DataStore* outds, Time& time)
 {
-  PseudoNICAM mapper;
+  PseudoNICAM mapper(time);
+  time.nicam_invoke = gettime();
   View view(kDimEnsembleData);
   bool view_flag[3] = {true, false, false};
   view.set(view_flag);
   inds->map(outds, mapper, view);
+  time.nicam_cleanup = gettime();
 }
 
 class PseudoLETKF : public DataStore::Mapper {
+  Time& time_;
 public:
+  PseudoLETKF(Time& time) : time_(time) {};
+
   int operator()(DataStore* inds, DataStore* outds,
 		 Key& key, vector<DataPack>& dps,
 		 DataStore::MapEnvironment& env)
@@ -200,6 +250,7 @@ public:
 #endif
 #endif
 
+    time_.letkf_start = gettime();
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
@@ -211,17 +262,20 @@ public:
       outds->add(itr->key(), data);
       delete data_new;
     }
+    time_.letkf_finish = gettime();
     return 0;
   }
 };
 
-void run_letkf(DataStore* inds, DataStore* outds)
+void run_letkf(DataStore* inds, DataStore* outds, Time& time)
 {
-  PseudoLETKF mapper;
+  PseudoLETKF mapper(time);
+  time.letkf_invoke = gettime();
   View view(kDimEnsembleData);
   bool view_flag[3] = {false, true, true};
   view.set(view_flag);
   inds->map(outds, mapper, view);
+  time.letkf_cleanup = gettime();
 }
 
 void print_line(string& str) {
@@ -233,4 +287,13 @@ void print_line(string& str) {
 void print_line(ostringstream& os) {
   string s = os.str();
   print_line(s);
+}
+
+double gettime() {
+#ifdef BACKEND_KMR
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
 }
