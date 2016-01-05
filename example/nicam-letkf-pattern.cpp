@@ -6,6 +6,8 @@
 using namespace std;
 using namespace kmrnext;
 
+int rank = 0;
+
 const size_t kNumIteration = 10;
 
 const size_t kDimEnsembleData = 3;
@@ -28,7 +30,8 @@ const bool kPrint = true;
 void load_data(DataStore* ds);
 void run_nicam(DataStore* inds, DataStore* outds);
 void run_letkf(DataStore* inds, DataStore* outds);
-bool to_print();
+void print_line(string& str);
+void print_line(ostringstream& os);
 
 class DataPrinter : public DataPack::Dumper {
 public:
@@ -47,6 +50,9 @@ int
 main(int argc, char **argv)
 {
   KMRNext *next = KMRNext::init(argc, argv);
+#ifdef BACKEND_KMR
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
 
   DataStore* ds0 = next->create_ds(kDimEnsembleData);
   ds0->set(kEnsembleDataDimSizes);
@@ -54,15 +60,13 @@ main(int argc, char **argv)
   DataPrinter dp;
 #if DEBUG
   string str0 = ds0->dump(dp);
-  if (to_print()) {
-    cout << str0 << endl;
-  }
+  print_line(str0);
 #endif
 
   for (size_t i = 0; i < kNumIteration; i++) {
-    if (to_print()) {
-      cout << "Iteration[" << i << "] starts." << endl;
-    }
+    ostringstream os0;
+    os0 << "Iteration[" << i << "] starts.";
+    print_line(os0);
 
     // run pseudo-NICAM
     DataStore* ds1 = next->create_ds(kDimEnsembleData);
@@ -71,9 +75,7 @@ main(int argc, char **argv)
     delete ds0;
 #if DEBUG
     string str1 = ds1->dump(dp);
-    if (to_print()) {
-      cout << str1 << endl;
-    }
+    print_line(str1);
 #endif
 
     // run pseudo-LETKF
@@ -83,14 +85,12 @@ main(int argc, char **argv)
     delete ds1;
 #if DEBUG
     string str2 = ds0->dump(dp);
-    if (to_print()) {
-      cout << str2 << endl;
-    }
+    print_line(str2);
 #endif
 
-    if (to_print()) {
-      cout << "Iteration[" << i << "] ends." << endl;
-    }
+    ostringstream os1;
+    os1 << "Iteration[" << i << "] ends.";
+    print_line(os1);
   }
 
   KMRNext::finalize();
@@ -194,13 +194,13 @@ void run_letkf(DataStore* inds, DataStore* outds)
   inds->map(outds, mapper, view);
 }
 
-bool to_print()
-{
-#ifdef BACKEND_SERIAL
-  return kPrint;
-#elif defined BACKEND_KMR
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  return kPrint && (rank == 0);
-#endif
+void print_line(string& str) {
+  if (kPrint && (rank == 0)) {
+    cout << str << endl;
+  }
+}
+
+void print_line(ostringstream& os) {
+  string s = os.str();
+  print_line(s);
 }
