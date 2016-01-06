@@ -9,27 +9,30 @@ using namespace kmrnext;
 
 int rank = 0;
 
+// If true, LETKF works on regins. If false, it works on each cell.
+const bool kLETKFRegion = false;
+
 const size_t kNumIteration = 10;
 
 const size_t kDimEnsembleData = 3;
 //const size_t kDimRegionData   = 2;
-const size_t kDimLatticeData  = 1;
+const size_t kDimCellData     = 1;
 
 #if DEBUG
 const size_t kNumEnsemble  = 2;
 const size_t kNumRegion    = 10;
-const size_t kNumLattice   = 10;
+const size_t kNumCell      = 10;
 const size_t kElementCount = 2;
 #else
 const size_t kNumEnsemble  = 64;
 const size_t kNumRegion    = 10;
-const size_t kNumLattice   = 1156;
+const size_t kNumCell      = 1156;
 // Assume that each lattice has 6160 KB of data (6160 = 1540 * 4)
 const size_t kElementCount = 1540;
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
-  {kNumEnsemble, kNumRegion, kNumLattice};
+  {kNumEnsemble, kNumRegion, kNumCell};
 
 const bool kPrint = true;
 
@@ -152,14 +155,14 @@ class DataLoader : public DataStore::Loader<int> {
 public:
   int operator()(DataStore* ds, const int& num)
   {
-    Key key(kDimLatticeData);
+    Key key(kDimCellData);
     int *data_val = new int[kElementCount];
     for (size_t i = 0; i < kElementCount; i++) {
       data_val[i] = num;
     }
     Data data((void*)data_val, sizeof(int) * kElementCount);
 
-    for (size_t i = 0; i < kNumLattice; i++) {
+    for (size_t i = 0; i < kNumCell; i++) {
       key.set_dim(0, i);
       ds->add(key, data);
     }
@@ -191,13 +194,13 @@ public:
   {
 #if DEBUG
 #ifdef BACKEND_SERIAL
-    assert(dps.size() == (size_t)(kNumRegion * kNumLattice));
+    assert(dps.size() == (size_t)(kNumRegion * kNumCell));
 #elif defined BACKEND_KMR
     size_t local_count = dps.size();
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
-    assert(total_count == (size_t)(kNumRegion * kNumLattice));
+    assert(total_count == (size_t)(kNumRegion * kNumCell));
 #endif
 #endif
 
@@ -240,13 +243,21 @@ public:
   {
 #if DEBUG
 #ifdef BACKEND_SERIAL
+  if (kLETKFRegion) {
+    assert(dps.size() == (size_t)(kNumEnsemble * kNumCell));
+  } else {
     assert(dps.size() == (size_t)kNumEnsemble);
+  }
 #elif defined BACKEND_KMR
-    size_t local_count = dps.size();
-    size_t total_count;
-    MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
-		  env.mpi_comm);
+  size_t local_count = dps.size();
+  size_t total_count;
+  MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
+		env.mpi_comm);
+  if (kLETKFRegion) {
+    assert(total_count == (size_t)(kNumEnsemble * kNumCell));
+  } else {
     assert(total_count == (size_t)kNumEnsemble);
+  }
 #endif
 #endif
 
@@ -272,8 +283,13 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time)
   PseudoLETKF mapper(time);
   time.letkf_invoke = gettime();
   View view(kDimEnsembleData);
-  bool view_flag[3] = {false, true, true};
-  view.set(view_flag);
+  if (kLETKFRegion) {
+    bool view_flag[3] = {false, true, false};
+    view.set(view_flag);
+  } else {
+    bool view_flag[3] = {false, true, true};
+    view.set(view_flag);
+  }
   inds->map(outds, mapper, view);
   time.letkf_cleanup = gettime();
 }
