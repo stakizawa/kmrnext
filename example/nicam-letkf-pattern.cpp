@@ -88,6 +88,7 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time);
 void print_line(string& str);
 void print_line(ostringstream& os);
 double gettime();
+double gettime(DataStore::MapEnvironment& env);
 
 //////////////////////////////////////////////////////////////////////////////
 // Main starts from here.
@@ -204,7 +205,7 @@ public:
 #endif
 #endif
 
-    time_.nicam_start = gettime();
+    time_.nicam_start = gettime(env);
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
@@ -216,7 +217,7 @@ public:
       outds->add(itr->key(), data);
       delete data_new;
     }
-    time_.nicam_finish = gettime();
+    time_.nicam_finish = gettime(env);
     return 0;
   }
 };
@@ -243,25 +244,25 @@ public:
   {
 #if DEBUG
 #ifdef BACKEND_SERIAL
-  if (kLETKFRegion) {
-    assert(dps.size() == (size_t)(kNumEnsemble * kNumCell));
-  } else {
-    assert(dps.size() == (size_t)kNumEnsemble);
-  }
+    if (kLETKFRegion) {
+      assert(dps.size() == (size_t)(kNumEnsemble * kNumCell));
+    } else {
+      assert(dps.size() == (size_t)kNumEnsemble);
+    }
 #elif defined BACKEND_KMR
-  size_t local_count = dps.size();
-  size_t total_count;
-  MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
-		env.mpi_comm);
-  if (kLETKFRegion) {
-    assert(total_count == (size_t)(kNumEnsemble * kNumCell));
-  } else {
-    assert(total_count == (size_t)kNumEnsemble);
-  }
+    size_t local_count = dps.size();
+    size_t total_count;
+    MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
+		  env.mpi_comm);
+    if (kLETKFRegion) {
+      assert(total_count == (size_t)(kNumEnsemble * kNumCell));
+    } else {
+      assert(total_count == (size_t)kNumEnsemble);
+    }
 #endif
 #endif
 
-    time_.letkf_start = gettime();
+    time_.letkf_start = gettime(env);
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
@@ -273,7 +274,7 @@ public:
       outds->add(itr->key(), data);
       delete data_new;
     }
-    time_.letkf_finish = gettime();
+    time_.letkf_finish = gettime(env);
     return 0;
   }
 };
@@ -308,6 +309,15 @@ void print_line(ostringstream& os) {
 double gettime() {
 #ifdef BACKEND_KMR
   MPI_Barrier(MPI_COMM_WORLD);
+#endif
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+}
+
+double gettime(DataStore::MapEnvironment& env) {
+#ifdef BACKEND_KMR
+  MPI_Barrier(env.mpi_comm);
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
