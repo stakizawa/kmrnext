@@ -449,7 +449,7 @@ namespace kmrnext {
 
     // It returns the index of Data calculated from the specified Key when
     // the specified view is applied.
-    size_t key_to_viwed_index(const Key& key, const View& view);
+    size_t key_to_viewed_index(const Key& key, const View& view);
 
     // It checks if dimensions of key are inside the range.
     void check_key_range(const Key& key);

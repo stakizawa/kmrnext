@@ -174,7 +174,7 @@ namespace kmrnext {
 	continue;
       }
       Key tmpkey = index_to_key(i);
-      size_t viewed_idx = key_to_viwed_index(tmpkey, view);
+      size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
       dps.push_back(DataPack(tmpkey, &(data_[i])));
     }
@@ -285,7 +285,7 @@ namespace kmrnext {
     return key;
   }
 
-  size_t DataStore::key_to_viwed_index(const Key& key, const View& view) {
+  size_t DataStore::key_to_viewed_index(const Key& key, const View& view) {
     size_t idx = 0;
     for (size_t i = 0; i < size_; i++) {
       if (view.dim(i)) {
