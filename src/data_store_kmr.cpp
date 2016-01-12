@@ -474,6 +474,22 @@ namespace kmrnext {
   }
 
   size_t DataStore::key_to_viewed_index(const Key& key, const View& view) {
+    // It returns column-ordered index
+#if 1
+    size_t idx = 0;
+    for (int i = (int)size_-1; i >= 0; i--) {
+      if (view.dim(i)) {
+	size_t offset = 1;
+	for (int j = i-1; j >= 0; j--) {
+	  if (view.dim(j)) {
+	    offset *= value_[j];
+	  }
+	}
+	idx += key.dim(i) * offset;
+      }
+    }
+    return idx;
+#else
     size_t idx = 0;
     for (size_t i = 0; i < size_; i++) {
       if (view.dim(i)) {
@@ -487,6 +503,7 @@ namespace kmrnext {
       }
     }
     return idx;
+#endif
   }
 
   Key DataStore::key_to_viewed_key(const Key& key, const View& view) {

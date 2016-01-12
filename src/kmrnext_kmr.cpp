@@ -36,6 +36,10 @@ namespace kmrnext {
   KMRNext::KMRNext() {
     world_comm_ = MPI_COMM_WORLD;
     mr_ = kmr_create_context(world_comm_, MPI_INFO_NULL, NULL);
+#if 0
+    mr_->verbosity = 5;
+    mr_->trace_map_mp = 1;
+#endif
     MPI_Comm_size(world_comm_, &nprocs_);
     MPI_Comm_rank(world_comm_, &rank_);
   }
