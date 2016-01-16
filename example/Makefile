@@ -4,7 +4,8 @@ LIB   = ../src/libkmrnext.a
 PROGS = nicam-letkf-pattern in-situ-viz-pattern
 
 ifeq ($(TARGET), KMR)
-    PROGS  += bm-nicam-letkf-pattern bm-in-situ-viz-pattern
+    PROGS  += bm-nicam-letkf-pattern bm-in-situ-viz-pattern \
+              bm-nicam-letkf-pattern-kmr
     DEPLIB += $(KMRDIR)/lib/libkmr.a
 endif
 
@@ -19,6 +20,9 @@ in-situ-viz-pattern: in-situ-viz-pattern.o
 
 
 bm-nicam-letkf-pattern: bm-nicam-letkf-pattern.o
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
+
+bm-nicam-letkf-pattern-kmr: bm-nicam-letkf-pattern-kmr.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 bm-in-situ-viz-pattern: bm-in-situ-viz-pattern.o
