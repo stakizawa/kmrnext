@@ -19,10 +19,6 @@ using namespace std;
 
 const size_t kNumIteration = 20;
 
-const size_t kDimEnsembleData = 3;
-//const size_t kDimRegionData   = 2;
-const size_t kDimCellData     = 1;
-
 #if DEBUG
 const size_t kNumEnsemble	= 2;
 const size_t kNumRegion		= 10;
@@ -39,9 +35,6 @@ const size_t kElementCount      = 1540;
 const unsigned int kTimeNICAM   = 50; // sec
 const unsigned int kTimeLETKF   = 5;  // sec
 #endif
-
-const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
-  {kNumEnsemble, kNumRegion, kNumCell};
 
 const bool kPrint = true;
 
@@ -161,7 +154,7 @@ void workflow(string prog_name) {
 }
 
 void spawn(string prog_name, string command, int procs, MPI_Comm *icomm) {
-  const char *cmd = prog_name.c_str();
+  char *cmd = (char*)prog_name.c_str();
   char *argv[2];
   argv[0] = (char*)command.c_str();
   argv[1] = NULL;
