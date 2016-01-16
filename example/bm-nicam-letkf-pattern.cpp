@@ -2,6 +2,9 @@
 /// Benchmark program for NICAM-LETKF data access pattern
 ///
 /// It requires KMR.
+/// It is recomended that the number of MPI processes running this program
+/// is kNumEnsemble x kNumRegion as this configuration can achieve a good
+/// performance with the least number of processes.
 #include <iostream>
 #include <sstream>
 #include <cassert>
@@ -14,7 +17,7 @@ using namespace kmrnext;
 
 int rank = 0;
 
-const size_t kNumIteration = 5;
+const size_t kNumIteration = 20;
 
 const size_t kDimEnsembleData = 3;
 //const size_t kDimRegionData   = 2;
