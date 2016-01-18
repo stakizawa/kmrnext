@@ -14,10 +14,11 @@
 #include <unistd.h>
 #include <mpi.h>
 #include <kmr.h>
+#include "../config.hpp"
 
 using namespace std;
 
-const size_t kNumIteration = 20;
+const size_t kNumIteration = 10;
 
 #if DEBUG
 const size_t kNumEnsemble	= 2;
@@ -95,7 +96,8 @@ double gettime(MPI_Comm comm);
 int
 main(int argc, char **argv)
 {
-  MPI_Init(&argc, &argv);
+  int thlv;
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_SERIALIZED, &thlv);
   setup();
   string prog_name(argv[0]);
   string subcommand(argv[argc - 1]);
@@ -147,9 +149,9 @@ void workflow(string prog_name) {
 #endif
   if (rank == 0) {
     cout << "PARAMETERS" << endl;
-    cout << "  Universe size    : " << universe_size << endl;
-    cout << "  Static proc size : " << nprocs << endl;
-#ifdef SYENV_K_FX
+    cout << "  Universe size     : " << universe_size << endl;
+    cout << "  Static proc size  : " << nprocs << endl;
+#ifdef SYSENV_K_FX
     cout << "  Spawn gap in msec : " << spawn_gap_msec << endl;
 #endif
     cout << endl;
@@ -161,6 +163,9 @@ void workflow(string prog_name) {
 
     // run pseudo-NICAM
     spawn_nicam(prog_name, time);
+#ifdef SYSENV_K_FX
+    sleep(2);  // for process release
+#endif
 
     // shuffle
     shuffle(time);
@@ -170,11 +175,15 @@ void workflow(string prog_name) {
 
     time.loop_finish = gettime(MPI_COMM_WORLD);
     ostringstream os1;
-    os1 << "Iteration[" << i << "] ends in " << time.loop() << " sec." << endl;
+    os1 << "Iteration[" << i << "] ends in " << (time.loop() - 2) << " sec."
+	<< endl;
     os1 << "  NICAM takes " << time.nicam() << " sec." << endl;
     os1 << "  Shuffle takes " << time.shuffle() << " sec." << endl;
     os1 << "  LETKF takes " << time.letkf() << " sec." << endl;
     print_line(os1);
+#ifdef SYSENV_K_FX
+    sleep(2);  // for process release
+#endif
   }
 }
 
@@ -192,7 +201,7 @@ void spawn(string prog_name, string command, int procs, MPI_Comm *icomm) {
 
 void disconnect(MPI_Comm *icomm) {
   MPI_Comm_disconnect(icomm);
-#ifdef SYENV_K_FX
+#ifdef SYSENV_K_FX
   // wait for process release on K
   usleep((useconds_t)(spawn_gap_msec * 1000));
 #endif
@@ -257,6 +266,14 @@ struct LETKFProc {
   bool done;
 };
 
+static void wait_letkf_done(LETKFProc *letkf) {
+  MPI_Status stat;
+  MPI_Wait(&letkf->rreq, &stat);
+  free(letkf->rbuf);
+  disconnect(&letkf->icomm);
+  letkf->done = true;
+}
+
 void spawn_letkf(string prog_name, Time& time) {
   time.letkf_start = gettime(MPI_COMM_WORLD);
   string prog_letkf("letkf");
@@ -264,16 +281,13 @@ void spawn_letkf(string prog_name, Time& time) {
   int nmaxspawn = (universe_size - nprocs) / nprocs;
   int running = 0;
 
+  // Spawn all
   for (size_t i = 0; i < letkf_task_count; i++) {
     if (running == nmaxspawn) {
       // Wait until a dynamic process is freed.
       for (size_t j = 0; j < i; j++) {
 	if (letkfs[j].done) { continue; }
-	MPI_Status stat;
-	MPI_Wait(&(letkfs[j].rreq), &stat);
-	free(letkfs[j].rbuf);
-	disconnect(&(letkfs[j].icomm));
-	letkfs[j].done = true;
+	wait_letkf_done(&letkfs[j]);
 	running -= 1;
       }
       assert(running < nmaxspawn);
@@ -297,6 +311,14 @@ void spawn_letkf(string prog_name, Time& time) {
 
     running += 1;
   }
+
+  // Wait all
+  for (size_t i = 0; i < letkf_task_count; i++) {
+    if (letkfs[i].done) { continue; }
+    wait_letkf_done(&letkfs[i]);
+  }
+
+  free(letkfs);
   time.letkf_finish = gettime(MPI_COMM_WORLD);
 }
 
