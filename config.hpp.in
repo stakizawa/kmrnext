@@ -57,5 +57,11 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* Define if system is gnu-linux */
+#undef SYSENV_GNULINUX
+
+/* Define if system is K computer of FX10 */
+#undef SYSENV_K_FX
+
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t

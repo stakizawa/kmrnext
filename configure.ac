@@ -45,6 +45,8 @@ gcc)
     WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
     WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
     SYSENV="GNULINUX"
+    AC_DEFINE([SYSENV_GNULINUX], [1],
+              [Define if system is gnu-linux])
     ;;
 fccpx)
     CFLAGS="-Kfast,preex -Xg"
@@ -54,6 +56,8 @@ fccpx)
     WARN_CC=""
     WARN_CXX=""
     SYSENV="K_FX"
+    AC_DEFINE([SYSENV_K_FX], [1],
+              [Define if system is K computer of FX10])
     ;;
 esac
 

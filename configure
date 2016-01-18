@@ -3976,6 +3976,9 @@ gcc)
     WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
     WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
     SYSENV="GNULINUX"
+
+$as_echo "#define SYSENV_GNULINUX 1" >>confdefs.h
+
     ;;
 fccpx)
     CFLAGS="-Kfast,preex -Xg"
@@ -3985,6 +3988,9 @@ fccpx)
     WARN_CC=""
     WARN_CXX=""
     SYSENV="K_FX"
+
+$as_echo "#define SYSENV_K_FX 1" >>confdefs.h
+
     ;;
 esac
 

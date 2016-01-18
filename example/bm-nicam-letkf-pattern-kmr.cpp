@@ -24,8 +24,8 @@ const size_t kNumEnsemble	= 2;
 const size_t kNumRegion		= 10;
 const size_t kNumCell		= 10;
 const size_t kElementCount	= 2;
-const unsigned int kTimeNICAM	= 0; // sec
-const unsigned int kTimeLETKF	= 0; // sec
+const unsigned int kTimeNICAM	= 1; // sec
+const unsigned int kTimeLETKF	= 1; // sec
 #else
 const size_t kNumEnsemble       = 64;
 const size_t kNumRegion         = 10;
@@ -38,10 +38,14 @@ const unsigned int kTimeLETKF   = 5;  // sec
 
 const bool kPrint = true;
 
-int rank		= 0;
-int nprocs		= 1;
+int rank                = 0;
+int nprocs              = 1;
+int universe_size       = 1;
+size_t nicam_task_count = 0;
+size_t letkf_task_count = 0;
 size_t nicam_data_count = 0;
 size_t letkf_data_count = 0;
+int spawn_gap_msec      = 0;
 
 struct Time {
   double loop_start;
@@ -71,6 +75,7 @@ struct Time {
 void setup();
 void workflow(string prog_name);
 void spawn(string prog_name, string command, int procs, MPI_Comm *icomm);
+void disconnect(MPI_Comm *icomm);
 void spawn_nicam(string prog_name, Time& time);
 void shuffle(Time& time);
 void spawn_letkf(string prog_name, Time& time);
@@ -108,27 +113,47 @@ main(int argc, char **argv)
 void setup() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+  int *usizep;
+  int uflag;
+  MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_UNIVERSE_SIZE, &usizep, &uflag);
+  universe_size = *usizep;
 
-  nicam_data_count = kNumRegion * kNumCell * kElementCount;
   int div_nicam = (int)kNumEnsemble / nprocs;
   int rem_nicam = (int)kNumEnsemble % nprocs;
-  nicam_data_count *= (rank < rem_nicam)? div_nicam + 1 : div_nicam;
+  nicam_task_count = (rank < rem_nicam)? div_nicam + 1 : div_nicam;
+  int div_letkf = (int)((kNumRegion * kNumCell) / nprocs);
+  int rem_letkf = (int)((kNumRegion * kNumCell) % nprocs);
+  letkf_task_count = (rank < rem_letkf)? div_letkf + 1 : div_letkf;
 
-  letkf_data_count = kNumEnsemble * kNumCell * kElementCount;
-  int div_letkf = (int)kNumRegion / nprocs;
-  int rem_letkf = (int)kNumRegion % nprocs;
-  letkf_data_count *= (rank < rem_letkf)? div_letkf + 1 : div_letkf;
+  nicam_data_count = kNumRegion * kNumCell * kElementCount;
+  letkf_data_count = kNumEnsemble * kElementCount;
+
+  long spawn_gap_param[2] = {500, 1000};
+  // long spawn_gap_param[2] = {1000, 10000};  // KMR original
+  int usz = 0;
+  unsigned int v = (unsigned int)universe_size;
+  while (v > 0) {
+    v = (v >> 1);
+    usz++;
+  }
+  spawn_gap_msec = (int)(((spawn_gap_param[1] * usz) / 10)
+			 + spawn_gap_param[0]);
 }
 
 void workflow(string prog_name) {
 #if DEBUG
   assert(nprocs == kNumEnsemble);
-  int *usizep;
-  int uflag;
-  MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_UNIVERSE_SIZE, &usizep, &uflag);
-  int univ_size = *usizep;
-  assert(univ_size >= (int)(kNumEnsemble * (1 + kNumRegion)));
+  assert(universe_size >= (int)(kNumEnsemble * (1 + kNumRegion)));
 #endif
+  if (rank == 0) {
+    cout << "PARAMETERS" << endl;
+    cout << "  Universe size    : " << universe_size << endl;
+    cout << "  Static proc size : " << nprocs << endl;
+#ifdef SYENV_K_FX
+    cout << "  Spawn gap in msec : " << spawn_gap_msec << endl;
+#endif
+    cout << endl;
+  }
 
   for (size_t i = 0; i < kNumIteration; i++) {
     Time time;
@@ -162,9 +187,20 @@ void spawn(string prog_name, string command, int procs, MPI_Comm *icomm) {
   int cc = MPI_Comm_spawn(cmd, argv, procs, MPI_INFO_NULL, 0, MPI_COMM_SELF,
 			  icomm, aoe);
   assert(cc == MPI_SUCCESS);
+  free(aoe);
+}
+
+void disconnect(MPI_Comm *icomm) {
+  MPI_Comm_disconnect(icomm);
+#ifdef SYENV_K_FX
+  // wait for process release on K
+  usleep((useconds_t)(spawn_gap_msec * 1000));
+#endif
 }
 
 void spawn_nicam(string prog_name, Time& time) {
+  assert(nicam_task_count == 1);
+
   time.nicam_start = gettime(MPI_COMM_WORLD);
   string prog_nicam("nicam");
   MPI_Comm icomm;
@@ -174,13 +210,15 @@ void spawn_nicam(string prog_name, Time& time) {
   int *sbuf = load_nicam_data();
   cc = MPI_Send(sbuf, (int)nicam_data_count, MPI_INT, 0, 1000, icomm);
   assert(cc == MPI_SUCCESS);
+  free(sbuf);
 
   int *rbuf = allocate_data(nicam_data_count);
   MPI_Status stat;
   cc = MPI_Recv(rbuf, (int)nicam_data_count, MPI_INT, 0, 1001, icomm, &stat);
   assert(cc == MPI_SUCCESS);
+  free(rbuf);
 
-  MPI_Comm_disconnect(&icomm);
+  disconnect(&icomm);
   time.nicam_finish = gettime(MPI_COMM_WORLD);
 }
 
@@ -208,26 +246,57 @@ void shuffle(Time& time) {
   cc = kmr_shuffle(kvs0, kvs1, kmr_noopt);
   assert(cc == MPI_SUCCESS);
   kmr_free_kvs(kvs1);
+  free(sbuf);
   time.shuffle_finish = gettime(MPI_COMM_WORLD);
 }
+
+struct LETKFProc {
+  MPI_Comm icomm;
+  int *rbuf;
+  MPI_Request rreq;
+  bool done;
+};
 
 void spawn_letkf(string prog_name, Time& time) {
   time.letkf_start = gettime(MPI_COMM_WORLD);
   string prog_letkf("letkf");
-  MPI_Comm icomm;
-  spawn(prog_name, prog_letkf, kNumEnsemble, &icomm);
+  LETKFProc *letkfs = (LETKFProc*)calloc(letkf_task_count, sizeof(LETKFProc));
+  int nmaxspawn = (universe_size - nprocs) / nprocs;
+  int running = 0;
 
-  int cc;
-  int *sbuf = load_letkf_data();
-  cc = MPI_Send(sbuf, (int)letkf_data_count, MPI_INT, 0, 1000, icomm);
-  assert(cc == MPI_SUCCESS);
+  for (size_t i = 0; i < letkf_task_count; i++) {
+    if (running == nmaxspawn) {
+      // Wait until a dynamic process is freed.
+      for (size_t j = 0; j < i; j++) {
+	if (letkfs[j].done) { continue; }
+	MPI_Status stat;
+	MPI_Wait(&(letkfs[j].rreq), &stat);
+	free(letkfs[j].rbuf);
+	disconnect(&(letkfs[j].icomm));
+	letkfs[j].done = true;
+	running -= 1;
+      }
+      assert(running < nmaxspawn);
+    }
 
-  int *rbuf = allocate_data(letkf_data_count);
-  MPI_Status stat;
-  cc = MPI_Recv(rbuf, (int)letkf_data_count, MPI_INT, 0, 1001, icomm, &stat);
-  assert(cc == MPI_SUCCESS);
+    letkfs[i].done = false;
+    spawn(prog_name, prog_letkf, 1, &(letkfs[i].icomm));
+    // Send data to a spawned process.
+    int cc;
+    int *sbuf = load_letkf_data();
+    cc = MPI_Send(sbuf, (int)letkf_data_count, MPI_INT, 0, 1000,
+     		  letkfs[i].icomm);
+    assert(cc == MPI_SUCCESS);
+    free(sbuf);
 
-  MPI_Comm_disconnect(&icomm);
+    // Receive data from a spawned process.
+    letkfs[i].rbuf = allocate_data(letkf_data_count);
+    cc = MPI_Irecv(letkfs[i].rbuf, (int)letkf_data_count, MPI_INT, 0, 1001,
+     		   letkfs[i].icomm, &(letkfs[i].rreq));
+    assert(cc == MPI_SUCCESS);
+
+    running += 1;
+  }
   time.letkf_finish = gettime(MPI_COMM_WORLD);
 }
 
@@ -243,6 +312,7 @@ void task_nicam() {
     int cc = MPI_Recv(buf, (int)nicam_data_count, MPI_INT, 0, 1000, pcomm,
 		      &stat);
     assert(cc == MPI_SUCCESS);
+    free(buf);
   }
 
   sleep(kTimeNICAM);
@@ -259,7 +329,7 @@ void task_nicam() {
 }
 
 void task_letkf() {
-  assert(nprocs == kNumEnsemble);
+  assert(nprocs == 1);
   MPI_Comm pcomm;
   MPI_Comm_get_parent(&pcomm);
 
@@ -268,8 +338,9 @@ void task_letkf() {
     int *buf = allocate_data(letkf_data_count);
     MPI_Status stat;
     int cc = MPI_Recv(buf, (int)letkf_data_count, MPI_INT, 0, 1000, pcomm,
-		      &stat);
+    		      &stat);
     assert(cc == MPI_SUCCESS);
+    free(buf);
   }
 
   sleep(kTimeLETKF);
@@ -291,18 +362,13 @@ int* allocate_data(size_t count) {
 
 int* load_nicam_data() {
   int *buf = allocate_data(nicam_data_count);
-  size_t ensembles =
-    nicam_data_count / (kNumRegion * kNumCell * kElementCount);
-  for (size_t h = 0; h < ensembles; h++) {
-    size_t idxh = h * kNumRegion * kNumCell * kElementCount;
-    for (size_t i = 0; i < kNumRegion; i++) {
-      size_t idxi = i * kNumCell * kElementCount;
-      for (size_t j = 0; j < kNumCell; j++) {
-	size_t idxj = j * kElementCount;
-	for (size_t k = 0; k < kElementCount; k++) {
-	  size_t idx = idxh + idxi + idxj + k;
-	  buf[idx] = (int)i;
-	}
+  for (size_t i = 0; i < kNumRegion; i++) {
+    size_t idxi = i * kNumCell * kElementCount;
+    for (size_t j = 0; j < kNumCell; j++) {
+      size_t idxj = j * kElementCount;
+      for (size_t k = 0; k < kElementCount; k++) {
+	size_t idx = idxi + idxj + k;
+	buf[idx] = (int)i;
       }
     }
   }
@@ -311,19 +377,11 @@ int* load_nicam_data() {
 
 int* load_letkf_data() {
   int *buf = allocate_data(letkf_data_count);
-  size_t regions =
-    letkf_data_count / (kNumEnsemble * kNumCell * kElementCount);
-  for (size_t h = 0; h < regions; h++) {
-    size_t idxh = h * kNumEnsemble * kNumCell * kElementCount;
-    for (size_t i = 0; i < kNumEnsemble; i++) {
-      size_t idxi = i * kNumCell * kElementCount;
-      for (size_t j = 0; j < kNumCell; j++) {
-	size_t idxj = j * kElementCount;
-	for (size_t k = 0; k < kElementCount; k++) {
-	  size_t idx = idxh + idxi + idxj + k;
-	  buf[idx] = (int)i;
-	}
-      }
+  for (size_t i = 0; i < kNumEnsemble; i++) {
+    size_t idxi = i * kElementCount;
+    for (size_t k = 0; k < kElementCount; k++) {
+      size_t idx = idxi + k;
+      buf[idx] = (int)i;
     }
   }
   return buf;
