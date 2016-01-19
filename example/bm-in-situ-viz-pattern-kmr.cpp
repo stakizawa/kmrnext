@@ -187,7 +187,8 @@ void run_viz(int* in, int* out, Time& time)
     rbuf[i] += 1;
   }
 #endif
-  sleep(kTimeViz);
+  unsigned int data_count = send_cnt / kDataCount;
+  sleep(kTimeViz * data_count);
 
   time.viz_finish = gettime(MPI_COMM_WORLD);
 }
