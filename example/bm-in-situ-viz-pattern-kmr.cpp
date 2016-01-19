@@ -14,7 +14,6 @@
 using namespace std;
 
 const size_t kDimSpace = 3;
-const size_t kDimData  = 1;
 
 #if DEBUG
 const size_t kX             = 2;
@@ -154,7 +153,7 @@ void run_simulation(int* in, int* out, Time& time)
     rbuf[i] += 1;
   }
 #endif
-  sleep(2);
+  sleep(kTimeSim);
   MPI_Gather(rbuf, send_cnt, MPI_INT, out, send_cnt, MPI_INT,
 	     0, MPI_COMM_WORLD);
 
@@ -177,7 +176,7 @@ void run_viz(int* in, int* out, Time& time)
     rbuf[i] += 1;
   }
 #endif
-  sleep(2);
+  sleep(kTimeViz);
 
   time.viz_finish = gettime(MPI_COMM_WORLD);
 }
