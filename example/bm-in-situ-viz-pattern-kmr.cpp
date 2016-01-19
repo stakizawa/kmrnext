@@ -164,7 +164,7 @@ void run_simulation(int* in, int* out, Time& time)
     rbuf[i] += 1;
   }
 #endif
-  usleep(kTimeSim);
+  usleep(kTimeSim * 1000);
   MPI_Gather(rbuf, send_cnt, MPI_INT, out, send_cnt, MPI_INT,
 	     0, MPI_COMM_WORLD);
 
@@ -188,7 +188,7 @@ void run_viz(int* in, int* out, Time& time)
   }
 #endif
   unsigned int data_count = send_cnt / kDataCount;
-  usleep(kTimeViz * data_count);
+  usleep(kTimeViz * data_count * 1000);
 
   time.viz_finish = gettime(MPI_COMM_WORLD);
 }

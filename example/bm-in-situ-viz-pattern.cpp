@@ -199,7 +199,7 @@ public:
 #endif
 
     time_.sim_start = gettime(env);
-    usleep(kTimeSim);
+    usleep(kTimeSim * 1000);
     time_.sim_finish = gettime(env);
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
@@ -245,7 +245,7 @@ public:
 #endif
 
     time_.viz_start = gettime(env);
-    usleep(kTimeViz);
+    usleep(kTimeViz * 1000);
     time_.viz_finish = gettime(env);
 
     return 0;

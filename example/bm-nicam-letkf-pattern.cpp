@@ -197,7 +197,7 @@ public:
 #endif
 
     time_.nicam_start = gettime(env);
-    usleep(kTimeNICAM);
+    usleep(kTimeNICAM * 1000);
     time_.nicam_finish = gettime(env);
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
@@ -259,7 +259,7 @@ public:
 		  env.mpi_comm);
     delete sndbuf;
     delete rcvbuf;
-    usleep(kTimeLETKF);
+    usleep(kTimeLETKF * 1000);
     time_.letkf_finish = gettime(env);
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();

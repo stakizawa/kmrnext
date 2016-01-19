@@ -341,7 +341,7 @@ void task_nicam() {
     free(buf);
   }
 
-  usleep(kTimeNICAM);
+  usleep(kTimeNICAM * 1000);
 
   if (rank == 0) {
     int *buf = load_nicam_data();
@@ -369,7 +369,7 @@ void task_letkf() {
     free(buf);
   }
 
-  usleep(kTimeLETKF);
+  usleep(kTimeLETKF * 1000);
 
   if (rank == 0) {
     int *buf = load_letkf_data();
