@@ -2,7 +2,7 @@
 /// Benchmark program for visualization data access pattern for MPI
 ///
 /// It only requires MPI.
-/// The number of process should be kX x kY x kZ.
+/// The number of process can divide kX x kY x kZ.
 #include <iostream>
 #include <sstream>
 #include <cassert>
@@ -110,7 +110,7 @@ void setup() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 #if DEBUG
-  assert(nprocs == kX * kY * kZ);
+  assert((kX * kY * kZ) % nprocs == 0);
 #endif
   total_data_count = kDataCount;
   for (size_t i = 0; i < kDimSpace; i++) {
@@ -143,7 +143,7 @@ void run_simulation(int* in, int* out, Time& time)
 
   int send_cnt = (int)total_data_count / nprocs;
 #if DEBUG
-  assert(send_cnt == kDataCount);
+  assert(send_cnt == (int)(kDataCount * ((kX * kY * kZ) / (size_t)nprocs)));
 #endif
   int *rbuf = (int*)calloc(send_cnt, sizeof(int));
   MPI_Scatter(in, send_cnt, MPI_INT, rbuf, send_cnt, MPI_INT,
@@ -166,7 +166,7 @@ void run_viz(int* in, int* out, Time& time)
 
   int send_cnt = (int)total_data_count / nprocs;
 #if DEBUG
-  assert(send_cnt == kDataCount);
+  assert(send_cnt == (int)(kDataCount * ((kX * kY * kZ) / (size_t)nprocs)));
 #endif
   int *rbuf = (int*)calloc(send_cnt, sizeof(int));
   MPI_Scatter(in, send_cnt, MPI_INT, rbuf, send_cnt, MPI_INT,
