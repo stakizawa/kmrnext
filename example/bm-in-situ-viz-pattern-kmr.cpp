@@ -26,9 +26,9 @@ const unsigned int kTimeViz = 1; // sec
 const size_t kX             = 100;
 const size_t kY             = 100;
 const size_t kZ             = 100;
-// Assume that each lattice has 1000 KB of data (1000 = 250 * 4)
-// In total, 1GB of data (kX x kY x kZ x kDataCount)
-const size_t kDataCount     = 250;
+// Assume that each lattice has 4000 KB of data (4000 = 1000 * 4)
+// In total, 4GB of data (kX x kY x kZ x kDataCount)
+const size_t kDataCount     = 1000;
 const unsigned int kTimeSim = 60;  // sec
 const unsigned int kTimeViz = 1;   // sec
 #endif
