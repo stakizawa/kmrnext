@@ -20,8 +20,8 @@ const size_t kX             = 2;
 const size_t kY             = 2;
 const size_t kZ	            = 2;
 const size_t kDataCount	    = 2;
-const unsigned int kTimeSim = 1;  // sec
-const unsigned int kTimeViz = 1;  // sec
+const unsigned int kTimeSim = 1000;  // msec
+const unsigned int kTimeViz = 1000;  // msec
 #else
 const size_t kX             = 128;
 const size_t kY             = 128;
@@ -29,8 +29,8 @@ const size_t kZ             = 128;
 // Assume that each point has 2048 Bytes of data (2048 = 512 * 4)
 // In total, 4GB of data (kX x kY x kZ x kDataCount)
 const size_t kDataCount     = 512;
-const unsigned int kTimeSim = 60; // sec
-const unsigned int kTimeViz = 1;  // sec
+const unsigned int kTimeSim = 60000; // msec
+const unsigned int kTimeViz = 100;   // msec
 #endif
 
 const size_t kSpaceSizes[kDimSpace] = {kX, kY, kZ};
@@ -164,7 +164,7 @@ void run_simulation(int* in, int* out, Time& time)
     rbuf[i] += 1;
   }
 #endif
-  sleep(kTimeSim);
+  usleep(kTimeSim);
   MPI_Gather(rbuf, send_cnt, MPI_INT, out, send_cnt, MPI_INT,
 	     0, MPI_COMM_WORLD);
 
@@ -188,7 +188,7 @@ void run_viz(int* in, int* out, Time& time)
   }
 #endif
   unsigned int data_count = send_cnt / kDataCount;
-  sleep(kTimeViz * data_count);
+  usleep(kTimeViz * data_count);
 
   time.viz_finish = gettime(MPI_COMM_WORLD);
 }

@@ -25,16 +25,16 @@ const size_t kNumEnsemble	= 2;
 const size_t kNumRegion		= 10;
 const size_t kNumCell		= 10;
 const size_t kElementCount	= 2;
-const unsigned int kTimeNICAM	= 1; // sec
-const unsigned int kTimeLETKF	= 1; // sec
+const unsigned int kTimeNICAM	= 1000; // msec
+const unsigned int kTimeLETKF	= 1000; // msec
 #else
 const size_t kNumEnsemble       = 64;
 const size_t kNumRegion         = 10;
 const size_t kNumCell           = 1156;
 // Assume that each lattice has 6160 KB of data (6160 = 1540 * 4)
 const size_t kElementCount      = 1540;
-const unsigned int kTimeNICAM   = 50; // sec
-const unsigned int kTimeLETKF   = 5;  // sec
+const unsigned int kTimeNICAM   = 50000; // msec
+const unsigned int kTimeLETKF   = 5000;  // msec
 #endif
 
 const bool kPrint = true;
@@ -341,7 +341,7 @@ void task_nicam() {
     free(buf);
   }
 
-  sleep(kTimeNICAM);
+  usleep(kTimeNICAM);
 
   if (rank == 0) {
     int *buf = load_nicam_data();
@@ -369,7 +369,7 @@ void task_letkf() {
     free(buf);
   }
 
-  sleep(kTimeLETKF);
+  usleep(kTimeLETKF);
 
   if (rank == 0) {
     int *buf = load_letkf_data();

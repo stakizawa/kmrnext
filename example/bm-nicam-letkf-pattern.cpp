@@ -28,16 +28,16 @@ const size_t kNumEnsemble	= 2;
 const size_t kNumRegion		= 10;
 const size_t kNumCell		= 10;
 const size_t kElementCount	= 2;
-const unsigned int kTimeNICAM	= 0; // sec
-const unsigned int kTimeLETKF	= 0; // sec
+const unsigned int kTimeNICAM	= 0; // msec
+const unsigned int kTimeLETKF	= 0; // msec
 #else
 const size_t kNumEnsemble       = 64;
 const size_t kNumRegion         = 10;
 const size_t kNumCell           = 1156;
 // Assume that each lattice has 6160 KB of data (6160 = 1540 * 4)
 const size_t kElementCount      = 1540;
-const unsigned int kTimeNICAM   = 50; // sec
-const unsigned int kTimeLETKF   = 5;  // sec
+const unsigned int kTimeNICAM   = 50000; // msec
+const unsigned int kTimeLETKF   = 5000;  // msec
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
@@ -197,7 +197,7 @@ public:
 #endif
 
     time_.nicam_start = gettime(env);
-    sleep(kTimeNICAM);
+    usleep(kTimeNICAM);
     time_.nicam_finish = gettime(env);
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
@@ -259,7 +259,7 @@ public:
 		  env.mpi_comm);
     delete sndbuf;
     delete rcvbuf;
-    sleep(kTimeLETKF);
+    usleep(kTimeLETKF);
     time_.letkf_finish = gettime(env);
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
