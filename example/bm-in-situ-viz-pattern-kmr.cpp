@@ -23,10 +23,11 @@ const size_t kDataCount	    = 2;
 const unsigned int kTimeSim = 1; // sec
 const unsigned int kTimeViz = 1; // sec
 #else
-const size_t kX             = 1000;
-const size_t kY             = 1000;
-const size_t kZ             = 1000;
+const size_t kX             = 100;
+const size_t kY             = 100;
+const size_t kZ             = 100;
 // Assume that each lattice has 1000 KB of data (1000 = 250 * 4)
+// In total, 1GB of data (kX x kY x kZ x kDataCount)
 const size_t kDataCount     = 250;
 const unsigned int kTimeSim = 60;  // sec
 const unsigned int kTimeViz = 1;   // sec
