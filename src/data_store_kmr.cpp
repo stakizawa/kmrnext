@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "kmrnext.hpp"
+#include "util.hpp"
 
 /// The current implementation of KMR-based DataStore consumes huge amount
 /// of memory.  It uses just an array, dense matrix, to store Data, but
@@ -312,6 +313,19 @@ namespace kmrnext {
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
       dps.push_back(DataPack(tmpkey, &(data_[i])));
+    }
+
+    if (kmrnext_->profile()) {
+      long data_count = 0;
+      for (size_t i = 0; i < nkeys; i++) {
+	vector<DataPack> &dps = dpgroups.at(i);
+	if (dps.size() > 0) {
+	  data_count += 1;
+	}
+      }
+      ostringstream os;
+      os << "count of data to be mapped: " << data_count;
+      profile_out(kmrnext_, os.str());
     }
 
     KMR_KVS *ikvs = kmr_create_kvs(kmrnext_->kmr(),

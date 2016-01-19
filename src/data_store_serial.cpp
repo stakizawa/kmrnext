@@ -189,7 +189,7 @@ namespace kmrnext {
 	}
       }
       ostringstream os;
-      os << "Count of data to be mapped is " << data_count << ".";
+      os << "count of data to be mapped: " << data_count;
       profile_out(os.str());
     }
 

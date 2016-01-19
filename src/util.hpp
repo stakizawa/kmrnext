@@ -4,6 +4,7 @@
 /// Utility functions
 
 #include <iostream>
+#include <iomanip>
 #include <ctime>
 #include "kmrnext.hpp"
 
@@ -19,8 +20,15 @@ double gettime() {
 }
 #endif
 
+#ifdef BACKEND_SERIAL
 void profile_out(string message) {
   cerr << ";;KMRNEXT: " << message << endl;
 }
+#elif defined BACKEND_KMR
+void profile_out(kmrnext::KMRNext *kmrnext_, string message) {
+  cerr << ";;KMRNEXT [" << setfill('0') << setw(5) << kmrnext_->rank() << "] "
+       << message << endl;
+}
+#endif
 
 #endif
