@@ -130,6 +130,7 @@ void setup() {
   nicam_data_count = kNumRegion * kNumCell * kElementCount;
   letkf_data_count = kNumEnsemble * kElementCount;
 
+#if 0
   long spawn_gap_param[2] = {500, 1000};
   // long spawn_gap_param[2] = {1000, 10000};  // KMR original
   int usz = 0;
@@ -139,7 +140,10 @@ void setup() {
     usz++;
   }
   spawn_gap_msec = (int)(((spawn_gap_param[1] * usz) / 10)
-			 + spawn_gap_param[0]);
+  			 + spawn_gap_param[0]);
+#else
+  spawn_gap_msec = 1000;
+#endif
 }
 
 void workflow(string prog_name) {
