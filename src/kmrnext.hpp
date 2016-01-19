@@ -4,7 +4,7 @@
 /// KMR Next Interface
 
 /// The backend runtime (SERIAL, KMR)
-#define BACKEND_KMR 1
+#define BACKEND_SERIAL 1
 
 #include <stdexcept>
 #include <sstream>
@@ -47,6 +47,15 @@ namespace kmrnext {
     /// \return        an instance of DataStore
     DataStore* create_ds(size_t siz);
 
+    /// It enables profiling option.
+    void enable_profile();
+
+    /// It disables profiling option.
+    void disable_profile();
+
+    /// It returns true if profiling option is set.
+    bool profile() { return profile_; };
+
 #ifdef BACKEND_KMR
     /// It returns MPI processes.
     int nprocs() { return nprocs_; }
@@ -59,6 +68,9 @@ namespace kmrnext {
 #endif
 
   private:
+    // True if profiling is on.
+    bool profile_;
+
     static KMRNext *kmrnext_;
 
     KMRNext();

@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "kmrnext.hpp"
+#include "util.hpp"
 
 namespace kmrnext {
 
@@ -177,6 +178,19 @@ namespace kmrnext {
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
       dps.push_back(DataPack(tmpkey, &(data_[i])));
+    }
+
+    if (kmrnext_->profile()) {
+      long data_count = 0;
+      for (size_t i = 0; i < dpgroups.size(); i++) {
+	vector<DataPack> &dps = dpgroups.at(i);
+	if (dps.size() > 0) {
+	  data_count += 1;
+	}
+      }
+      ostringstream os;
+      os << "Count of data to be mapped is " << data_count << ".";
+      profile_out(os.str());
     }
 
     MapEnvironment env;

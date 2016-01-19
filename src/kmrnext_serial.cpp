@@ -16,8 +16,16 @@ namespace kmrnext {
     }
   }
 
-  KMRNext::KMRNext() {}
+  KMRNext::KMRNext() : profile_(false) {}
 
   KMRNext::~KMRNext() {}
+
+  void KMRNext::enable_profile() {
+    profile_ = true;
+  }
+
+  void KMRNext::disable_profile() {
+    profile_ = false;
+  }
 
 }
