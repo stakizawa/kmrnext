@@ -20,17 +20,17 @@ const size_t kX             = 2;
 const size_t kY             = 2;
 const size_t kZ	            = 2;
 const size_t kDataCount	    = 2;
-const unsigned int kTimeSim = 1; // sec
-const unsigned int kTimeViz = 1; // sec
+const unsigned int kTimeSim = 1;  // sec
+const unsigned int kTimeViz = 1;  // sec
 #else
-const size_t kX             = 100;
-const size_t kY             = 100;
-const size_t kZ             = 100;
-// Assume that each lattice has 4000 KB of data (4000 = 1000 * 4)
+const size_t kX             = 128;
+const size_t kY             = 128;
+const size_t kZ             = 128;
+// Assume that each point has 2048 Bytes of data (2048 = 512 * 4)
 // In total, 4GB of data (kX x kY x kZ x kDataCount)
-const size_t kDataCount     = 1000;
-const unsigned int kTimeSim = 60;  // sec
-const unsigned int kTimeViz = 1;   // sec
+const size_t kDataCount     = 512;
+const unsigned int kTimeSim = 60; // sec
+const unsigned int kTimeViz = 1;  // sec
 #endif
 
 const size_t kSpaceSizes[kDimSpace] = {kX, kY, kZ};
@@ -45,6 +45,8 @@ struct Time {
   double main_start;
   double main_finish;
 
+  double load_start;
+  double load_finish;
   double sim_start;
   double sim_finish;
   double viz_start;
@@ -52,6 +54,9 @@ struct Time {
 
   double whole() {
     return (main_finish - main_start) / 10E9;
+  }
+  double load() {
+    return (load_finish - load_start) / 10E9;
   }
   double sim() {
     return (sim_finish - sim_start) / 10E9;
@@ -62,7 +67,7 @@ struct Time {
 };
 
 void setup();
-int* load_data();
+int* load_data(Time& time);
 int* allocate_data();
 void run_simulation(int* in, int* out, Time& time);
 void run_viz(int* in, int* out, Time& time);
@@ -84,7 +89,7 @@ main(int argc, char **argv)
   time.main_start = gettime(MPI_COMM_WORLD);
 
   // load data
-  int *data0 = load_data();
+  int *data0 = load_data(time);
 
   // run pseudo-Simulation
   int *data1 = allocate_data();
@@ -98,6 +103,7 @@ main(int argc, char **argv)
   time.main_finish = gettime(MPI_COMM_WORLD);
   ostringstream os;
   os << "Total time: " << time.whole() << " sec." << endl;
+  os << "  Loading data consumes " << time.load() << " sec." << endl;
   os << "  Simulation consumes " << time.sim() << " sec." << endl;
   os << "  Visualization consumes " << time.viz() << " sec." << endl;
   print_line(os);
@@ -127,7 +133,9 @@ int* allocate_data() {
   return data_;
 }
 
-int* load_data() {
+int* load_data(Time& time) {
+  time.load_start = gettime(MPI_COMM_WORLD);
+
   int* data_ = NULL;
   if (rank == 0) {
     data_ = (int*)calloc(total_data_count, sizeof(int));
@@ -135,6 +143,8 @@ int* load_data() {
       data_[i] = rank + 1;
     }
   }
+
+  time.load_finish = gettime(MPI_COMM_WORLD);
   return data_;
 }
 

@@ -19,20 +19,21 @@ const size_t kDimSpace = 3;
 const size_t kDimData  = 1;
 
 #if DEBUG
-const size_t kX		= 2;
-const size_t kY		= 2;
-const size_t kZ		= 2;
-const size_t kDataCount = 2;
-const unsigned int kTimeSim = 1;
-const unsigned int kTimeViz = 1;
+const size_t kX             = 2;
+const size_t kY             = 2;
+const size_t kZ             = 2;
+const size_t kDataCount     = 2;
+const unsigned int kTimeSim = 1;  // sec
+const unsigned int kTimeViz = 1;  // sec
 #else
-const size_t kX         = 1000;
-const size_t kY         = 1000;
-const size_t kZ         = 1000;
-// Assume that each lattice has 1000 KB of data (1000 = 250 * 4)
-const size_t kDataCount = 250;
-const unsigned int kTimeSim = 60;
-const unsigned int kTimeViz = 1;
+const size_t kX             = 128;
+const size_t kY             = 128;
+const size_t kZ             = 128;
+// Assume that each point has 2048 Bytes of data (2048 = 512 * 4)
+// In total, 4GB of data (kX x kY x kZ x kDataCount)
+const size_t kDataCount     = 512;
+const unsigned int kTimeSim = 60; // sec
+const unsigned int kTimeViz = 1;  // sec
 #endif
 
 const size_t kSpaceSizes[kDimSpace] = {kX, kY, kZ};
@@ -58,6 +59,8 @@ struct Time {
   double main_start;
   double main_finish;
 
+  double load_start;
+  double load_finish;
   double sim_start;
   double sim_finish;
   double viz_start;
@@ -70,6 +73,9 @@ struct Time {
 
   double whole() {
     return (main_finish - main_start) / 10E9;
+  }
+  double load() {
+    return (load_finish - load_start) / 10E9;
   }
   double sim() {
     return (sim_finish - sim_start) / 10E9;
@@ -85,7 +91,7 @@ struct Time {
   }
 };
 
-void load_data(DataStore* ds);
+void load_data(DataStore* ds, Time& time);
 void run_simulation(DataStore* inds, DataStore* outds, Time& time);
 void run_viz(DataStore* inds, DataStore* outds, Time& time);
 void print_line(string& str);
@@ -109,7 +115,7 @@ main(int argc, char **argv)
   // load data
   DataStore* ds0 = next->create_ds(kDimSpace);
   ds0->set(kSpaceSizes);
-  load_data(ds0);
+  load_data(ds0, time);
   DataPrinter dp;
 
   // run pseudo-Simulation
@@ -125,6 +131,7 @@ main(int argc, char **argv)
   time.main_finish = gettime();
   ostringstream os;
   os << "Total time: " << time.whole() << " sec." << endl;
+  os << "  Loading data consumes " << time.load() << " sec." << endl;
   os << "  Invoking Simulation takes " << time.sim_launch() << " sec." << endl;
   os << "    Simulation consumes " << time.sim() << " sec." << endl;
   os << "  Invoking Visualization takes " << time.viz_launch() << " sec."
@@ -157,8 +164,9 @@ public:
   }
 };
 
-void load_data(DataStore* ds)
+void load_data(DataStore* ds, Time& time)
 {
+  time.load_start = gettime();
   vector<int> data_srcs;
   for (size_t i = 0; i < kX; i++) {
     for (size_t j = 0; j < kY; j++) {
@@ -167,6 +175,7 @@ void load_data(DataStore* ds)
   }
   DataLoader dl;
   ds->load_array(data_srcs, dl);
+  time.load_finish = gettime();
 }
 
 class PseudoSimulation : public DataStore::Mapper {

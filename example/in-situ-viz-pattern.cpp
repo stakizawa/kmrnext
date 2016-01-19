@@ -19,11 +19,12 @@ const size_t kY		= 2;
 const size_t kZ		= 2;
 const size_t kDataCount = 2;
 #else
-const size_t kX         = 1000;
-const size_t kY         = 1000;
-const size_t kZ         = 1000;
-// Assume that each lattice has 1000 KB of data (1000 = 250 * 4)
-const size_t kDataCount = 250;
+const size_t kX         = 100;
+const size_t kY         = 100;
+const size_t kZ         = 100;
+// Assume that each lattice has 4000 KB of data (4000 = 1000 * 4)
+// In total, 4GB of data (kX x kY x kZ x kDataCount)
+const size_t kDataCount = 1000;
 #endif
 
 const size_t kSpaceSizes[kDimSpace] = {kX, kY, kZ};
