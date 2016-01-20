@@ -637,7 +637,7 @@ namespace kmrnext {
     MPI_Comm_split(kvi->c.mr->comm, kvi->c.mr->rank, kvi->c.mr->rank,
 		   &self_comm);
     param->env.mpi_comm = self_comm;
-    struct kmr_option kmr_nothrd = {0};
+    struct kmr_option kmr_nothrd = kmr_noopt;
     kmr_nothrd.nothreading = 1;
     kmr_map(kvi, kvo, arg, kmr_nothrd, kmrnext::mapper_map);
     MPI_Comm_free(&self_comm);
