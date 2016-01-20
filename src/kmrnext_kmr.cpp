@@ -47,13 +47,13 @@ namespace kmrnext {
 
   void KMRNext::enable_profile() {
     profile_ = true;
-    mr_->verbosity = 5;
+    mr_->verbosity = 5; // larger than 7 outputs more verbosely
     mr_->trace_map_mp = 1;
   }
 
   void KMRNext::disable_profile() {
     profile_ = false;
-    mr_->verbosity = 5;
+    mr_->verbosity = 5; // larger than 7 outputs more verbosely
     mr_->trace_map_mp = 0;
   }
 

@@ -42,6 +42,10 @@ namespace kmrnext {
   int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
 		 KMR_KVS *kvo, void *p, const long i);
 
+  /// It is a wrapper of KMR map function that locally maps key-values in
+  /// the input KVS.
+  int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m);
+
   /// Parameter for mapper_map
   typedef struct {
     DataStore::Mapper& mapper;
@@ -50,6 +54,7 @@ namespace kmrnext {
     const View& view;
     DataStore::MapEnvironment& env;
     vector< vector<DataPack> >& dpgroups;
+    bool map_local;
   } param_mapper_map;
 
   DataStore::~DataStore() {
@@ -296,10 +301,13 @@ namespace kmrnext {
       return;
     }
 
+    bool is_local = true;
     size_t nkeys = 1;
     for (size_t i = 0; i < size_; i++) {
       if (view.dim(i)) {
 	nkeys *= value_[i];
+      } else {
+	is_local = false;
       }
     }
 
@@ -345,9 +353,14 @@ namespace kmrnext {
 
     MapEnvironment env = { kmrnext_->rank(), MPI_COMM_NULL };
     if (outds) { outds->parallel_ = true; }
-    param_mapper_map param = { m, this, outds, view, env, dpgroups };
-    kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
-				kmrnext_->rank(), kmrnext::mapper_map);
+    param_mapper_map param = { m, this, outds, view, env, dpgroups,
+			       is_local };
+    if (is_local) {
+      map_local(ikvs, NULL, (void*)&param, kmrnext::mapper_map);
+    } else {
+      kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
+				  kmrnext_->rank(), kmrnext::mapper_map);
+    }
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
@@ -610,9 +623,24 @@ namespace kmrnext {
     if (dps.size() != 0) {
       Key viewed_key =
 	param->ids->key_to_viewed_key(dps.at(0).key(), param->view);
-      param->env.mpi_comm = kvi->c.mr->comm;
+      if (!param->map_local) {
+	param->env.mpi_comm = kvi->c.mr->comm;
+      }
       param->mapper(param->ids, param->ods, viewed_key, dps, param->env);
     }
+    return MPI_SUCCESS;
+  }
+
+  int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m) {
+    param_mapper_map *param = (param_mapper_map *)arg;
+    MPI_Comm self_comm;
+    MPI_Comm_split(kvi->c.mr->comm, kvi->c.mr->rank, kvi->c.mr->rank,
+		   &self_comm);
+    param->env.mpi_comm = self_comm;
+    struct kmr_option kmr_nothrd = {0};
+    kmr_nothrd.nothreading = 1;
+    kmr_map(kvi, kvo, arg, kmr_nothrd, kmrnext::mapper_map);
+    MPI_Comm_free(&self_comm);
     return MPI_SUCCESS;
   }
 
