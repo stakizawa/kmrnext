@@ -66,11 +66,6 @@ struct Time {
   double viz_start;
   double viz_finish;
 
-  double sim_invoke;
-  double sim_cleanup;
-  double viz_invoke;
-  double viz_cleanup;
-
   double whole() {
     return (main_finish - main_start) / 10E9;
   }
@@ -82,12 +77,6 @@ struct Time {
   }
   double viz() {
     return (viz_finish - viz_start) / 10E9;
-  }
-  double sim_launch() {
-    return (sim_cleanup - sim_invoke) / 10E9;
-  }
-  double viz_launch() {
-    return (viz_cleanup - viz_invoke) / 10E9;
   }
 };
 
@@ -132,11 +121,8 @@ main(int argc, char **argv)
   ostringstream os;
   os << "Total time: " << time.whole() << " sec." << endl;
   os << "  Loading data consumes " << time.load() << " sec." << endl;
-  os << "  Invoking Simulation takes " << time.sim_launch() << " sec." << endl;
-  os << "    Simulation consumes " << time.sim() << " sec." << endl;
-  os << "  Invoking Visualization takes " << time.viz_launch() << " sec."
-     << endl;
-  os << "    Visualization consumes " << time.viz() << " sec." << endl;
+  os << "  Simulation consumes " << time.sim() << " sec." << endl;
+  os << "  Visualization consumes " << time.viz() << " sec." << endl;
   print_line(os);
 
   KMRNext::finalize();
@@ -179,10 +165,7 @@ void load_data(DataStore* ds, Time& time)
 }
 
 class PseudoSimulation : public DataStore::Mapper {
-  Time& time_;
 public:
-  PseudoSimulation(Time& time) : time_(time) {};
-
   int operator()(DataStore* inds, DataStore* outds,
 		 Key& key, vector<DataPack>& dps,
 		 DataStore::MapEnvironment& env)
@@ -198,9 +181,7 @@ public:
     assert(total_count == (size_t)(kX * kY * kZ));
 #endif
 
-    time_.sim_start = gettime(env);
     usleep(kTimeSim * 1000);
-    time_.sim_finish = gettime(env);
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
@@ -219,20 +200,16 @@ public:
 
 void run_simulation(DataStore* inds, DataStore* outds, Time& time)
 {
-  PseudoSimulation mapper(time);
-  time.sim_invoke = gettime();
+  PseudoSimulation mapper;
+  time.sim_start = gettime();
   View view(kDimSpace);
   bool view_flag[3] = {false, false, false};
   view.set(view_flag);
   inds->map(outds, mapper, view);
-  time.sim_cleanup = gettime();
+  time.sim_finish = gettime();
 }
 
 class PseudoVisualization : public DataStore::Mapper {
-  Time& time_;
-public:
-  PseudoVisualization(Time& time) : time_(time) {};
-
   int operator()(DataStore* inds, DataStore* outds,
 		 Key& key, vector<DataPack>& dps,
 		 DataStore::MapEnvironment& env)
@@ -244,9 +221,7 @@ public:
     assert(dps.size() == 1);
 #endif
 
-    time_.viz_start = gettime(env);
     usleep(kTimeViz * 1000);
-    time_.viz_finish = gettime(env);
 
     return 0;
   }
@@ -254,13 +229,13 @@ public:
 
 void run_viz(DataStore* inds, DataStore* outds, Time& time)
 {
-  PseudoVisualization mapper(time);
-  time.viz_invoke = gettime();
+  PseudoVisualization mapper;
+  time.viz_start = gettime();
   View view(kDimSpace);
   bool view_flag[3] = {true, true, true};
   view.set(view_flag);
   inds->map(outds, mapper, view);
-  time.viz_cleanup = gettime();
+  time.viz_finish = gettime();
 }
 
 void print_line(string& str) {
