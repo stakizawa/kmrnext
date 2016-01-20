@@ -18,7 +18,7 @@
 
 using namespace std;
 
-const size_t kNumIteration = 10;
+const size_t kNumIteration = 5;
 
 #if DEBUG
 const size_t kNumEnsemble	= 2;
@@ -34,7 +34,7 @@ const size_t kNumCell           = 1156;
 // Assume that each lattice has 6160 KB of data (6160 = 1540 * 4)
 const size_t kElementCount      = 1540;
 const unsigned int kTimeNICAM   = 50000; // msec
-const unsigned int kTimeLETKF   = 5000;  // msec
+const unsigned int kTimeLETKF   = 50;    // msec
 #endif
 
 const bool kPrint = true;
