@@ -4,7 +4,7 @@
 /// KMR Next Interface
 
 /// The backend runtime (SERIAL, KMR)
-#define BACKEND_KMR 1
+#define BACKEND_SERIAL 1
 
 #include <stdexcept>
 #include <sstream>
@@ -349,7 +349,16 @@ namespace kmrnext {
     void split_to(vector<DataStore*>& dslist);
 
     /// It maps each data.
+    ///
+    /// The mapper object, m, can be run in parallel on data that have
+    /// the same key using a given MPI_Comm.
     void map(DataStore* outds, Mapper& m, const View& view);
+
+    /// It maps each data.
+    ///
+    /// It maps after gathering data that have the same key to a single
+    /// process.  That is, the mapper object, m, runs in serial.
+    void gather_map(DataStore* outds, Mapper& m, const View& view);
 
     /// It dumps data in the DataStore.
     string dump(DataPack::Dumper& dumper);
