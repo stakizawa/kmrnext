@@ -410,7 +410,12 @@ void task_letkf() {
 		   MPI_COMM_WORLD);
 #endif
 
-  usleep(kTimeLETKF * 1000);
+  unsigned int sleep_time = kTimeLETKF;
+#if SPAWN_ONCE
+  sleep_time = msg_size / (kNumEnsemble * kElementCount) / nprocs;
+  assert(sleep_time > 1);
+#endif
+  usleep(sleep_time * 1000);
 
 #if SPAWN_ONCE
   int *rbuf;
