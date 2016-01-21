@@ -16,6 +16,15 @@
 #include <kmr.h>
 #include "../config.hpp"
 
+/// If SPAWN_ONCE is 1, each static process spawns only once for LETKF.
+/// In that case, the number of spawned MPI processes is same as that of
+/// NICAM and the LETKF task performs scatter and gather data at the head
+/// and tha end of execution.
+///
+/// If SPAWN_ONCE is 0, LETKF program is spawned for kNumRegion x kNumCell
+/// times and each program runs with 1 MPI process.
+#define SPAWN_ONCE 1
+
 using namespace std;
 
 const size_t kNumIteration = 5;
@@ -281,12 +290,23 @@ static void wait_letkf_done(LETKFProc *letkf) {
 void spawn_letkf(string prog_name, Time& time) {
   time.letkf_start = gettime(MPI_COMM_WORLD);
   string prog_letkf("letkf");
-  LETKFProc *letkfs = (LETKFProc*)calloc(letkf_task_count, sizeof(LETKFProc));
-  int nmaxspawn = (universe_size - nprocs) / nprocs;
-  int running = 0;
+  size_t spawn_count, msg_size;
+  int running = 0, nmaxspawn, proc_count;
+#if SPAWN_ONCE
+  spawn_count = 1;
+  nmaxspawn  = 1;
+  proc_count = kNumRegion;
+  msg_size = letkf_data_count * letkf_task_count;
+#else
+  spawn_count = letkf_task_count;
+  nmaxspawn  = (universe_size - nprocs) / nprocs;
+  proc_count = 1;
+  msg_size = letkf_data_count;
+#endif
+  LETKFProc *letkfs = (LETKFProc*)calloc(spawn_count, sizeof(LETKFProc));
 
   // Spawn all
-  for (size_t i = 0; i < letkf_task_count; i++) {
+  for (size_t i = 0; i < spawn_count; i++) {
     if (running == nmaxspawn) {
       // Wait until a dynamic process is freed.
       for (size_t j = 0; j < i; j++) {
@@ -298,18 +318,21 @@ void spawn_letkf(string prog_name, Time& time) {
     }
 
     letkfs[i].done = false;
-    spawn(prog_name, prog_letkf, 1, &(letkfs[i].icomm));
+    spawn(prog_name, prog_letkf, proc_count, &(letkfs[i].icomm));
     // Send data to a spawned process.
     int cc;
+#if SPAWN_ONCE
+    cc = MPI_Send(&msg_size, 1, MPI_UNSIGNED_LONG, 0, 1000, letkfs[i].icomm);
+    assert(cc == MPI_SUCCESS);
+#endif
     int *sbuf = load_letkf_data();
-    cc = MPI_Send(sbuf, (int)letkf_data_count, MPI_INT, 0, 1000,
-     		  letkfs[i].icomm);
+    cc = MPI_Send(sbuf, (int)msg_size, MPI_INT, 0, 1000,  letkfs[i].icomm);
     assert(cc == MPI_SUCCESS);
     free(sbuf);
 
     // Receive data from a spawned process.
-    letkfs[i].rbuf = allocate_data(letkf_data_count);
-    cc = MPI_Irecv(letkfs[i].rbuf, (int)letkf_data_count, MPI_INT, 0, 1001,
+    letkfs[i].rbuf = allocate_data(msg_size);
+    cc = MPI_Irecv(letkfs[i].rbuf, (int)msg_size, MPI_INT, 0, 1001,
      		   letkfs[i].icomm, &(letkfs[i].rreq));
     assert(cc == MPI_SUCCESS);
 
@@ -317,7 +340,7 @@ void spawn_letkf(string prog_name, Time& time) {
   }
 
   // Wait all
-  for (size_t i = 0; i < letkf_task_count; i++) {
+  for (size_t i = 0; i < spawn_count; i++) {
     if (letkfs[i].done) { continue; }
     wait_letkf_done(&letkfs[i]);
   }
@@ -355,26 +378,56 @@ void task_nicam() {
 }
 
 void task_letkf() {
-  assert(nprocs == 1);
   MPI_Comm pcomm;
   MPI_Comm_get_parent(&pcomm);
+  size_t msg_size;
+#if SPAWN_ONCE
+  assert(nprocs == kNumRegion);
+#else
+  assert(nprocs == 1);
+  msg_size = letkf_data_count;
+#endif
+  int cc;
+  int *buf = NULL;
 
   if (rank == 0) {
     // receive data from the spawner on rank 0
-    int *buf = allocate_data(letkf_data_count);
     MPI_Status stat;
-    int cc = MPI_Recv(buf, (int)letkf_data_count, MPI_INT, 0, 1000, pcomm,
-    		      &stat);
+#if SPAWN_ONCE
+    cc = MPI_Recv(&msg_size, 1, MPI_UNSIGNED_LONG, 0, 1000, pcomm, &stat);
     assert(cc == MPI_SUCCESS);
-    free(buf);
+#endif
+    buf = allocate_data(msg_size);
+    cc = MPI_Recv(buf, (int)msg_size, MPI_INT, 0, 1000, pcomm, &stat);
+    assert(cc == MPI_SUCCESS);
   }
+
+#if SPAWN_ONCE
+  MPI_Bcast(&msg_size, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+  int each_size = (int)msg_size / nprocs;
+  int *ebuf = (int*)calloc(each_size, sizeof(int));
+  cc = MPI_Scatter(buf, each_size, MPI_INT, ebuf, each_size, MPI_INT, 0,
+		   MPI_COMM_WORLD);
+#endif
 
   usleep(kTimeLETKF * 1000);
 
+#if SPAWN_ONCE
+  int *rbuf;
   if (rank == 0) {
-    int *buf = load_letkf_data();
+    rbuf = (int*)calloc(each_size * nprocs, sizeof(int));
+  }
+  cc = MPI_Gather(ebuf, each_size, MPI_INT, rbuf, each_size, MPI_INT, 0,
+		  MPI_COMM_WORLD);
+  free(ebuf);
+  if (rank == 0) {
+    free(rbuf);
+  }
+#endif
+
+  if (rank == 0) {
     // send data to the spawner from rank 0
-    int cc = MPI_Send(buf, (int)letkf_data_count, MPI_INT, 0, 1001, pcomm);
+    cc = MPI_Send(buf, (int)msg_size, MPI_INT, 0, 1001, pcomm);
     assert(cc == MPI_SUCCESS);
     free(buf);
   }
@@ -402,6 +455,19 @@ int* load_nicam_data() {
 }
 
 int* load_letkf_data() {
+#if SPAWN_ONCE
+  int *buf = allocate_data(letkf_data_count * letkf_task_count);
+  for (size_t h = 0; h < letkf_task_count; h++) {
+    size_t idxh = h * letkf_data_count;
+    for (size_t i = 0; i < kNumEnsemble; i++) {
+      size_t idxi = i * kElementCount;
+      for (size_t k = 0; k < kElementCount; k++) {
+	size_t idx = idxh + idxi + k;
+	buf[idx] = (int)i;
+      }
+    }
+  }
+#else
   int *buf = allocate_data(letkf_data_count);
   for (size_t i = 0; i < kNumEnsemble; i++) {
     size_t idxi = i * kElementCount;
@@ -410,6 +476,7 @@ int* load_letkf_data() {
       buf[idx] = (int)i;
     }
   }
+#endif
   return buf;
 }
 
