@@ -412,7 +412,8 @@ void task_letkf() {
 
   unsigned int sleep_time = kTimeLETKF;
 #if SPAWN_ONCE
-  sleep_time = msg_size / (kNumEnsemble * kElementCount) / nprocs;
+  sleep_time = (unsigned int)msg_size /
+    (unsigned int)(kNumEnsemble * kElementCount * nprocs);
   assert(sleep_time > 1);
 #endif
   usleep(sleep_time * 1000);
