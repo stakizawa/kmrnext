@@ -17,6 +17,9 @@ using namespace kmrnext;
 
 int rank = 0;
 
+// If true, LETKF works on regins. If false, it works on each cell.
+const bool kLETKFRegion = false;
+
 const size_t kNumIteration = 5;
 
 const size_t kDimEnsembleData = 3;
@@ -282,8 +285,13 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time)
   PseudoLETKF mapper(time);
   time.letkf_invoke = gettime();
   View view(kDimEnsembleData);
-  bool view_flag[3] = {false, true, true};
-  view.set(view_flag);
+  if (kLETKFRegion) {
+    bool view_flag[3] = {false, true, false};
+    view.set(view_flag);
+  } else {
+    bool view_flag[3] = {false, true, true};
+    view.set(view_flag);
+  }
   inds->map(outds, mapper, view);
   time.letkf_cleanup = gettime();
 }
