@@ -74,13 +74,13 @@ namespace {
     }
 
     virtual ~KMRDataStoreTest() {
-      delete ds2_array_;
-      delete ds2_;
-      delete ds2_owners_;
-      delete k2_00_;
-      delete k2_11_;
-      delete k2_22_;
-      delete k2_33_;
+      delete[] ds2_array_;
+      delete   ds2_;
+      delete[] ds2_owners_;
+      delete   k2_00_;
+      delete   k2_11_;
+      delete   k2_22_;
+      delete   k2_33_;
     }
 
     int rank;

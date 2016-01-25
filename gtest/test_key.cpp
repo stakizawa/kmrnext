@@ -26,7 +26,8 @@ namespace {
 
     virtual ~KeyTest() {
       // You can do clean-up work that doesn't throw exceptions here.
-      delete array_key0_;
+      delete[] array_key0_;
+      delete[] array_key1_;
     }
 
     // If the constructor and destructor are not enough for setting up

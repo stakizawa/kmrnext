@@ -154,7 +154,7 @@ public:
       key.set_dim(0, i);
       ds->add(key, data);
     }
-    delete data_val;
+    delete[] data_val;
     return 0;
   }
 };
@@ -205,7 +205,7 @@ public:
       }
       Data data(data_new, itr->data()->size());
       outds->add(itr->key(), data);
-      delete data_new;
+      delete[] data_new;
     }
     time_.sim_finish = gettime(env);
     return 0;
@@ -252,7 +252,7 @@ public:
 	data_new[i] = data_old[i] - 1;
       }
       Data data(data_new, itr->data()->size());
-      delete data_new;
+      delete[] data_new;
     }
     time_.viz_finish = gettime(env);
     return 0;

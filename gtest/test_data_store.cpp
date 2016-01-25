@@ -110,25 +110,25 @@ namespace {
     }
 
     virtual ~DataStoreTest() {
-      delete array_ds0_;
-      delete key0_;
-      delete key1_;
-      delete key2_;
-      delete ekey0_;
-      delete ekey1_;
-      delete key2d0_;
-      delete key2d1_;
-      delete v0_;
-      delete v1_;
-      delete v2_;
-      delete v3_;
-      delete d0_;
-      delete d1_;
-      delete ds0_;
-      delete ds1_;
-      delete ds2_;
-      delete ds3_;
-      delete ds4_;
+      delete[] array_ds0_;
+      delete   key0_;
+      delete   key1_;
+      delete   key2_;
+      delete   ekey0_;
+      delete   ekey1_;
+      delete   key2d0_;
+      delete   key2d1_;
+      delete   v0_;
+      delete   v1_;
+      delete   v2_;
+      delete   v3_;
+      delete   d0_;
+      delete   d1_;
+      delete   ds0_;
+      delete   ds1_;
+      delete   ds2_;
+      delete   ds3_;
+      delete   ds4_;
     }
 
     size_t ds_size_;          // 3
