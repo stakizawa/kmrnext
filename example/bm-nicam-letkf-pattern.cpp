@@ -165,7 +165,7 @@ public:
       key.set_dim(0, i);
       ds->add(key, data);
     }
-    delete data_val;
+    delete[] data_val;
     return 0;
   }
 };
@@ -212,7 +212,7 @@ public:
       }
       Data data(data_new, itr->data()->size());
       outds->add(itr->key(), data);
-      delete data_new;
+      delete[] data_new;
     }
     return 0;
   }
@@ -243,26 +243,90 @@ public:
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
-    assert(total_count == (size_t)kNumEnsemble);
+    if (kLETKFRegion) {
+      assert(total_count == (size_t)(kNumEnsemble * kNumCell));
+    } else {
+      assert(total_count == (size_t)kNumEnsemble);
+    }
 #endif
 
     time_.letkf_start = gettime(env);
     int  sndcnt = (int)(dps.size() * kElementCount);
     int *sndbuf = new int[sndcnt];
-    int *rcvbuf = new int[kNumEnsemble * kElementCount];
     size_t sndbuf_idx = 0;
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data = (int*)itr->data()->value();
       size_t dsize = itr->data()->size();
       memcpy(sndbuf + sndbuf_idx, data, dsize);
-      sndbuf_idx += dsize;
+      sndbuf_idx += (dsize / sizeof(int));
     }
-    MPI_Allgather(sndbuf, sndcnt, MPI_INT, rcvbuf, sndcnt, MPI_INT,
-		  env.mpi_comm);
-    delete sndbuf;
-    delete rcvbuf;
-    usleep(kTimeLETKF * 1000);
+    if (kLETKFRegion) {
+      int letkf_nprocs;
+      int letkf_rank;
+      MPI_Comm_size(env.mpi_comm, &letkf_nprocs);
+      MPI_Comm_rank(env.mpi_comm, &letkf_rank);
+      int nensemble = (int)(dps.size() / kNumCell);
+      int *nensembles = new int[letkf_nprocs];
+      MPI_Allgather(&nensemble, 1, MPI_INT, nensembles, 1, MPI_INT,
+		    env.mpi_comm);
+      // set send counts and displs
+      int *send_cnts = new int[letkf_nprocs];
+      int *sdispls   = new int[letkf_nprocs];
+      int each_count = (int)kNumCell / letkf_nprocs;
+      int each_rem   = (int)kNumCell % letkf_nprocs;
+      int base_count = nensemble * (int)kElementCount;
+      for (int i = 0; i < letkf_nprocs; i++) {
+	send_cnts[i] = (each_count + ((i < each_rem)? 1 : 0)) * base_count;
+	if (i == 0) {
+	  sdispls[i] = 0;
+	} else {
+	  sdispls[i] = sdispls[i-1] + send_cnts[i-1];
+	}
+      }
+      assert(sdispls[letkf_nprocs-1] + send_cnts[letkf_nprocs-1] ==
+	     (int)(nensemble * kNumCell * kElementCount));
+      // set recv counts and displs
+      int *recv_cnts = new int[letkf_nprocs];
+      int *rdispls   = new int[letkf_nprocs];
+      int rcvbuf_siz = 0;
+      for (int i = 0; i < letkf_nprocs; i++) {
+	recv_cnts[i] = (each_count + ((letkf_rank < each_rem)? 1 : 0))
+	  * nensembles[i] * (int)kElementCount;
+	rcvbuf_siz += recv_cnts[i];
+	if (i == 0) {
+	  rdispls[i] = 0;
+	} else {
+	  rdispls[i] = rdispls[i-1] + recv_cnts[i-1];
+	}
+      }
+      assert(rcvbuf_siz ==
+	     (each_count + ((letkf_rank < each_rem)? 1 : 0)) *
+	     (int)(kNumEnsemble * kElementCount));
+      // set recv buffer
+      int *rcvbuf = new int[rcvbuf_siz];
+      // perform alltoall twice
+      for (size_t i = 0; i < 2; i++) {
+	MPI_Alltoallv(sndbuf, send_cnts, sdispls, MPI_INT,
+		      rcvbuf, recv_cnts, rdispls, MPI_INT, env.mpi_comm);
+      }
+      delete[] nensembles;
+      delete[] send_cnts;
+      delete[] sdispls;
+      delete[] recv_cnts;
+      delete[] rdispls;
+      delete[] rcvbuf;
+      delete[] sndbuf;
+      usleep((each_count + ((letkf_rank < each_rem)? 1 : 0)) * kTimeLETKF *
+	     1000);
+    } else {
+      int *rcvbuf = new int[kNumEnsemble * kElementCount];
+      MPI_Allgather(sndbuf, sndcnt, MPI_INT, rcvbuf, sndcnt, MPI_INT,
+		    env.mpi_comm);
+      delete[] rcvbuf;
+      delete[] sndbuf;
+      usleep(kTimeLETKF * 1000);
+    }
     time_.letkf_finish = gettime(env);
 
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
@@ -274,7 +338,7 @@ public:
       }
       Data data(data_new, itr->data()->size());
       outds->add(itr->key(), data);
-      delete data_new;
+      delete[] data_new;
     }
     return 0;
   }
