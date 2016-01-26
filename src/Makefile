@@ -38,6 +38,13 @@ test01-mng-ds: test01-mng-ds.o $(LIB)
 	touch .update_header
 	rm -f _kmrnext.hpp
 
+.PHONY: install
+install: all
+	install -d $(LIBDIR)
+	install -d $(INCDIR)
+	install -m 644 kmrnext.hpp $(INCDIR)
+	install -m 644 $(LIB) $(LIBDIR)
+
 .PHONY: clean
 clean:
 	-rm -rf $(OBJS) $(TESTS) *.o *.d

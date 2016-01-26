@@ -16,6 +16,10 @@ htmldoc:
 	rm -fr htmldoc
 	doxygen Doxyfile
 
+.PHONY: install
+install:
+	cd src; make install
+
 .PHONY: clean
 clean:
 	cd src; make clean
