@@ -25,6 +25,7 @@ clean:
 	cd src; make clean
 	cd gtest; make clean
 	cd example; make clean
+	cd benchmarks; make clean
 
 .PHONY: distclean
 distclean: clean
