@@ -25,14 +25,14 @@ const size_t kNumProc        = 8;
 const size_t kNumData        = 6;
 const size_t kElementCount   = 1;    // a double value
 const unsigned int kTimeMD   = 1000; // msec
-const unsigned int kTimeEX   = 1000; // msec
+const unsigned int kTimeEX   = 1;    // msec
 #else
 const size_t kNumEnsemble    = 128;
 const size_t kNumProc        = 8;
 const size_t kNumData        = 6;
 const size_t kElementCount   = 1;
-const unsigned int kTimeMD   = 1000; // msec
-const unsigned int kTimeEX   = 1000; // msec
+const unsigned int kTimeMD   = 20000; // msec
+const unsigned int kTimeEX   = 1;     // msec
 #endif
 
 const bool kPrint = true;
