@@ -3,7 +3,7 @@ include ../config.make
 LIB    = ../src/libkmrnext.a
 PROGS  = nicam-letkf-pattern nicam-letkf-pattern-kmr \
 	 viz-pattern viz-pattern-kmr \
-	 remd-pattern
+	 remd-pattern remd-pattern-kmr
 DEPLIB = $(KMRDIR)/lib/libkmr.a
 
 .Phony: all
@@ -22,6 +22,9 @@ nicam-letkf-pattern-kmr: nicam-letkf-pattern-kmr.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 viz-pattern-kmr: viz-pattern-kmr.o
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
+
+remd-pattern-kmr: remd-pattern-kmr.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 .cpp.o:

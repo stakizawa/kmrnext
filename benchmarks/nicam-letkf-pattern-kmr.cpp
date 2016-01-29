@@ -69,7 +69,11 @@ struct Time {
   double letkf_finish;
 
   double loop() {
+#ifdef SYSENV_K_FX
+    return (loop_finish - loop_start) / 10E9 - 2;  // -2 for sleep
+#else
     return (loop_finish - loop_start) / 10E9;
+#endif
   }
   double nicam() {
     return (nicam_finish - nicam_start) / 10E9;
@@ -188,7 +192,7 @@ void workflow(string prog_name) {
 
     time.loop_finish = gettime(MPI_COMM_WORLD);
     ostringstream os1;
-    os1 << "Iteration[" << i << "] ends in " << (time.loop() - 2) << " sec."
+    os1 << "Iteration[" << i << "] ends in " << time.loop() << " sec."
 	<< endl;
     os1 << "  NICAM takes " << time.nicam() << " sec." << endl;
     os1 << "  Shuffle takes " << time.shuffle() << " sec." << endl;
