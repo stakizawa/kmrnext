@@ -17,7 +17,7 @@ using namespace kmrnext;
 
 int rank = 0;
 
-const size_t kNumIteration = 10;
+const size_t kNumIteration = 5;
 
 const size_t kNumDimensions = 3;
 #if DEBUG
