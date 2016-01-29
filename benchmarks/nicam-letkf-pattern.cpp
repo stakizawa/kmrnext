@@ -1,7 +1,7 @@
 /// \file
 /// Benchmark program for NICAM-LETKF data access pattern
 ///
-/// It requires KMR.
+/// It requires KMR backend.
 /// It is recomended that the number of MPI processes running this program
 /// is kNumEnsemble x kNumRegion as this configuration can achieve a good
 /// performance with the least number of processes.

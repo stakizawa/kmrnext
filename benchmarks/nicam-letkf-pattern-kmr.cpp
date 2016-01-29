@@ -1,7 +1,7 @@
 /// \file
 /// Benchmark program for NICAM-LETKF data access pattern for MPI
 ///
-/// It requires KMR, but does not use kmrnext.
+/// It requires KMR backend, but does not use kmrnext.
 /// It assumes that the number of static MPI processes running this program
 /// is kNumEnsemble and dynamic MPI processes should be bigger than
 /// kNumEnsemble x kNumRegion.  It spawns at most once on each process at

@@ -1,7 +1,7 @@
 /// \file
 /// Benchmark program for in-situ visualization data access pattern
 ///
-/// It requires KMR.
+/// It requires KMR backend.
 #include <iostream>
 #include <sstream>
 #include <cassert>
