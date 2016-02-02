@@ -1,13 +1,17 @@
 include ../config.make
 
 LIB    = ../src/libkmrnext.a
-PROGS  = nicam-letkf-pattern nicam-letkf-pattern-kmr \
+PROGS  = basic-map \
+	 nicam-letkf-pattern nicam-letkf-pattern-kmr \
 	 viz-pattern viz-pattern-kmr \
 	 remd-pattern remd-pattern-kmr
 DEPLIB = $(KMRDIR)/lib/libkmr.a
 
 .Phony: all
 all: $(PROGS)
+
+basic-map: basic-map.o
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 nicam-letkf-pattern: nicam-letkf-pattern.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
