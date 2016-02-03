@@ -87,14 +87,17 @@ public:
     finishs.push_back(gettime());
   }
 
-  string str(bool header=true) {
+  string str(bool header=true, bool header_only=false) {
     assert(starts.size() == finishs.size());
     ostringstream os;
-    if (header) {
+    if (header || header_only) {
       for (size_t i = 0; i < starts.size(); i++) {
 	os << i << ",";
       }
       os << "average" << endl;
+      if (header_only) {
+	return os.str();
+      }
     }
     double time_sum = 0;
     for (size_t i = 0; i < starts.size(); i++) {
@@ -365,19 +368,25 @@ eval_count_once(string description, KMRNext* next, int rank, size_t* dim_ary,
   ds->set(dim_ary);
   ds->load_array(datalist, loader);
 
-  bool ary_tf[2] = {true,  false};
-  View vtf(2);
-  vtf.set(ary_tf);
+  bool ary_ff[2] = {false, false};
+  View vff(2);
+  vff.set(ary_ff);
   bool ary_ft[2] = {false, true};
   View vft(2);
   vft.set(ary_ft);
+  bool ary_tf[2] = {true,  false};
+  View vtf(2);
+  vtf.set(ary_tf);
+  bool ary_tt[2] = {true,  true};
+  View vtt(2);
+  vtf.set(ary_tt);
 
-  Timer timer_tf;
+  Timer timer_ff;
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
-    timer_tf.start();
-    ds->map(NULL, mapper, vtf);
-    timer_tf.finish();
+    timer_ff.start();
+    ds->map(NULL, mapper, vff);
+    timer_ff.finish();
   }
   Timer timer_ft;
   for (size_t i = 0; i < kNumIterations; i++) {
@@ -386,11 +395,28 @@ eval_count_once(string description, KMRNext* next, int rank, size_t* dim_ary,
     ds->map(NULL, mapper, vft);
     timer_ft.finish();
   }
+  Timer timer_tf;
+  for (size_t i = 0; i < kNumIterations; i++) {
+    PseudoMapper mapper(rank);
+    timer_tf.start();
+    ds->map(NULL, mapper, vtf);
+    timer_tf.finish();
+  }
+  Timer timer_tt;
+  for (size_t i = 0; i < kNumIterations; i++) {
+    PseudoMapper mapper(rank);
+    timer_tt.start();
+    ds->map(NULL, mapper, vtt);
+    timer_tt.finish();
+  }
   delete ds;
   if (rank == 0) {
     cout << description << endl;
-    cout << timer_tf.str();
-    cout << timer_ft.str(false) << endl;
+    cout << "  ," << timer_ff.str(true, true);
+    cout << "FF," << timer_ff.str(false);
+    cout << "FT," << timer_tf.str(false);
+    cout << "TF," << timer_ft.str(false);
+    cout << "TT," << timer_tt.str(false) << endl;
   }
 }
 
@@ -447,19 +473,25 @@ eval_size_once(string description, KMRNext* next, int rank, size_t data_size,
   ByteLoader loader(data_size);
   ds->load_array(datalist, loader);
 
-  bool ary_tf[2] = {true,  false};
-  View vtf(2);
-  vtf.set(ary_tf);
+  bool ary_ff[2] = {false, false};
+  View vff(2);
+  vff.set(ary_ff);
   bool ary_ft[2] = {false, true};
   View vft(2);
   vft.set(ary_ft);
+  bool ary_tf[2] = {true,  false};
+  View vtf(2);
+  vtf.set(ary_tf);
+  bool ary_tt[2] = {true,  true};
+  View vtt(2);
+  vtf.set(ary_tt);
 
-  Timer timer_tf;
+  Timer timer_ff;
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
-    timer_tf.start();
-    ds->map(NULL, mapper, vtf);
-    timer_tf.finish();
+    timer_ff.start();
+    ds->map(NULL, mapper, vff);
+    timer_ff.finish();
   }
   Timer timer_ft;
   for (size_t i = 0; i < kNumIterations; i++) {
@@ -468,11 +500,28 @@ eval_size_once(string description, KMRNext* next, int rank, size_t data_size,
     ds->map(NULL, mapper, vft);
     timer_ft.finish();
   }
+  Timer timer_tf;
+  for (size_t i = 0; i < kNumIterations; i++) {
+    PseudoMapper mapper(rank);
+    timer_tf.start();
+    ds->map(NULL, mapper, vtf);
+    timer_tf.finish();
+  }
+  Timer timer_tt;
+  for (size_t i = 0; i < kNumIterations; i++) {
+    PseudoMapper mapper(rank);
+    timer_tt.start();
+    ds->map(NULL, mapper, vtt);
+    timer_tt.finish();
+  }
   delete ds;
   if (rank == 0) {
     cout << description << endl;
-    cout << timer_tf.str();
-    cout << timer_ft.str(false) << endl;
+    cout << "  ," << timer_ff.str(true, true);
+    cout << "FF," << timer_ff.str(false);
+    cout << "FT," << timer_tf.str(false);
+    cout << "TF," << timer_ft.str(false);
+    cout << "TT," << timer_tt.str(false) << endl;
   }
 }
 
