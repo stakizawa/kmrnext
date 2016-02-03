@@ -94,13 +94,15 @@ public:
       for (size_t i = 0; i < starts.size(); i++) {
 	os << i << ",";
       }
-      os << endl;
+      os << "average" << endl;
     }
+    double time_sum = 0;
     for (size_t i = 0; i < starts.size(); i++) {
       double time = finishs.at(i) - starts.at(i);
+      time_sum += time;
       os << time << ",";
     }
-    os << endl;
+    os << (time_sum / (double)starts.size()) << endl;
     return os.str();
   }
 };
@@ -133,6 +135,35 @@ public:
   }
 };
 
+class ByteLoader : public DataStore::Loader<long> {
+  size_t bytes_;
+
+public:
+  ByteLoader(size_t bytes) : bytes_(bytes) {}
+
+  int operator()(DataStore* ds, const long& num)
+  {
+    size_t data_count = 1;
+    for (size_t i = 0; i < ds->size(); i++) {
+      data_count *= ds->dim(i);
+    }
+
+    size_t data_siz = bytes_ / sizeof(long);
+    long *value = new long[data_siz];
+    for (size_t i = 0; i < data_siz; i++) {
+      value[i] = num;
+    }
+    Data data((void*)value, bytes_);
+    delete[] value;
+
+    for (size_t i = 0; i < data_count; i++) {
+      Key key = ds->index_to_key(i);
+      ds->add(key, data);
+    }
+    return 0;
+  }
+};
+
 class PseudoMapper : public DataStore::Mapper {
   int world_rank_;
 
@@ -143,6 +174,7 @@ public:
 		 Key& key, vector<DataPack>& dps,
 		 DataStore::MapEnvironment& env)
   {
+#if 0
 #if DEBUG
     size_t local_count = dps.size();
     size_t total_count;
@@ -151,6 +183,7 @@ public:
     if (world_rank_ == 0) {
       cerr << "Total data count is " << total_count << endl;
     }
+#endif
 #endif
     return 0;
   }
@@ -184,8 +217,9 @@ setup(int argc, int* rankp, int* nprocsp)
 }
 
 static void
-eval_dimension_once(KMRNext* next, int rank, int ndim, size_t* dim_ary,
-		    bool* view_ary, vector<long>& datalist, DataLoader& loader)
+eval_dimension_once(string description, KMRNext* next, int rank, int ndim,
+		    size_t* dim_ary, bool* view_ary,
+		    vector<long>& datalist, DataLoader& loader)
 {
   DataStore *ds = next->create_ds(ndim);
   ds->set(dim_ary);
@@ -200,28 +234,35 @@ eval_dimension_once(KMRNext* next, int rank, int ndim, size_t* dim_ary,
     timer.finish();
   }
   delete ds;
-  cout << timer.str() << endl;
+  if (rank == 0) {
+    cout << description << endl;
+    cout << timer.str() << endl;
+  }
 }
 
 void
 eval_dimension(KMRNext* next, int rank, int nprocs)
 {
+  if (rank == 0) {
+    cout << "Dimension Test" << endl;
+  }
+
 #if DEBUG
-  size_t ary2[2] = {2, 10000};
-  size_t ary3[3] = {2, 10, 1000};
-  size_t ary4[4] = {2, 10, 10, 100};
-  size_t ary5[5] = {2, 10, 10, 10, 10};
-  size_t ary6[6] = {2, 10, 10, 10, 5, 2};
-  size_t ary7[7] = {2, 10, 10, 5, 2, 5, 2};
-  size_t ary8[8] = {2, 10, 5, 2, 5, 2, 5, 2};
+  size_t ary2[2] = {kNumProcs, 10000};
+  size_t ary3[3] = {kNumProcs, 10, 1000};
+  size_t ary4[4] = {kNumProcs, 10, 10, 100};
+  size_t ary5[5] = {kNumProcs, 10, 10, 10, 10};
+  size_t ary6[6] = {kNumProcs, 10, 10, 10, 5, 2};
+  size_t ary7[7] = {kNumProcs, 10, 10, 5, 2, 5, 2};
+  size_t ary8[8] = {kNumProcs, 10, 5, 2, 5, 2, 5, 2};
 #else
-  size_t ary2[2] = {1000, 10000};
-  size_t ary3[3] = {1000, 10, 1000};
-  size_t ary4[4] = {1000, 10, 10, 100};
-  size_t ary5[5] = {1000, 10, 10, 10, 10};
-  size_t ary6[6] = {1000, 10, 10, 10, 5, 2};
-  size_t ary7[7] = {1000, 10, 10, 5, 2, 5, 2};
-  size_t ary8[8] = {1000, 10, 5, 2, 5, 2, 5, 2};
+  size_t ary2[2] = {kNumProcs, 10000};
+  size_t ary3[3] = {kNumProcs, 10, 1000};
+  size_t ary4[4] = {kNumProcs, 10, 10, 100};
+  size_t ary5[5] = {kNumProcs, 10, 10, 10, 10};
+  size_t ary6[6] = {kNumProcs, 10, 10, 10, 5, 2};
+  size_t ary7[7] = {kNumProcs, 10, 10, 5, 2, 5, 2};
+  size_t ary8[8] = {kNumProcs, 10, 5, 2, 5, 2, 5, 2};
 #endif
 
   bool   aryv2[2] = {true, false};
@@ -238,31 +279,231 @@ eval_dimension(KMRNext* next, int rank, int nprocs)
   }
   DataLoader loader(1);
 
-  eval_dimension_once(next, rank, 2, ary2, aryv2, datalist, loader);
-  eval_dimension_once(next, rank, 3, ary3, aryv3, datalist, loader);
-  eval_dimension_once(next, rank, 4, ary4, aryv4, datalist, loader);
-  eval_dimension_once(next, rank, 5, ary5, aryv5, datalist, loader);
-  eval_dimension_once(next, rank, 6, ary6, aryv6, datalist, loader);
-  eval_dimension_once(next, rank, 7, ary7, aryv7, datalist, loader);
-  eval_dimension_once(next, rank, 8, ary8, aryv8, datalist, loader);
+  eval_dimension_once(string("2D"),
+		      next, rank, 2, ary2, aryv2, datalist, loader);
+  eval_dimension_once(string("3D"),
+		      next, rank, 3, ary3, aryv3, datalist, loader);
+  eval_dimension_once(string("4D"),
+		      next, rank, 4, ary4, aryv4, datalist, loader);
+  eval_dimension_once(string("5D"),
+		      next, rank, 5, ary5, aryv5, datalist, loader);
+  eval_dimension_once(string("6D"),
+		      next, rank, 6, ary6, aryv6, datalist, loader);
+  eval_dimension_once(string("7D"),
+		      next, rank, 7, ary7, aryv7, datalist, loader);
+  eval_dimension_once(string("8D"),
+		      next, rank, 8, ary8, aryv8, datalist, loader);
+}
+
+static void
+eval_view_once(string description, int rank, DataStore* ds,
+	       bool* view_ary)
+{
+  View view(ds->size());
+  view.set(view_ary);
+  Timer timer;
+  for (size_t i = 0; i < kNumIterations; i++) {
+    PseudoMapper mapper(rank);
+    timer.start();
+    ds->map(NULL, mapper, view);
+    timer.finish();
+  }
+  if (rank == 0) {
+    cout << description << endl;
+    cout << timer.str() << endl;
+  }
 }
 
 void
 eval_view(KMRNext* next, int rank, int nprocs)
 {
-  throw runtime_error("not implemented yet.");
+  if (rank == 0) {
+    cout << "View Test" << endl;
+  }
+
+#if DEBUG
+  size_t ary3[3] = {kNumProcs, 100, 100};
+#else
+  size_t ary3[3] = {kNumProcs, 100, 100};
+#endif
+
+  bool fff[3] = {false, false, false};
+  bool fft[3] = {false, false, true };
+  bool ftf[3] = {false, true,  false};
+  bool ftt[3] = {false, true,  true };
+  bool tff[3] = {true,  false, false};
+  bool tft[3] = {true,  false, true };
+  bool ttf[3] = {true,  true,  false};
+  bool ttt[3] = {true,  true,  true };
+
+  vector<long> datalist;
+  for (size_t i = 0; i < kNumProcs; i++) {
+    datalist.push_back((long)(i+1));
+  }
+  DataLoader loader(1);
+  DataStore *ds = next->create_ds(3);
+  ds->set(ary3);
+  ds->load_array(datalist, loader);
+
+  eval_view_once(string("FFF"), rank, ds, fff);
+  eval_view_once(string("FFT"), rank, ds, fft);
+  eval_view_once(string("FTF"), rank, ds, ftf);
+  eval_view_once(string("FTT"), rank, ds, ftt);
+  eval_view_once(string("TFF"), rank, ds, tff);
+  eval_view_once(string("TFT"), rank, ds, tft);
+  eval_view_once(string("TTF"), rank, ds, ttf);
+  eval_view_once(string("TTT"), rank, ds, ttt);
+
+  delete ds;
+}
+
+static void
+eval_count_once(string description, KMRNext* next, int rank, size_t* dim_ary,
+		vector<long>& datalist, DataLoader& loader)
+{
+  DataStore *ds = next->create_ds(2);
+  ds->set(dim_ary);
+  ds->load_array(datalist, loader);
+
+  bool ary_tf[2] = {true,  false};
+  View vtf(2);
+  vtf.set(ary_tf);
+  bool ary_ft[2] = {false, true};
+  View vft(2);
+  vft.set(ary_ft);
+
+  Timer timer_tf;
+  for (size_t i = 0; i < kNumIterations; i++) {
+    PseudoMapper mapper(rank);
+    timer_tf.start();
+    ds->map(NULL, mapper, vtf);
+    timer_tf.finish();
+  }
+  Timer timer_ft;
+  for (size_t i = 0; i < kNumIterations; i++) {
+    PseudoMapper mapper(rank);
+    timer_ft.start();
+    ds->map(NULL, mapper, vft);
+    timer_ft.finish();
+  }
+  delete ds;
+  if (rank == 0) {
+    cout << description << endl;
+    cout << timer_tf.str();
+    cout << timer_ft.str(false) << endl;
+  }
 }
 
 void
 eval_count(KMRNext* next, int rank, int nprocs)
 {
-  throw runtime_error("not implemented yet.");
+  if (rank == 0) {
+    cout << "Data Count Test" << endl;
+  }
+
+#if DEBUG
+  size_t ary1[2] = {kNumProcs, 10};
+  size_t ary2[2] = {kNumProcs, 20};
+  size_t ary3[2] = {kNumProcs, 40};
+  size_t ary4[2] = {kNumProcs, 80};
+  size_t ary5[2] = {kNumProcs, 160};
+  size_t ary6[2] = {kNumProcs, 320};
+  size_t ary7[2] = {kNumProcs, 640};
+  size_t ary8[2] = {kNumProcs, 1280};
+#else
+  size_t ary1[2] = {kNumProcs, 10};
+  size_t ary2[2] = {kNumProcs, 20};
+  size_t ary3[2] = {kNumProcs, 40};
+  size_t ary4[2] = {kNumProcs, 80};
+  size_t ary5[2] = {kNumProcs, 160};
+  size_t ary6[2] = {kNumProcs, 320};
+  size_t ary7[2] = {kNumProcs, 640};
+  size_t ary8[2] = {kNumProcs, 1280};
+#endif
+
+  vector<long> datalist;
+  for (size_t i = 0; i < kNumProcs; i++) {
+    datalist.push_back((long)(i+1));
+  }
+  DataLoader loader(1);
+
+  eval_count_once(string("10"), next, rank, ary1, datalist, loader);
+  eval_count_once(string("20"), next, rank, ary2, datalist, loader);
+  eval_count_once(string("30"), next, rank, ary3, datalist, loader);
+  eval_count_once(string("40"), next, rank, ary4, datalist, loader);
+  eval_count_once(string("50"), next, rank, ary5, datalist, loader);
+  eval_count_once(string("60"), next, rank, ary6, datalist, loader);
+  eval_count_once(string("70"), next, rank, ary7, datalist, loader);
+  eval_count_once(string("80"), next, rank, ary8, datalist, loader);
+}
+
+static void
+eval_size_once(string description, KMRNext* next, int rank, size_t data_size,
+	       vector<long>& datalist)
+{
+  DataStore *ds = next->create_ds(2);
+  size_t dim_ary[2] = {kNumProcs, 100};
+  ds->set(dim_ary);
+  ByteLoader loader(data_size);
+  ds->load_array(datalist, loader);
+
+  bool ary_tf[2] = {true,  false};
+  View vtf(2);
+  vtf.set(ary_tf);
+  bool ary_ft[2] = {false, true};
+  View vft(2);
+  vft.set(ary_ft);
+
+  Timer timer_tf;
+  for (size_t i = 0; i < kNumIterations; i++) {
+    PseudoMapper mapper(rank);
+    timer_tf.start();
+    ds->map(NULL, mapper, vtf);
+    timer_tf.finish();
+  }
+  Timer timer_ft;
+  for (size_t i = 0; i < kNumIterations; i++) {
+    PseudoMapper mapper(rank);
+    timer_ft.start();
+    ds->map(NULL, mapper, vft);
+    timer_ft.finish();
+  }
+  delete ds;
+  if (rank == 0) {
+    cout << description << endl;
+    cout << timer_tf.str();
+    cout << timer_ft.str(false) << endl;
+  }
 }
 
 void
 eval_size(KMRNext* next, int rank, int nprocs)
 {
-  throw runtime_error("not implemented yet.");
+  if (rank == 0) {
+    cout << "Data Size Test" << endl;
+  }
+
+  size_t sizes[11] = {1024, 2048, 4096, 8192, 16384, 32768, 65536,
+		      131072, 262144, 524288, 1048576};
+
+  vector<long> datalist;
+  for (size_t i = 0; i < kNumProcs; i++) {
+    datalist.push_back((long)(i+1));
+  }
+
+  eval_size_once(string("1K"), next, rank, sizes[0], datalist);
+  eval_size_once(string("2K"), next, rank, sizes[1], datalist);
+  eval_size_once(string("4K"), next, rank, sizes[2], datalist);
+  eval_size_once(string("8K"), next, rank, sizes[3], datalist);
+#if not DEBUG
+  eval_size_once(string("16K"), next, rank, sizes[4], datalist);
+  eval_size_once(string("32K"), next, rank, sizes[5], datalist);
+  eval_size_once(string("64K"), next, rank, sizes[6], datalist);
+  eval_size_once(string("128K"), next, rank, sizes[7], datalist);
+  eval_size_once(string("256K"), next, rank, sizes[8], datalist);
+  eval_size_once(string("512K"), next, rank, sizes[9], datalist);
+  eval_size_once(string("1024K"), next, rank, sizes[10], datalist);
+#endif
 }
 
 void
