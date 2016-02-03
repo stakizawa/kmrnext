@@ -1,7 +1,7 @@
 include ../config.make
 
 LIB    = ../src/libkmrnext.a
-PROGS  = map-basic \
+PROGS  = map-basic map-scale\
 	 nicam-letkf-pattern nicam-letkf-pattern-kmr \
 	 viz-pattern viz-pattern-kmr \
 	 remd-pattern remd-pattern-kmr
@@ -11,6 +11,9 @@ DEPLIB = $(KMRDIR)/lib/libkmr.a
 all: $(PROGS)
 
 map-basic: map-basic.o
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
+
+map-scale: map-scale.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 nicam-letkf-pattern: nicam-letkf-pattern.o
