@@ -453,14 +453,14 @@ eval_count(KMRNext* next, int rank, int nprocs)
   }
   DataLoader loader(1);
 
-  eval_count_once(string("10"), next, rank, ary1, datalist, loader);
-  eval_count_once(string("20"), next, rank, ary2, datalist, loader);
-  eval_count_once(string("30"), next, rank, ary3, datalist, loader);
-  eval_count_once(string("40"), next, rank, ary4, datalist, loader);
-  eval_count_once(string("50"), next, rank, ary5, datalist, loader);
-  eval_count_once(string("60"), next, rank, ary6, datalist, loader);
-  eval_count_once(string("70"), next, rank, ary7, datalist, loader);
-  eval_count_once(string("80"), next, rank, ary8, datalist, loader);
+  eval_count_once(string("10"),   next, rank, ary1, datalist, loader);
+  eval_count_once(string("20"),   next, rank, ary2, datalist, loader);
+  eval_count_once(string("40"),   next, rank, ary3, datalist, loader);
+  eval_count_once(string("80"),   next, rank, ary4, datalist, loader);
+  eval_count_once(string("160"),  next, rank, ary5, datalist, loader);
+  eval_count_once(string("320"),  next, rank, ary6, datalist, loader);
+  eval_count_once(string("640"),  next, rank, ary7, datalist, loader);
+  eval_count_once(string("1280"), next, rank, ary8, datalist, loader);
 }
 
 static void
