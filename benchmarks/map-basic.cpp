@@ -379,7 +379,7 @@ eval_count_once(string description, KMRNext* next, int rank, size_t* dim_ary,
   vtf.set(ary_tf);
   bool ary_tt[2] = {true,  true};
   View vtt(2);
-  vtf.set(ary_tt);
+  vtt.set(ary_tt);
 
   Timer timer_ff;
   for (size_t i = 0; i < kNumIterations; i++) {
@@ -484,7 +484,7 @@ eval_size_once(string description, KMRNext* next, int rank, size_t data_size,
   vtf.set(ary_tf);
   bool ary_tt[2] = {true,  true};
   View vtt(2);
-  vtf.set(ary_tt);
+  vtt.set(ary_tt);
 
   Timer timer_ff;
   for (size_t i = 0; i < kNumIterations; i++) {
