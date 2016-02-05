@@ -236,8 +236,8 @@ evaluate(KMRNext* next, int rank, int nprocs)
   if (rank == 0) {
     cout << "  ," << timer_ff.str(true, true);
     cout << "FF," << timer_ff.str(false);
-    cout << "FT," << timer_tf.str(false);
-    cout << "TF," << timer_ft.str(false);
+    cout << "FT," << timer_ft.str(false);
+    cout << "TF," << timer_tf.str(false);
     cout << "TT," << timer_tt.str(false) << endl;
   }
 }
