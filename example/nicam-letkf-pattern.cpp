@@ -27,7 +27,7 @@ const size_t kElementCount = 2;
 const size_t kNumEnsemble  = 64;
 const size_t kNumRegion    = 10;
 const size_t kNumCell      = 1156;
-// Assume that each lattice has 6160 KB of data (6160 = 1540 * 4)
+// Assume that each lattice has 6160 bytes of data (6160 = 1540 * 4)
 const size_t kElementCount = 1540;
 #endif
 
