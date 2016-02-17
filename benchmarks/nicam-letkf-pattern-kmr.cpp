@@ -7,6 +7,7 @@
 /// kNumEnsemble x kNumRegion.  It spawns at most once on each process at
 /// each task, that is, it spawns # of processes times at each task in total.
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <cassert>
 #include <ctime>
@@ -25,9 +26,9 @@
 /// times and each program runs with 1 MPI process.
 #define SPAWN_ONCE 1
 
-/// If MEASURE_TRANSFER is 1, it measures time for transferring data between
-/// spwner and spawnee on rank 0.
-#define MEASURE_TRANSFER 0
+/// If MEASURE_TIME is 1, it measures time for MPI_Comm_spawn and
+/// transferring data between spwner and spawnee on rank 0.
+#define MEASURE_TIME 1
 
 using namespace std;
 
@@ -106,6 +107,7 @@ void print_data(int* data);
 void print_line(string& str);
 void print_line(ostringstream& os);
 double gettime(MPI_Comm comm);
+double gettime_local();
 
 //////////////////////////////////////////////////////////////////////////////
 // Main starts from here.
@@ -234,19 +236,28 @@ void spawn_nicam(string prog_name, Time& time) {
   time.nicam_start = gettime(MPI_COMM_WORLD);
   string prog_nicam("nicam");
   MPI_Comm icomm;
+#if MEASURE_TIME
+  double spawn_start = gettime_local();
+#endif
   spawn(prog_name, prog_nicam, kNumRegion, &icomm);
+#if MEASURE_TIME
+  double spawn_finish = gettime_local();
+#endif
 
-#if MEASURE_TRANSFER
-  double send_start, send_finish;
-  send_start = MPI_Wtime();
+#if MEASURE_TIME
+  double send_start = gettime_local();
 #endif
   int cc;
   int *sbuf = load_nicam_data();
+#if MEASURE_TIME
+  cc = MPI_Ssend(sbuf, (int)nicam_data_count, MPI_INT, 0, 1000, icomm);
+#else
   cc = MPI_Send(sbuf, (int)nicam_data_count, MPI_INT, 0, 1000, icomm);
+#endif
   assert(cc == MPI_SUCCESS);
   free(sbuf);
-#if MEASURE_TRANSFER
-  send_finish = MPI_Wtime();
+#if MEASURE_TIME
+  double send_finish = gettime_local();
 #endif
 
   int *rbuf = allocate_data(nicam_data_count);
@@ -254,16 +265,18 @@ void spawn_nicam(string prog_name, Time& time) {
   cc = MPI_Recv(rbuf, (int)nicam_data_count, MPI_INT, 0, 1001, icomm, &stat);
   assert(cc == MPI_SUCCESS);
   free(rbuf);
-#if MEASURE_TRANSFER
+#if MEASURE_TIME
   double recv_start, recv_finish;
-  recv_finish = MPI_Wtime();
+  recv_finish = gettime_local();
   cc = MPI_Recv(&recv_start, 1, MPI_DOUBLE, 0, 1001, icomm, &stat);
   assert(cc == MPI_SUCCESS);
   if (rank == 0) {
-    double send_time = send_finish - send_start;
-    double recv_time = recv_finish - recv_start;
+    double spawn_time = (spawn_finish - spawn_start) / 10E9;
+    double send_time  = (send_finish - send_start) / 10E9;
+    double recv_time  = (recv_finish - recv_start) / 10E9;
     cout << "NICAM: size:" << (nicam_data_count * sizeof(int))
 	 << ", send:" << send_time << ", recv:" << recv_time << endl;
+    cout << "NICAM spawn:" << spawn_time << endl;
   }
 #endif
 
@@ -304,7 +317,7 @@ struct LETKFProc {
   int *rbuf;
   MPI_Request rreq;
   bool done;
-#if MEASURE_TRANSFER
+#if MEASURE_TIME
   double recv_start;
   double recv_finish;
 #endif
@@ -314,8 +327,8 @@ static void wait_letkf_done(LETKFProc *letkf) {
   MPI_Status stat;
   MPI_Wait(&letkf->rreq, &stat);
   free(letkf->rbuf);
-#if MEASURE_TRANSFER
-  letkf->recv_finish = MPI_Wtime();
+#if MEASURE_TIME
+  letkf->recv_finish = gettime_local();
   int cc = MPI_Recv(&(letkf->recv_start), 1, MPI_DOUBLE, 0, 1001,
 		    letkf->icomm, &stat);
   assert(cc == MPI_SUCCESS);
@@ -342,7 +355,8 @@ void spawn_letkf(string prog_name, Time& time) {
 #endif
   LETKFProc *letkfs = (LETKFProc*)calloc(spawn_count, sizeof(LETKFProc));
 
-#if MEASURE_TRANSFER
+#if MEASURE_TIME
+  double spawn_start, spawn_finish;
   double send_start, send_finish;
 #endif
   // Spawn all
@@ -358,10 +372,16 @@ void spawn_letkf(string prog_name, Time& time) {
     }
 
     letkfs[i].done = false;
+#if MEASURE_TIME
+    spawn_start = gettime_local();
+#endif
     spawn(prog_name, prog_letkf, proc_count, &(letkfs[i].icomm));
+#if MEASURE_TIME
+    spawn_finish = gettime_local();
+#endif
     // Send data to a spawned process.
-#if MEASURE_TRANSFER
-    send_start = MPI_Wtime();
+#if MEASURE_TIME
+    send_start = gettime_local();
 #endif
     int cc;
 #if SPAWN_ONCE
@@ -369,11 +389,15 @@ void spawn_letkf(string prog_name, Time& time) {
     assert(cc == MPI_SUCCESS);
 #endif
     int *sbuf = load_letkf_data();
+#if MEASURE_TIME
+    cc = MPI_Ssend(sbuf, (int)msg_size, MPI_INT, 0, 1000,  letkfs[i].icomm);
+#else
     cc = MPI_Send(sbuf, (int)msg_size, MPI_INT, 0, 1000,  letkfs[i].icomm);
+#endif
     assert(cc == MPI_SUCCESS);
     free(sbuf);
-#if MEASURE_TRANSFER
-  send_finish = MPI_Wtime();
+#if MEASURE_TIME
+    send_finish = gettime_local();
 #endif
 
     // Receive data from a spawned process.
@@ -391,12 +415,14 @@ void spawn_letkf(string prog_name, Time& time) {
     wait_letkf_done(&letkfs[i]);
   }
 
-#if MEASURE_TRANSFER
+#if MEASURE_TIME
   if (rank == 0) {
-    double send_time = send_finish - send_start;
-    double recv_time = letkfs[0].recv_finish - letkfs[0].recv_start;
+    double spawn_time = (spawn_finish - spawn_start) / 10E9;
+    double send_time  = (send_finish - send_start) / 10E9;
+    double recv_time  = (letkfs[0].recv_finish - letkfs[0].recv_start) / 10E9;
     cout << "LETKF: size:" << (msg_size * sizeof(int))
 	 << ", send:" << send_time << ", recv:" << recv_time << endl;
+    cout << "LETKF spawn:" << spawn_time << endl;
   }
 #endif
 
@@ -419,22 +445,28 @@ void task_nicam() {
     free(buf);
   }
 
+  MPI_Barrier(MPI_COMM_WORLD);
   usleep(kTimeNICAM * 1000);
 
   if (rank == 0) {
-#if MEASURE_TRANSFER
-    double send_time = MPI_Wtime();
+#if MEASURE_TIME
+    double send_time = gettime_local();
 #endif
     int *buf = load_nicam_data();
     // send data to the spawner from rank 0
+#if MEASURE_TIME
+    int cc = MPI_Ssend(buf, (int)nicam_data_count, MPI_INT, 0, 1001, pcomm);
+#else
     int cc = MPI_Send(buf, (int)nicam_data_count, MPI_INT, 0, 1001, pcomm);
+#endif
     assert(cc == MPI_SUCCESS);
     free(buf);
-#if MEASURE_TRANSFER
+#if MEASURE_TIME
     cc = MPI_Send(&send_time, 1, MPI_DOUBLE, 0, 1001, pcomm);
     assert(cc == MPI_SUCCESS);
 #endif
   }
+  MPI_Barrier(MPI_COMM_WORLD);
 
   MPI_Comm_disconnect(&pcomm);
 }
@@ -494,18 +526,23 @@ void task_letkf() {
 #endif
 
   if (rank == 0) {
-#if MEASURE_TRANSFER
-    double send_time = MPI_Wtime();
+#if MEASURE_TIME
+    double send_time = gettime_local();
 #endif
     // send data to the spawner from rank 0
+#if MEASURE_TIME
+    cc = MPI_Ssend(buf, (int)msg_size, MPI_INT, 0, 1001, pcomm);
+#else
     cc = MPI_Send(buf, (int)msg_size, MPI_INT, 0, 1001, pcomm);
+#endif
     assert(cc == MPI_SUCCESS);
     free(buf);
-#if MEASURE_TRANSFER
+#if MEASURE_TIME
     cc = MPI_Send(&send_time, 1, MPI_DOUBLE, 0, 1001, pcomm);
     assert(cc == MPI_SUCCESS);
 #endif
   }
+  MPI_Barrier(MPI_COMM_WORLD);
 
   MPI_Comm_disconnect(&pcomm);
 }
@@ -608,6 +645,12 @@ void print_line(ostringstream& os) {
 
 double gettime(MPI_Comm comm) {
   MPI_Barrier(comm);
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+}
+
+double gettime_local() {
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
   return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
