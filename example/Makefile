@@ -1,7 +1,8 @@
 include ../config.make
 
 LIB   = ../src/libkmrnext.a
-PROGS = nicam-letkf-pattern in-situ-viz-pattern remd-pattern
+PROGS = nicam-letkf-pattern in-situ-viz-pattern remd-pattern \
+	matrix-transpose
 
 ifeq ($(TARGET), KMR)
     DEPLIB += $(KMRDIR)/lib/libkmr.a
@@ -17,6 +18,9 @@ in-situ-viz-pattern: in-situ-viz-pattern.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 remd-pattern: remd-pattern.o
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
+
+matrix-transpose: matrix-transpose.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 .cpp.o:
