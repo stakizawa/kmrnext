@@ -1,9 +1,9 @@
 include ../config.make
 
-HEADERS = kmrnext.hpp
+HEADERS = kmrnext.hpp ckmrnext.h
 LIB     = libkmrnext.a
-OBJS    = kmrnext.o basic_data.o data_store.o
-TESTS   = test00-basic test01-mng-ds
+OBJS    = kmrnext.o basic_data.o data_store.o ckmrnext.o
+TESTS   = test00-basic test01-mng-ds test02-clang
 
 ifeq ($(TARGET), KMR)
     DEPLIB += $(KMRDIR)/lib/libkmr.a
@@ -25,24 +25,38 @@ else
 	$(CXX) $(DEFS) $(CXXFLAGS) -c $<
 endif
 
+.c.o:
+ifeq ($(TARGET), KMR)
+	$(CC) $(DEFS) $(CFLAGS) -I$(KMRDIR)/include -c $<
+else
+	$(CC) $(DEFS) $(CFLAGS) -c $<
+endif
+
 test00-basic: test00-basic.o $(LIB)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(DEPLIB)
 
 test01-mng-ds: test01-mng-ds.o $(LIB)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(DEPLIB)
 
+test02-clang: test02-clang.o $(LIB)
+	$(CC) $(LDFLAGS) -o $@ $^ $(DEPLIB) -lstdc++
+
 .update_header:
 	cp kmrnext.hpp _kmrnext.hpp
 	sed -e "s/#define BACKEND_[A-Z]* 1/#define BACKEND_$(TARGET) 1/" \
 	< _kmrnext.hpp > kmrnext.hpp
+	cp ckmrnext.h _ckmrnext.h
+	sed -e "s/#define BACKEND_[A-Z]* 1/#define BACKEND_$(TARGET) 1/" \
+	< _ckmrnext.h > ckmrnext.h
 	touch .update_header
-	rm -f _kmrnext.hpp
+	rm -f _kmrnext.hpp _ckmrnext.h
 
 .PHONY: install
 install: all
 	install -d $(LIBDIR)
 	install -d $(INCDIR)
 	install -m 644 kmrnext.hpp $(INCDIR)
+	install -m 644 ckmrnext.h $(INCDIR)
 	install -m 644 $(LIB) $(LIBDIR)
 
 .PHONY: clean
@@ -54,4 +68,3 @@ distclean: clean
 	-rm -rf $(LIB) .update_header
 
 -include *.d
-
