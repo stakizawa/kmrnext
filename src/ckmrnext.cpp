@@ -1,8 +1,12 @@
 #include "ckmrnext.h"
 #include "kmrnext.hpp"
 #include <iostream>
+#include <cstdlib>
+#include <cstring>
 
 using namespace kmrnext;
+
+char *copy_string_to_cstr(string &str);
 
 void *KMRNEXT_init(int argc, char **argv)
 {
@@ -20,6 +24,12 @@ void *KMRNEXT_create_ds(void *next, size_t siz)
   KMRNext *_next = (KMRNext*)next;
   DataStore *ds = _next->create_ds(siz);
   return (void*)ds;
+}
+
+void KMRNEXT_free_ds(void *ds)
+{
+  DataStore *_ds = (DataStore*)ds;
+  delete _ds;
 }
 
 void KMRNEXT_ds_set_size(void *ds, size_t *val)
@@ -57,13 +67,43 @@ void KMRNEXT_ds_add(void *ds, void *key, void *data)
   _ds->add(*_key, *_data);
 }
 
+void *KMRNEXT_ds_get(void *ds, void *key)
+{
+  DataStore *_ds = (DataStore*)ds;
+  Key *_key = (Key*)key;
+  DataPack dp = _ds->get(*_key);
+  DataPack *_dp = new DataPack(dp.key(), dp.data());
+  return (void*)_dp;
+}
+
+datapacks KMRNEXT_ds_get_view(void *ds, void *key, void *view)
+{
+  DataStore *_ds = (DataStore*)ds;
+  Key *_key = (Key*)key;
+  View *_view = (View*)view;
+  vector<DataPack> *dpvec = _ds->get(*_view, *_key);
+
+  datapacks dps;
+  dps.count = dpvec->size();
+  dps.data = (void**)calloc(dps.count, sizeof(void*));
+  size_t idx = 0;
+  for (vector<DataPack>::iterator itr = dpvec->begin(); itr != dpvec->end();
+       itr++) {
+    DataPack *dp = new DataPack((*itr).key(), (*itr).data());
+    dps.data[idx] = dp;
+    idx += 1;
+  }
+  delete dpvec;
+  return dps;
+}
+
 long KMRNEXT_ds_count(void *ds)
 {
   DataStore *_ds = (DataStore*)ds;
   return _ds->count();
 }
 
-const char *KMRNEXT_ds_dump(void *ds, kmrnext_dumpfn_t d)
+char *KMRNEXT_ds_dump(void *ds, kmrnext_dumpfn_t d)
 {
   class WrappedDumper : public DataPack::Dumper {
     kmrnext_dumpfn_t fn_;
@@ -76,14 +116,14 @@ const char *KMRNEXT_ds_dump(void *ds, kmrnext_dumpfn_t d)
   } dumper(d);
   DataStore *_ds = (DataStore*)ds;
   string ds_str = _ds->dump(dumper);
-  return ds_str.c_str();
+  return copy_string_to_cstr(ds_str);
 }
 
-const char *KMRNEXT_ds_string(void *ds)
+char *KMRNEXT_ds_string(void *ds)
 {
   DataStore *_ds = (DataStore*)ds;
   string str = _ds->to_string();
-  return str.c_str();
+  return copy_string_to_cstr(str);
 }
 
 void *KMRNEXT_create_key(size_t siz)
@@ -98,17 +138,23 @@ void KMRNEXT_free_key(void *key)
   delete _key;
 }
 
+void KMRNEXT_key_set_size(void *key, size_t *val)
+{
+  Key *_key = (Key*)key;
+  _key->set(val);
+}
+
 void KMRNEXT_key_set(void *key, size_t dim, size_t value)
 {
   Key *_key = (Key*)key;
   _key->set_dim(dim, value);
 }
 
-const char *KMRNEXT_key_string(void *key)
+char *KMRNEXT_key_string(void *key)
 {
   Key *_key = (Key*)key;
   string str = _key->to_string();
-  return str.c_str();
+  return copy_string_to_cstr(str);
 }
 
 void *KMRNEXT_create_data(void *val, size_t siz)
@@ -129,6 +175,26 @@ void *KMRNEXT_data_value(void *data)
   return _data->value();
 }
 
+size_t KMRNEXT_data_size(void *data)
+{
+  Data *_data = (Data*)data;
+  return _data->size();
+}
+
+void *KMRNEXT_create_dp(void *key, void *data)
+{
+  Key *_key = (Key*)key;
+  Data *_data = (Data*)data;
+  DataPack *dp = new DataPack(*_key, _data);
+  return (void*)dp;
+}
+
+void KMRNEXT_free_dp(void *dp)
+{
+  DataPack *_dp = (DataPack*)dp;
+  delete _dp;
+}
+
 void *KMRNEXT_dp_key(void *dp)
 {
   DataPack *_dp = (DataPack*)dp;
@@ -140,4 +206,46 @@ void *KMRNEXT_dp_data(void *dp)
   DataPack *_dp = (DataPack*)dp;
   Data *data = _dp->data();
   return (void*)data;
+}
+
+void *KMRNEXT_create_view(size_t siz)
+{
+  View *v = new View(siz);
+  return (void*)v;
+}
+
+void KMRNEXT_free_view(void *view)
+{
+  View *_view = (View*)view;
+  delete _view;
+}
+
+void KMRNEXT_view_set(void *view, bool *val)
+{
+  View *_view = (View*)view;
+  _view->set(val);
+}
+
+char *KMRNEXT_view_string(void *view)
+{
+  View *_view = (View*)view;
+  string str = _view->to_string();
+  return copy_string_to_cstr(str);
+}
+
+void KMRNEXT_free_datapacks(datapacks dps)
+{
+  for (size_t i = 0; i < dps.count; i++) {
+    DataPack *dp = (DataPack*)dps.data[i];
+    delete dp;
+  }
+  free(dps.data);
+}
+
+char *copy_string_to_cstr(string &str)
+{
+  size_t len = strlen(str.c_str()) + 1;
+  char *buf = new char[len];
+  memcpy(buf, str.c_str(), len);
+  return buf;
 }
