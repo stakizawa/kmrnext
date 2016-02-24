@@ -2,7 +2,8 @@ include ../config.make
 
 HEADERS = kmrnext.hpp ckmrnext.h
 LIB     = libkmrnext.a
-OBJS    = kmrnext.o basic_data.o data_store.o ckmrnext.o
+OBJS    = kmrnext.o basic_data.o data_store.o ckmrnext.o \
+	  api_fortran.o kmrnextf.o
 TESTS   = test00-basic test01-mng-ds test02-clang test03-fortran
 
 ifeq ($(TARGET), KMR)
@@ -18,7 +19,8 @@ tests: $(TESTS)
 libkmrnext.a: .update_header $(HEADERS) $(OBJS)
 	ar csr $@ $(OBJS)
 
-.SUFFIXES: .c .cpp .f90
+.SUFFIXES: .f90
+%.o: %.mod
 
 .cpp.o:
 ifeq ($(TARGET), KMR)
@@ -73,7 +75,7 @@ install: all
 
 .PHONY: clean
 clean:
-	-rm -rf $(OBJS) $(TESTS) *.o *.d
+	-rm -rf $(OBJS) $(TESTS) *.o *.d *.mod
 
 .PHONY: distclean
 distclean: clean

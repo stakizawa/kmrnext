@@ -51,7 +51,7 @@ case "$CC" in
 gcc)
     CFLAGS=""
     CXXFLAGS=""
-    FCFLAGS=""
+    FCFLAGS="-cpp"
     STD_CC="-std=gnu99"
     STD_CXX="-std=c++98"
     STD_FORT="-std=gnu"

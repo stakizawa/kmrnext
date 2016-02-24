@@ -6,6 +6,7 @@
 #define BACKEND_KMR 1
 
 #include <stdio.h>
+#include <stdbool.h>
 #ifdef BACKEND_KMR
 #include <mpi.h>
 #endif
