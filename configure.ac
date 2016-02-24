@@ -14,37 +14,50 @@ m4_include([m4/ax_openmp.m4])
 # Checks compiler
 AC_PROG_CC
 AC_PROG_CXX
+AC_PROG_FC
 ! (type fccpx 1>/dev/null 2>/dev/null); fujitsu_env=$?
 if test "$fujitsu_env" -eq "1"; then
     CC=fccpx
     CXX=FCCpx
+    FC=frtpx
 fi
 
 # Checks MPI and OpenMP
 AC_LANG(C)
+AC_CHECK_HEADER_STDBOOL
+AC_TYPE_SIZE_T
 AX_MPI
 AX_OPENMP([OPENMP_CFLAGS=$ax_cv_c_openmp])
 AC_LANG(C++)
+AC_TYPE_SIZE_T
 AX_MPI
 AX_OPENMP([OPENMP_CXXFLAGS=$ax_cv_cxx_openmp])
+AC_LANG(Fortran)
+AX_MPI
+AX_OPENMP([OPENMP_FFLAGS=$ax_cv_fc_openmp])
 
 # Checks other compiler flags
 AC_SUBST(SYSENV)
 AC_SUBST(STD_CC)
 AC_SUBST(STD_CXX)
+AC_SUBST(STD_FORT)
 AC_SUBST(WARN_CC)
 AC_SUBST(WARN_CXX)
+AC_SUBST(WARN_FORT)
 AC_SUBST(CXXLIB)
 
-# The default CFLAGS and CXXFLAGS are removed
+# The default CFLAGS, CXXFLAGS and FCFLAGS are removed
 case "$CC" in
 gcc)
     CFLAGS=""
     CXXFLAGS=""
+    FCFLAGS=""
     STD_CC="-std=gnu99"
     STD_CXX="-std=c++98"
+    STD_FORT="-std=gnu"
     WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
     WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
+    WARN_FORT="-Wall -Wextra -pedantic -Wno-unused-parameter -Wintrinsic-shadow -Wconversion"
     CXXLIB="-lstdc++"
     _CXXLIB_MPI="-lmpi_cxx"
     SYSENV="GNULINUX"
@@ -54,10 +67,13 @@ gcc)
 fccpx)
     CFLAGS="-Kfast,preex -Xg"
     CXXFLAGS="-Kfast,preex -Xg"
+    FCFLAGS=""
     STD_CC="-std=gnu99"
     STD_CXX="-std=gnu++98"
+    STD_FORT=""
     WARN_CC=""
     WARN_CXX=""
+    WARN_FORT=""
     CXXLIB=""
     _CXXLIB_MPI=""
     SYSENV="K_FX"
@@ -68,6 +84,7 @@ esac
 
 CFLAGS="-g $CFLAGS $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
 CXXFLAGS="-g $CXXFLAGS $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
+FCFLAGS="-g $FCFLAGS $WARN_FORT $STD_FORT $OPENMP_FFLAGS"
 LDFLAGS="$OPENMP_CXXFLAGS"
 
 # Checks debug option
@@ -78,9 +95,11 @@ AC_ARG_ENABLE([debug],
 if test "$enable_debug" = "yes"; then
     CFLAGS="-DDEBUG -O0 $CFLAGS"
     CXXFLAGS="-DDEBUG -O0 $CXXFLAGS"
+    FCFLAGS="-DDEBUG -O0 $FCFLAGS"
 else
     CFLAGS="-O2 $CFLAGS"
     CXXFLAGS="-O2 $CXXFLAGS"
+    FCFLAGS="-O2 $FCFLAGS"
 fi
 
 # Checks the backend library
@@ -95,6 +114,7 @@ if test "$with_backend" = "kmr"; then
     	      [Define if kmr backend is set])
     CC=$MPICC
     CXX=$MPICXX
+    FC=$MPIFC
     CXXLIB="$CXXLIB $_CXXLIB_MPI"
 else
     # in case of "serial"
@@ -109,10 +129,5 @@ AC_ARG_WITH([kmr],
 	    [KMRDIR=$withval],
 	    [KMRDIR=/usr/local])
 AC_SUBST(KMRDIR)
-
-# Checks for typedefs, structures, compiler characteristics,
-# and library functions.
-AC_CHECK_HEADER_STDBOOL
-AC_TYPE_SIZE_T
 
 AC_OUTPUT

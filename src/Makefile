@@ -3,7 +3,7 @@ include ../config.make
 HEADERS = kmrnext.hpp ckmrnext.h
 LIB     = libkmrnext.a
 OBJS    = kmrnext.o basic_data.o data_store.o ckmrnext.o
-TESTS   = test00-basic test01-mng-ds test02-clang
+TESTS   = test00-basic test01-mng-ds test02-clang test03-fortran
 
 ifeq ($(TARGET), KMR)
     DEPLIB += $(KMRDIR)/lib/libkmr.a
@@ -17,6 +17,8 @@ tests: $(TESTS)
 
 libkmrnext.a: .update_header $(HEADERS) $(OBJS)
 	ar csr $@ $(OBJS)
+
+.SUFFIXES: .c .cpp .f90
 
 .cpp.o:
 ifeq ($(TARGET), KMR)
@@ -32,6 +34,13 @@ else
 	$(CC) $(DEFS) $(CFLAGS) -c $<
 endif
 
+.f90.o:
+ifeq ($(TARGET), KMR)
+	$(FC) $(DEFS) $(FCFLAGS) -I$(KMRDIR)/include -c $<
+else
+	$(FC) $(DEFS) $(FCFLAGS) -c $<
+endif
+
 test00-basic: test00-basic.o $(LIB)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(DEPLIB)
 
@@ -40,6 +49,9 @@ test01-mng-ds: test01-mng-ds.o $(LIB)
 
 test02-clang: test02-clang.o $(LIB)
 	$(CC) $(LDFLAGS) -o $@ $^ $(DEPLIB) $(CXXLIB)
+
+test03-fortran: test03-fortran.o $(LIB)
+	$(FC) $(LDFLAGS) -o $@ $^ $(DEPLIB) $(CXXLIB)
 
 .update_header:
 	cp kmrnext.hpp _kmrnext.hpp
