@@ -629,6 +629,7 @@ GREP
 CXXCPP
 KMRDIR
 TARGET
+CXXLIB
 WARN_CXX
 WARN_CC
 STD_CXX
@@ -3966,6 +3967,7 @@ fi
 
 
 
+
 # The default CFLAGS and CXXFLAGS are removed
 case "$CC" in
 gcc)
@@ -3975,6 +3977,8 @@ gcc)
     STD_CXX="-std=c++98"
     WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
     WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
+    CXXLIB="-lstdc++"
+    _CXXLIB_MPI="-lmpi_cxx"
     SYSENV="GNULINUX"
 
 $as_echo "#define SYSENV_GNULINUX 1" >>confdefs.h
@@ -3987,6 +3991,8 @@ fccpx)
     STD_CXX="-std=gnu++98"
     WARN_CC=""
     WARN_CXX=""
+    CXXLIB=""
+    _CXXLIB_MPI=""
     SYSENV="K_FX"
 
 $as_echo "#define SYSENV_K_FX 1" >>confdefs.h
@@ -4030,6 +4036,7 @@ $as_echo "#define BACKEND_KMR 1" >>confdefs.h
 
     CC=$MPICC
     CXX=$MPICXX
+    CXXLIB="$CXXLIB $_CXXLIB_MPI"
 else
     # in case of "serial"
     TARGET="SERIAL"

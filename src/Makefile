@@ -39,7 +39,7 @@ test01-mng-ds: test01-mng-ds.o $(LIB)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(DEPLIB)
 
 test02-clang: test02-clang.o $(LIB)
-	$(CC) $(LDFLAGS) -o $@ $^ $(DEPLIB) -lstdc++
+	$(CC) $(LDFLAGS) -o $@ $^ $(DEPLIB) $(CXXLIB)
 
 .update_header:
 	cp kmrnext.hpp _kmrnext.hpp

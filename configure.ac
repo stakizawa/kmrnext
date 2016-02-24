@@ -34,6 +34,7 @@ AC_SUBST(STD_CC)
 AC_SUBST(STD_CXX)
 AC_SUBST(WARN_CC)
 AC_SUBST(WARN_CXX)
+AC_SUBST(CXXLIB)
 
 # The default CFLAGS and CXXFLAGS are removed
 case "$CC" in
@@ -44,6 +45,8 @@ gcc)
     STD_CXX="-std=c++98"
     WARN_CC="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wmissing-prototypes -Wshadow -Wconversion"
     WARN_CXX="-Wall -Wextra -pedantic -Wno-long-long -Wno-unused-parameter -Wshadow -Wconversion"
+    CXXLIB="-lstdc++"
+    _CXXLIB_MPI="-lmpi_cxx"
     SYSENV="GNULINUX"
     AC_DEFINE([SYSENV_GNULINUX], [1],
               [Define if system is gnu-linux])
@@ -55,6 +58,8 @@ fccpx)
     STD_CXX="-std=gnu++98"
     WARN_CC=""
     WARN_CXX=""
+    CXXLIB=""
+    _CXXLIB_MPI=""
     SYSENV="K_FX"
     AC_DEFINE([SYSENV_K_FX], [1],
               [Define if system is K computer of FX10])
@@ -90,6 +95,7 @@ if test "$with_backend" = "kmr"; then
     	      [Define if kmr backend is set])
     CC=$MPICC
     CXX=$MPICXX
+    CXXLIB="$CXXLIB $_CXXLIB_MPI"
 else
     # in case of "serial"
     TARGET="SERIAL"

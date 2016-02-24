@@ -103,7 +103,7 @@ main(int argc, char **argv)
     datapacks dps7 = KMRNEXT_ds_get_view(ds1, key1, v4);
     datapacks dps8 = KMRNEXT_ds_get_view(ds1, key2, v4);
     if (kPrint) {
-	printf("3. Get data from a DataStore by get(view)\n");
+	if (rank == 0) printf("3. Get data from a DataStore by get(view)\n");
 	print_get_view_result(dps1, v1, key1, kDumpCount);
 	print_get_view_result(dps2, v1, key2, kDumpCount);
 	print_get_view_result(dps3, v2, key1, kDumpCount);
@@ -230,7 +230,7 @@ print_data_store(void *ds, char *padding, int count)
 	}
 	if (ds_str[i] == '\n') {
 	    strncpy(buf, lstart, llen);
-	    buf[llen+1] = '\0';
+	    buf[llen] = '\0';
 	    printf("%s%s\n", padding, buf);
 	    lstart = (char*)&(ds_str[i+1]);
 	    llen = 0;
