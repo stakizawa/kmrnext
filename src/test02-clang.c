@@ -24,6 +24,7 @@ const size_t kDim2_0 = 10;
 const size_t kDim2_1 = 10;
 
 
+int summarizer(void *ids, void *ods, void *key, datapacks dps, mapenv env);
 void load_data(void *ds);
 void print_data_store(void *ds, char *padding, int count);
 void print_get_result(void *key, void *dp);
@@ -123,7 +124,17 @@ main(int argc, char **argv)
     KMRNEXT_free_datapacks(dps8);
 
     ///////////  Apply map functions
-    // TODO
+    void *ds2 = KMRNEXT_create_ds(next, kDimension2);
+    size_t sizes2[kDimension2] = {kDim2_0, kDim2_1};
+    KMRNEXT_ds_set_size(ds2, sizes2);
+    KMRNEXT_ds_map(ds1, ds2, v2, summarizer);
+    if (kPrint) {
+	if (rank == 0) printf("4. Apply map to each data in a DataStore\n");
+	if (rank == 0) printf("  Output DataStore\n");
+	print_data_store(ds2, "    ", kDumpCount);
+	if (rank == 0) printf("\n");
+    }
+    KMRNEXT_free_ds(ds2);
 
     KMRNEXT_free_view(v1);
     KMRNEXT_free_view(v2);
@@ -138,6 +149,20 @@ main(int argc, char **argv)
     return 0;
 }
 
+
+int
+summarizer(void *ids, void *ods, void *key, datapacks dps, mapenv env)
+{
+    long sum = 0;
+    for (size_t i = 0; i < dps.count; i++) {
+	void *dp = dps.data[i];
+	long v = *(long*)KMRNEXT_data_value(KMRNEXT_dp_data(dp));
+	sum += v;
+    }
+    void *data = KMRNEXT_create_data(&sum, sizeof(long));
+    KMRNEXT_ds_add(ods, key, data);
+    return 0;
+}
 
 static int
 loader(void *ds, const char *file)

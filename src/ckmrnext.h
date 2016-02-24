@@ -6,6 +6,9 @@
 #define BACKEND_SERIAL 1
 
 #include <stdio.h>
+#ifdef BACKEND_KMR
+#include <mpi.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,7 +19,16 @@ typedef struct {
     void **data;
 } datapacks;
 
+typedef struct {
+    int rank;
+#ifdef BACKEND_KMR
+    MPI_Comm mpi_comm;
+#endif
+} mapenv;
+
 typedef int (*kmrnext_loadfn_t)(void *ds, const char *file);
+typedef int (*kmrnext_mapfn_t)(void *ids, void *ods, void *key,
+			       datapacks dps, mapenv env);
 typedef char* (*kmrnext_dumpfn_t)(void *dp);
 
 void *KMRNEXT_init(int argc, char **argv);
@@ -30,6 +42,8 @@ void KMRNEXT_ds_load_files(void *ds, char *files, size_t nfiles,
 void KMRNEXT_ds_add(void *ds, void *key, void *data);
 void *KMRNEXT_ds_get(void *ds, void *key);
 datapacks KMRNEXT_ds_get_view(void *ds, void *key, void *view);
+void KMRNEXT_ds_map(void *ids, void *ods, void *view,
+		    kmrnext_mapfn_t m);
 long KMRNEXT_ds_count(void *ds);
 char *KMRNEXT_ds_dump(void *ds, kmrnext_dumpfn_t d);
 char *KMRNEXT_ds_string(void *ds);

@@ -1,8 +1,8 @@
-#include "ckmrnext.h"
-#include "kmrnext.hpp"
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include "ckmrnext.h"
+#include "kmrnext.hpp"
 
 using namespace kmrnext;
 
@@ -95,6 +95,39 @@ datapacks KMRNEXT_ds_get_view(void *ds, void *key, void *view)
   }
   delete dpvec;
   return dps;
+}
+
+void KMRNEXT_ds_map(void *ids, void *ods, void *view, kmrnext_mapfn_t m)
+{
+  DataStore *_ids = (DataStore*)ids;
+  DataStore *_ods = (DataStore*)ods;
+  View *_view = (View*)view;
+  class WrappedMapper : public DataStore::Mapper {
+    kmrnext_mapfn_t fn_;
+  public:
+    WrappedMapper(kmrnext_mapfn_t fn) : fn_(fn) {}
+    int operator()(DataStore *inds, DataStore *outds, Key& key,
+		   vector<DataPack>& dpvec, DataStore::MapEnvironment& env) {
+      datapacks dps;
+      dps.count = dpvec.size();
+      dps.data = (void**)calloc(dps.count, sizeof(void*));
+      size_t idx = 0;
+      for (vector<DataPack>::iterator itr = dpvec.begin(); itr != dpvec.end();
+	   itr++) {
+	dps.data[idx] = (void*)&(*itr);
+	idx += 1;
+      }
+      mapenv e;
+      e.rank = env.rank;
+#ifdef BACKEND_KMR
+      e.mpi_comm = env.mpi_comm;
+#endif
+      int cc = fn_((void*)inds, (void*)outds, (void*)&key, dps, e);
+      free(dps.data);
+      return cc;
+    }
+  } mapper(m);
+  _ids->map(_ods, mapper, *_view);
 }
 
 long KMRNEXT_ds_count(void *ds)
