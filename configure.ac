@@ -67,7 +67,7 @@ gcc)
 fccpx)
     CFLAGS="-Kfast,preex -Xg"
     CXXFLAGS="-Kfast,preex -Xg"
-    FCFLAGS="-Kfast,preex"
+    FCFLAGS="-Kfast,preex -Cpp"
     STD_CC="-std=gnu99"
     STD_CXX="-std=gnu++98"
     STD_FORT=""
