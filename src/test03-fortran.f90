@@ -32,7 +32,10 @@ program main
   ds1 = kmrnext_create_ds(next, kDimension3)
   ierr = kmrnext_ds_set_size(ds1, sizes3)
   if (kPrint .and. rank == 0) then
-     print *, 'this is test.'
+     write (*,fmt='(a)') '0. Create a DataStore'
+     write (*,*)
+     write (*,fmt='(a)', advance='no') 'this is test.'
+     write (*,*) 'another string'
   end if
 
 
