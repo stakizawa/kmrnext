@@ -67,15 +67,15 @@ gcc)
 fccpx)
     CFLAGS="-Kfast,preex -Xg"
     CXXFLAGS="-Kfast,preex -Xg"
-    FCFLAGS=""
+    FCFLAGS="-Kfast,preex"
     STD_CC="-std=gnu99"
     STD_CXX="-std=gnu++98"
     STD_FORT=""
     WARN_CC=""
     WARN_CXX=""
     WARN_FORT=""
-    CXXLIB=""
-    _CXXLIB_MPI=""
+    CXXLIB="-lfjdemgl -lstd_mt -lstdc++"
+    _CXXLIB_MPI="-lmpi_cxx"
     SYSENV="K_FX"
     AC_DEFINE([SYSENV_K_FX], [1],
               [Define if system is K computer of FX10])
