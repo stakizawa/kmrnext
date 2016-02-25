@@ -38,7 +38,7 @@ void KMRNEXT_finalize();
 void *KMRNEXT_create_ds(void *next, size_t siz);
 void KMRNEXT_free_ds(void *ds);
 void KMRNEXT_ds_set_size(void *ds, size_t *val);
-void KMRNEXT_ds_load_files(void *ds, char *files, size_t nfiles,
+void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
 			   kmrnext_loadfn_t l);
 void KMRNEXT_ds_add(void *ds, void *key, void *data);
 void *KMRNEXT_ds_get(void *ds, void *key);

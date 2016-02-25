@@ -38,12 +38,12 @@ void KMRNEXT_ds_set_size(void *ds, size_t *val)
   _ds->set(val);
 }
 
-void KMRNEXT_ds_load_files(void *ds, char *files, size_t nfiles,
+void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
 			   kmrnext_loadfn_t l)
 {
   vector<string> filevec;
   for (size_t i = 0; i < nfiles; i++) {
-    string str(&files[i]);
+    string str(files[i]);
     filevec.push_back(str);
   }
   class WrappedLoader : public DataStore::Loader<string> {

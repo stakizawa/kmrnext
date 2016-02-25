@@ -188,7 +188,7 @@ loader(void *ds, const char *file)
 void
 load_data(void *ds)
 {
-    char *files = {"dummy1"};
+    char *files[1] = {"dummy1"};
     KMRNEXT_ds_load_files(ds, files, 1, loader);
 }
 
