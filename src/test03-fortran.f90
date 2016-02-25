@@ -1,25 +1,51 @@
+module test03
+  use iso_c_binding
+  implicit none
+contains
+
+  ! subroutine print_data_store(ds, space, count, rank)
+  !   implicit none
+  !   type(c_ptr)  :: ds
+  !   character(*) :: space
+  !   integer      :: count
+  !   integer      :: rank
+  !   !-------------------------------------------------------------------------
+
+  !   if (rank /= 0) then
+  !      return
+  !   end if
+  ! end subroutine print_data_store
+
+end module test03
+
 program main
   use iso_c_binding
   use kmrnextf
-  ! use testfn
+  use test03
   implicit none
 #ifdef BACKEND_KMR
   include "mpif.h"
 #endif
   !---------------------------------------------------------------------------
   logical(1), parameter :: kPrint = .TRUE.
+  integer,    parameter :: kDumpCount = 20
 
   integer(8), parameter :: kDimension3 = 3
   integer(8), parameter :: kDim3_0 = 10
   integer(8), parameter :: kDim3_1 = 10
   integer(8), parameter :: kDim3_2 = 10
 
-  integer :: rank = 0
-  integer :: ierr
-  type(c_ptr) :: next
-  type(c_ptr) :: ds1
-  integer(8)  :: sizes3(Max_Dimension_Size)
+  integer                    :: rank = 0
+  integer                    :: ierr
+  type(c_ptr)                :: next
+  type(c_ptr)                :: ds1
+  integer(8)                 :: sizes3(Max_Dimension_Size)
+  character(6), dimension(1) :: files
+
+  character(c_char), pointer :: str(:)
+
   data sizes3/kDim3_0,kDim3_1,kDim3_2,0,0,0,0,0/
+  data files/'dummy1'/
 
   !---------------------------------------------------------------------------
 
@@ -32,13 +58,21 @@ program main
   ds1 = kmrnext_create_ds(next, kDimension3)
   ierr = kmrnext_ds_set_size(ds1, sizes3)
   if (kPrint .and. rank == 0) then
-     write (*,fmt='(a)') '0. Create a DataStore'
+     write (*,*) '0. Create a DataStore'
+     call kmrnext_ds_string(ds1, str)
+     write (*,*) '  DataStore: ', str
      write (*,*)
-     write (*,fmt='(a)', advance='no') 'this is test.'
-     write (*,*) 'another string'
+
+     !call print_data_store(ds1, '  ', kDumpCount, rank)
+
+     ! write (*,fmt='(a)', advance='no') 'this is test.' ! TODO
+     ! write (*,*) 'another string'
   end if
 
+  !------ Load data contents from a file
+  ierr = kmrnext_ds_load_files(ds1, files, 1)
 
-  ierr = kmrnext_free_ds(ds1);
+
+  ierr = kmrnext_free_ds(ds1)
   ierr = kmrnext_finalize()
 end program main
