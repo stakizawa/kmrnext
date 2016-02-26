@@ -12,6 +12,12 @@ module kmrnextf
        type(c_ptr), intent(in), value :: file_ptr
        !character(c_char), intent(in) :: file(:)
      end function kmrnext_loadfn
+
+     type(c_ptr) function kmrnext_dumpfn(dp) bind(c)
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: dp
+     end function kmrnext_dumpfn
   end interface
 
   interface
@@ -57,7 +63,15 @@ module kmrnextf
        type(c_funptr),    intent(in), value :: l
      end subroutine C_kmrnext_ds_load_files
 
-     ! kmrnext_ds_add
+     subroutine C_kmrnext_ds_add(ds, key, dat) bind(c, name='KMRNEXT_ds_add')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: ds
+       type(c_ptr), intent(in), value :: key
+       type(c_ptr), intent(in), value :: dat
+     end subroutine C_kmrnext_ds_add
+
+
      ! kmrnext_ds_get
      ! kmrnext_ds_get_view
      ! kmrnext_ds_map
@@ -69,7 +83,13 @@ module kmrnextf
        type(c_ptr), intent(in), value :: ds
      end function C_kmrnext_ds_count
 
-     ! kmrnext_ds_dump
+     type(c_ptr) function C_kmrnext_ds_dump(ds, d) &
+          bind(c, name='KMRNEXT_ds_dump')
+       use iso_c_binding
+       implicit none
+       type(c_ptr),       intent(in), value :: ds
+       type(c_funptr),    intent(in), value :: d
+     end function C_kmrnext_ds_dump
 
      type(c_ptr) function C_kmrnext_ds_string(ds) &
           bind(c, name='KMRNEXT_ds_string')
@@ -78,14 +98,51 @@ module kmrnextf
        type(c_ptr), intent(in), value :: ds
      end function C_kmrnext_ds_string
 
-     ! kmrnext_create_key
-     ! kmrnext_free_key
-     ! kmrnext_key_set_size
-     ! kmrnext_key_set
-     ! kmrnext_key_string
+     type(c_ptr) function C_kmrnext_create_key(size) &
+          bind(c, name='KMRNEXT_create_key')
+       use iso_c_binding
+       implicit none
+       integer(c_size_t), intent(in), value :: size
+     end function C_kmrnext_create_key
 
-     ! kmrnext_create_data
-     ! kmrnext_free_data
+     subroutine C_kmrnext_free_key(key) bind(c, name='KMRNEXT_free_key')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: key
+     end subroutine C_kmrnext_free_key
+
+     ! kmrnext_key_set_size
+
+     subroutine C_kmrnext_key_set(key, dim, val) &
+          bind(c, name='KMRNEXT_key_set')
+       use iso_c_binding
+       implicit none
+       type(c_ptr),       intent(in), value :: key
+       integer(c_size_t), intent(in), value :: dim
+       integer(c_size_t), intent(in), value :: val
+     end subroutine C_kmrnext_key_set
+
+     type(c_ptr) function C_kmrnext_key_string(key) &
+          bind(c, name='KMRNEXT_key_string')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: key
+     end function C_kmrnext_key_string
+
+     type(c_ptr) function C_kmrnext_create_data(val, size) &
+          bind(c, name='KMRNEXT_create_data')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: val
+       integer(c_size_t), intent(in), value :: size
+     end function C_kmrnext_create_data
+
+     subroutine C_kmrnext_free_data(dat) bind(c, name='KMRNEXT_free_data')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: dat
+     end subroutine C_kmrnext_free_data
+
      ! kmrnext_data_value
      ! kmrnext_data_size
 
@@ -177,14 +234,21 @@ contains
        cstring(LEN_TRIM(files(i))+1, i) = C_NULL_CHAR
        carray(i) = C_LOC(cstring(1,i))
     end do
-    call C_kmrnext_ds_load_files(ds, carray, array_len, c_funloc(l))
+    call C_kmrnext_ds_load_files(ds, C_LOC(carray), array_len, C_FUNLOC(l))
 
     deallocate(carray)
     deallocate(cstring)
     zz = 0
   end function kmrnext_ds_load_files
 
-  ! kmrnext_ds_add
+  integer function kmrnext_ds_add(ds, key, dat) result(zz)
+    type(c_ptr), intent(in), value :: ds
+    type(c_ptr), intent(in), value :: key
+    type(c_ptr), intent(in), value :: dat
+    call C_kmrnext_ds_add(ds, key, dat)
+    zz = 0
+  end function kmrnext_ds_add
+
   ! kmrnext_ds_get
   ! kmrnext_ds_get_view
   ! kmrnext_ds_map
@@ -194,7 +258,18 @@ contains
     zz = C_kmrnext_ds_count(ds)
   end function kmrnext_ds_count
 
-  ! kmrnext_ds_dump
+  subroutine kmrnext_ds_dump(ds, ostring, d)
+    type(c_ptr),  intent(in),  value   :: ds
+    character(c_char), intent(out), pointer :: ostring(:)
+    procedure(kmrnext_dumpfn), bind(c) :: d
+
+    type(c_ptr)       :: c_str
+    integer(c_size_t) :: len_str
+
+    c_str = C_kmrnext_ds_dump(ds, C_FUNLOC(d))
+    len_str = C_strlen(c_str)
+    call C_F_POINTER(c_str, ostring, [len_str])
+  end subroutine kmrnext_ds_dump
 
   subroutine kmrnext_ds_string(ds, ostring)
     type(c_ptr),       intent(in),  value   :: ds
@@ -206,14 +281,51 @@ contains
     call C_F_POINTER(c_str, ostring, [len_str])
   end subroutine kmrnext_ds_string
 
-  ! kmrnext_create_key
-  ! kmrnext_free_key
-  ! kmrnext_key_set_size
-  ! kmrnext_key_set
-  ! kmrnext_key_string
+  type(c_ptr) function kmrnext_create_key(size) result(zz)
+    integer(c_size_t), intent(in), value :: size
+    zz = C_kmrnext_create_key(size)
+  end function kmrnext_create_key
 
-  ! kmrnext_create_data
-  ! kmrnext_free_data
+  integer function kmrnext_free_key(key) result(zz)
+    type(c_ptr), intent(in), value :: key
+    call C_kmrnext_free_key(key)
+    zz = 0
+  end function kmrnext_free_key
+
+  ! kmrnext_key_set_size
+
+  integer function kmrnext_key_set(key, dim, val) result(zz)
+    type(c_ptr),       intent(in), value :: key
+    integer,           intent(in), value :: dim
+    integer(c_size_t), intent(in), value :: val
+    integer(c_size_t) :: dim8
+    dim8 = dim - 1
+    call C_kmrnext_key_set(key, dim8, val-1)
+    zz = 0
+  end function kmrnext_key_set
+
+  subroutine kmrnext_key_string(key, ostring)
+    type(c_ptr),       intent(in),  value   :: key
+    character(c_char), intent(out), pointer :: ostring(:)
+    type(c_ptr)       :: c_str
+    integer(c_size_t) :: len_str
+    c_str = C_kmrnext_key_string(key)
+    len_str = C_strlen(c_str)
+    call C_F_POINTER(c_str, ostring, [len_str])
+  end subroutine kmrnext_key_string
+
+  type(c_ptr) function kmrnext_create_data(val, size) result(zz)
+    type(c_ptr),       intent(in), value :: val
+    integer(c_size_t), intent(in), value :: size
+    zz = C_kmrnext_create_data(val, size)
+  end function kmrnext_create_data
+
+  integer function kmrnext_free_data(dat) result(zz)
+    type(c_ptr), intent(in), value :: dat
+    call C_kmrnext_free_data(dat)
+    zz = 0
+  end function kmrnext_free_data
+
   ! kmrnext_data_value
   ! kmrnext_data_size
 
