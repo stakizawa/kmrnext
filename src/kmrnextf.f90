@@ -2,8 +2,6 @@ module kmrnextf
   use iso_c_binding
   implicit none
 
-  public
-
   integer(8), parameter :: Max_Dimension_Size = 8
 
   abstract interface
@@ -11,7 +9,8 @@ module kmrnextf
        use iso_c_binding
        implicit none
        type(c_ptr), intent(in), value :: ds
-       type(c_ptr), intent(in), value :: file
+       !type(c_ptr), intent(in), value :: file
+       character(c_char), intent(in) :: file(:)
      end function kmrnext_loadfn
   end interface
 
@@ -156,10 +155,11 @@ contains
     zz = 0
   end function kmrnext_ds_set_size
 
-  integer function kmrnext_ds_load_files(ds, files, nfiles) result(zz)
-    type(c_ptr),  intent(in), value :: ds
-    integer,      intent(in)        :: nfiles
-    character(*), intent(in)        :: files(nfiles)
+  integer function kmrnext_ds_load_files(ds, files, nfiles, l) result(zz)
+    type(c_ptr),  intent(in),  value   :: ds
+    integer,      intent(in)           :: nfiles
+    character(*), intent(in)           :: files(nfiles)
+    procedure(kmrnext_loadfn), bind(c) :: l
 
     character(c_char), allocatable, target :: cstring(:,:)
     type(c_ptr),       allocatable, target :: carray(:)
@@ -177,14 +177,25 @@ contains
        cstring(LEN_TRIM(files(i))+1, i) = C_NULL_CHAR
        carray(i) = C_LOC(cstring(1,i))
     end do
-    call C_kmrnext_ds_load_files(ds, carray, array_len, C_NULL_FUNPTR)
+    call C_kmrnext_ds_load_files(ds, carray, array_len, &
+         c_funloc(wrapper_loadfn))
 
     deallocate(carray)
     deallocate(cstring)
-
     zz = 0
-  end function kmrnext_ds_load_files
+  contains
+    integer function wrapper_loadfn(ds, file_ptr) result(zzz)
+      type(c_ptr), intent(in), value :: ds
+      type(c_ptr), intent(in), value :: file_ptr
 
+      integer(c_size_t)          :: len_file
+      character(c_char), pointer :: file(:)
+
+      len_file = C_strlen(file_ptr)
+      call C_F_POINTER(file_ptr, file, [len_file])
+      zzz = l(ds, file)
+    end function wrapper_loadfn
+  end function kmrnext_ds_load_files
 
   ! kmrnext_ds_add
   ! kmrnext_ds_get
