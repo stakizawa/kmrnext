@@ -3,19 +3,18 @@ module test03
   implicit none
 contains
 
-  integer(c_int) function loader(ds, file) bind(c) result(zz)
+  integer(c_int) function loader(ds, file_ptr) bind(c) result(zz)
     use iso_c_binding
     use kmrnextf
     implicit none
     type(c_ptr), intent(in), value :: ds
-    !type(c_ptr), intent(in), value :: file_ptr
-    character(c_char), intent(in) :: file(:)
+    type(c_ptr), intent(in), value :: file_ptr
 
-    !integer(c_size_t) :: len_file
-    !character(c_char), pointer :: file(:)
+    integer(c_size_t) :: len_file
+    character(c_char), pointer :: file(:)
 
-    !len_file = C_strlen(file_ptr)
-    !call C_F_POINTER(file_ptr, file, [len_file])
+    len_file = C_strlen(file_ptr)
+    call C_F_POINTER(file_ptr, file, [len_file])
     write (*,*) 'file: ', file
     zz = 0
   end function loader

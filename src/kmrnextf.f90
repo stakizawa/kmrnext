@@ -5,12 +5,12 @@ module kmrnextf
   integer(8), parameter :: Max_Dimension_Size = 8
 
   abstract interface
-     integer(c_int) function kmrnext_loadfn(ds, file) bind(c)
+     integer(c_int) function kmrnext_loadfn(ds, file_ptr) bind(c)
        use iso_c_binding
        implicit none
        type(c_ptr), intent(in), value :: ds
-       !type(c_ptr), intent(in), value :: file
-       character(c_char), intent(in) :: file(:)
+       type(c_ptr), intent(in), value :: file_ptr
+       !character(c_char), intent(in) :: file(:)
      end function kmrnext_loadfn
   end interface
 
@@ -177,24 +177,11 @@ contains
        cstring(LEN_TRIM(files(i))+1, i) = C_NULL_CHAR
        carray(i) = C_LOC(cstring(1,i))
     end do
-    call C_kmrnext_ds_load_files(ds, carray, array_len, &
-         c_funloc(wrapper_loadfn))
+    call C_kmrnext_ds_load_files(ds, carray, array_len, c_funloc(l))
 
     deallocate(carray)
     deallocate(cstring)
     zz = 0
-  contains
-    integer function wrapper_loadfn(ds, file_ptr) result(zzz)
-      type(c_ptr), intent(in), value :: ds
-      type(c_ptr), intent(in), value :: file_ptr
-
-      integer(c_size_t)          :: len_file
-      character(c_char), pointer :: file(:)
-
-      len_file = C_strlen(file_ptr)
-      call C_F_POINTER(file_ptr, file, [len_file])
-      zzz = l(ds, file)
-    end function wrapper_loadfn
   end function kmrnext_ds_load_files
 
   ! kmrnext_ds_add
