@@ -71,8 +71,14 @@ module kmrnextf
        type(c_ptr), intent(in), value :: dat
      end subroutine C_kmrnext_ds_add
 
+     type(c_ptr) function C_kmrnext_ds_get(ds, key) &
+          bind(c, name='KMRNEXT_ds_get')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: ds
+       type(c_ptr), intent(in), value :: key
+     end function C_kmrnext_ds_get
 
-     ! kmrnext_ds_get
      ! kmrnext_ds_get_view
      ! kmrnext_ds_map
 
@@ -111,7 +117,13 @@ module kmrnextf
        type(c_ptr), intent(in), value :: key
      end subroutine C_kmrnext_free_key
 
-     ! kmrnext_key_set_size
+     subroutine C_kmrnext_key_set_size(key, size) &
+          bind(c, name = 'KMRNEXT_key_set_size')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: key
+       type(c_ptr), intent(in), value :: size
+     end subroutine C_kmrnext_key_set_size
 
      subroutine C_kmrnext_key_set(key, dim, val) &
           bind(c, name='KMRNEXT_key_set')
@@ -143,18 +155,62 @@ module kmrnextf
        type(c_ptr), intent(in), value :: dat
      end subroutine C_kmrnext_free_data
 
-     ! kmrnext_data_value
-     ! kmrnext_data_size
+     type(c_ptr) function C_kmrnext_data_value(dat) &
+          bind(c, name='KMRNEXT_data_value')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: dat
+     end function C_kmrnext_data_value
+
+     integer(c_size_t) function C_kmrnext_data_size(dat) &
+          bind(c, name='KMRNEXT_data_size')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: dat
+     end function C_kmrnext_data_size
 
      ! kmrnext_create_dp
      ! kmrnext_free_dp
-     ! kmrnext_dp_key
-     ! kmrnext_dp_data
 
-     ! kmrnext_create_view
-     ! kmrnext_free_view
-     ! kmrnext_view_set
-     ! kmrnext_view_string
+     type(c_ptr) function C_kmrnext_dp_key(dp) bind(c, name='KMRNEXT_dp_key')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: dp
+     end function C_kmrnext_dp_key
+
+     type(c_ptr) function C_kmrnext_dp_data(dp) bind(c, name='KMRNEXT_dp_data')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: dp
+     end function C_kmrnext_dp_data
+
+     type(c_ptr) function C_kmrnext_create_view(size) &
+          bind(c, name='KMRNEXT_create_view')
+       use iso_c_binding
+       implicit none
+       integer(c_size_t), intent(in), value :: size
+     end function C_kmrnext_create_view
+
+     subroutine C_kmrnext_free_view(view) bind(c, name='KMRNEXT_free_view')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: view
+     end subroutine C_kmrnext_free_view
+
+     subroutine C_kmrnext_view_set(view, size) &
+          bind(c, name='KMRNEXT_view_set')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: view
+       type(c_ptr), intent(in), value :: size
+     end subroutine C_kmrnext_view_set
+
+     type(c_ptr) function C_kmrnext_view_string(view) &
+          bind(c, name='KMRNEXT_view_string')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: view
+     end function C_kmrnext_view_string
 
      ! kmrnext_free_datapacks
 
@@ -249,7 +305,12 @@ contains
     zz = 0
   end function kmrnext_ds_add
 
-  ! kmrnext_ds_get
+  type(c_ptr) function kmrnext_ds_get(ds, key) result(zz)
+    type(c_ptr), intent(in), value :: ds
+    type(c_ptr), intent(in), value :: key
+    zz = C_kmrnext_ds_get(ds, key)
+  end function kmrnext_ds_get
+
   ! kmrnext_ds_get_view
   ! kmrnext_ds_map
 
@@ -292,7 +353,12 @@ contains
     zz = 0
   end function kmrnext_free_key
 
-  ! kmrnext_key_set_size
+  integer function kmrnext_key_set_size(key, size) result(zz)
+    type(c_ptr),     intent(in), value  :: key
+    integer(c_long), intent(in), target :: size(Max_Dimension_Size)
+    call C_kmrnext_key_set_size(key, C_LOC(size))
+    zz = 0
+  end function kmrnext_key_set_size
 
   integer function kmrnext_key_set(key, dim, val) result(zz)
     type(c_ptr),       intent(in), value :: key
@@ -326,18 +392,60 @@ contains
     zz = 0
   end function kmrnext_free_data
 
-  ! kmrnext_data_value
-  ! kmrnext_data_size
+  type(c_ptr) function kmrnext_data_value(dat) result(zz)
+    type(c_ptr), intent(in), value :: dat
+    zz = C_kmrnext_data_value(dat)
+  end function kmrnext_data_value
+
+  integer(c_size_t) function kmrnext_data_size(dat) result(zz)
+    type(c_ptr), intent(in), value :: dat
+    zz = C_kmrnext_data_size(dat)
+  end function kmrnext_data_size
 
   ! kmrnext_create_dp
   ! kmrnext_free_dp
-  ! kmrnext_dp_key
-  ! kmrnext_dp_data
 
-  ! kmrnext_create_view
-  ! kmrnext_free_view
-  ! kmrnext_view_set
-  ! kmrnext_view_string
+  type(c_ptr) function kmrnext_dp_key(dp) result(zz)
+    type(c_ptr),       intent(in), value :: dp
+    zz = C_kmrnext_dp_key(dp)
+  end function kmrnext_dp_key
+
+  type(c_ptr) function kmrnext_dp_data(dp) result(zz)
+    type(c_ptr),       intent(in), value :: dp
+    zz = C_kmrnext_dp_data(dp)
+  end function kmrnext_dp_data
+
+  type(c_ptr) function kmrnext_create_view(size) result(zz)
+    integer(c_size_t), intent(in), value :: size
+    zz = C_kmrnext_create_view(size)
+  end function kmrnext_create_view
+
+  integer function kmrnext_free_view(view) result(zz)
+    type(c_ptr), intent(in), value :: view
+    call C_kmrnext_free_view(view)
+    zz = 0
+  end function kmrnext_free_view
+
+  ! integer function kmrnext_view_set(view, val) result(zz)
+  !   type(c_ptr), intent(in), value  :: view
+
+  !   ! integer(c_long), intent(in), target :: size(Max_Dimension_Size)
+  !   ! call C_kmrnext_ds_set_size(ds, C_LOC(size))
+
+  !   logical,     intent(in), target :: val(Max_Dimension_Size)
+  !   call C_kmrnext_view_set(view, C_LOC(val))
+  !   zz = 0
+  ! end function kmrnext_view_set
+
+  subroutine kmrnext_view_string(view, ostring)
+    type(c_ptr),       intent(in),  value   :: view
+    character(c_char), intent(out), pointer :: ostring(:)
+    type(c_ptr)       :: c_str
+    integer(c_size_t) :: len_str
+    c_str = C_kmrnext_view_string(view)
+    len_str = C_strlen(c_str)
+    call C_F_POINTER(c_str, ostring, [len_str])
+  end subroutine kmrnext_view_string
 
   ! kmrnext_free_datapacks
 

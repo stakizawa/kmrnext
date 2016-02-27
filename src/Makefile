@@ -52,7 +52,7 @@ test01-mng-ds: test01-mng-ds.o $(LIB)
 test02-clang: test02-clang.o $(LIB)
 	$(CC) $(LDFLAGS) -o $@ $^ $(DEPLIB) $(CXXLIB)
 
-test03-fortran: test03-fortran.o $(LIB)
+test03-fortran: test03-fortran.o test03-fortran-helper.o $(LIB)
 	$(FC) $(LDFLAGS) -o $@ $^ $(DEPLIB) $(CXXLIB)
 
 .update_header:
