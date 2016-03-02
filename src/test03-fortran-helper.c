@@ -7,12 +7,18 @@ void print_data_store_helper(char *dumped_str, long ds_count,
 			     int nspace, int print_count);
 void print_get_result_helper(char *key_req_str, char *key_ans_str, long val,
 			     size_t vsize);
+void print_get_view_result_helper1(char *view_str, char*key_str,
+				   size_t dp_count, int print_count);
+void print_get_view_result_helper2(char *dp_key_str, long dat_val);
+
+#define FORTRAN_PADDING " "
 
 
 char*
 dumper_helper(char *key_str, long val)
 {
-    size_t len = strlen(key_str) + 11;  // "  ", " : ", "0000", "\n" and "\0"
+    // "  ", " : ", "0000", "\n", "\0" and FORTRAN_PADDING
+    size_t len = strlen(key_str) + 12;
     char *buf = (char*)calloc(len, sizeof(char));
     snprintf(buf, len, "  %s : %ld\n", key_str, val);
     return buf; // it may be a memory leak
@@ -27,11 +33,12 @@ print_data_store_helper(char *dumped_str, long ds_count,
 	padding[i] = ' ';
     }
 
-    printf("%sCount of data in the DataStore: %ld\n", padding, ds_count);
+    printf(FORTRAN_PADDING "%sCount of data in the DataStore: %ld\n",
+	   padding, ds_count);
     if (print_count > 0) {
-	printf("%sValues (top%d)\n", padding, print_count);
+	printf(FORTRAN_PADDING "%sValues (top%d)\n", padding, print_count);
     } else {
-	printf("%sValues (all)\n", padding);
+	printf(FORTRAN_PADDING "%sValues (all)\n", padding);
     }
     int cnt = 0;
     char buf[80];
@@ -44,7 +51,7 @@ print_data_store_helper(char *dumped_str, long ds_count,
 	if (dumped_str[i] == '\n') {
 	    strncpy(buf, lstart, llen);
 	    buf[llen] = '\0';
-	    printf("%s%s\n", padding, buf);
+	    printf(FORTRAN_PADDING "%s%s\n", padding, buf);
 	    lstart = (char*)&(dumped_str[i+1]);
 	    llen = 0;
 	    cnt += 1;
@@ -60,6 +67,27 @@ void
 print_get_result_helper(char *key_req_str, char *key_ans_str, long val,
 			size_t vsize)
 {
-    printf("  Query key: %s    Result: %s: %ld (Size:%ld)\n",
+    printf(FORTRAN_PADDING "  Query key: %s    Result: %s: %ld (Size:%ld)\n",
 	   key_req_str, key_ans_str, val, vsize);
+}
+
+void
+print_get_view_result_helper1(char *view_str, char*key_str, size_t dp_count,
+			      int print_count)
+{
+    printf(FORTRAN_PADDING "  Condition\n");
+    printf(FORTRAN_PADDING "    view: %s, key: %s\n", view_str, key_str);
+    printf(FORTRAN_PADDING "  Result\n");
+    printf(FORTRAN_PADDING "    size: %ld\n", dp_count);
+    if (print_count > 0) {
+	printf(FORTRAN_PADDING "    values (top%d)\n", print_count);
+    } else {
+	printf(FORTRAN_PADDING "    values (all)\n");
+    }
+}
+
+void
+print_get_view_result_helper2(char *dp_key_str, long dat_val)
+{
+    printf(FORTRAN_PADDING "    %s : %ld\n", dp_key_str, dat_val);
 }

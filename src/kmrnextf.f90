@@ -1,8 +1,22 @@
+! The backend runtime (SERIAL, KMR)
+#define BACKEND_SERIAL 1  ! TODO automatically set
+
 module kmrnextf
   use iso_c_binding
+  ! TODO MPI
   implicit none
 
   integer(8), parameter :: Max_Dimension_Size = 8
+
+  type, bind(c) :: datapacks
+     integer(c_size_t) :: count
+     type(c_ptr)       :: data
+  end type datapacks
+
+  type, bind(c) :: mapenv
+     integer(c_int) :: rank
+     ! TODO MPI
+  end type mapenv
 
   abstract interface
      integer(c_int) function kmrnext_loadfn(ds, file_ptr) bind(c)
@@ -12,6 +26,18 @@ module kmrnextf
        type(c_ptr), intent(in), value :: file_ptr
        !character(c_char), intent(in) :: file(:)
      end function kmrnext_loadfn
+
+     integer(c_int) function kmrnext_mapfn(ids, ods, key, dps, env) bind(c)
+       use iso_c_binding
+       import datapacks
+       import mapenv
+       implicit none
+       type(c_ptr),     intent(in), value :: ids
+       type(c_ptr),     intent(in), value :: ods
+       type(c_ptr),     intent(in), value :: key
+       type(datapacks), intent(in), value :: dps
+       type(mapenv),    intent(in), value :: env
+     end function kmrnext_mapfn
 
      type(c_ptr) function kmrnext_dumpfn(dp) bind(c)
        use iso_c_binding
@@ -79,8 +105,25 @@ module kmrnextf
        type(c_ptr), intent(in), value :: key
      end function C_kmrnext_ds_get
 
-     ! kmrnext_ds_get_view
-     ! kmrnext_ds_map
+     type(datapacks) function C_kmrnext_ds_get_view(ds, key, view) &
+          bind(c, name='KMRNEXT_ds_get_view')
+       use iso_c_binding
+       import datapacks
+       implicit none
+       type(c_ptr), intent(in), value :: ds
+       type(c_ptr), intent(in), value :: key
+       type(c_ptr), intent(in), value :: view
+     end function C_kmrnext_ds_get_view
+
+     subroutine C_kmrnext_ds_map(ids, ods, view, m) &
+          bind(c, name='KMRNEXT_ds_map')
+       use iso_c_binding
+       implicit none
+       type(c_ptr),       intent(in), value :: ids
+       type(c_ptr),       intent(in), value :: ods
+       type(c_ptr),       intent(in), value :: view
+       type(c_funptr),    intent(in), value :: m
+     end subroutine C_kmrnext_ds_map
 
      integer(c_long) function C_kmrnext_ds_count(ds) &
           bind(c, name='KMRNEXT_ds_count')
@@ -212,7 +255,13 @@ module kmrnextf
        type(c_ptr), intent(in), value :: view
      end function C_kmrnext_view_string
 
-     ! kmrnext_free_datapacks
+     subroutine C_kmrnext_free_datapacks(dps) &
+          bind(c, name='KMRNEXT_free_datapacks')
+       use iso_c_binding
+       import datapacks
+       implicit none
+       type(datapacks), intent(in), value :: dps
+     end subroutine C_kmrnext_free_datapacks
 
      integer(c_size_t) function C_strlen(string) bind(c, name='strlen')
        use iso_c_binding
@@ -311,8 +360,21 @@ contains
     zz = C_kmrnext_ds_get(ds, key)
   end function kmrnext_ds_get
 
-  ! kmrnext_ds_get_view
-  ! kmrnext_ds_map
+  type(datapacks) function kmrnext_ds_get_view(ds, key, view) result(zz)
+    type(c_ptr), intent(in), value :: ds
+    type(c_ptr), intent(in), value :: key
+    type(c_ptr), intent(in), value :: view
+    zz = C_kmrnext_ds_get_view(ds, key, view)
+  end function kmrnext_ds_get_view
+
+  integer function kmrnext_ds_map(ids, ods, view, m) result(zz)
+    type(c_ptr), intent(in),  value    :: ids
+    type(c_ptr), intent(in),  value    :: ods
+    type(c_ptr), intent(in),  value    :: view
+    procedure(kmrnext_mapfn), bind(c) :: m
+    call C_kmrnext_ds_map(ids, ods, view, C_FUNLOC(m))
+    zz = 0
+  end function kmrnext_ds_map
 
   integer(c_long) function kmrnext_ds_count(ds) result(zz)
     type(c_ptr), intent(in), value :: ds
@@ -426,16 +488,12 @@ contains
     zz = 0
   end function kmrnext_free_view
 
-  ! integer function kmrnext_view_set(view, val) result(zz)
-  !   type(c_ptr), intent(in), value  :: view
-
-  !   ! integer(c_long), intent(in), target :: size(Max_Dimension_Size)
-  !   ! call C_kmrnext_ds_set_size(ds, C_LOC(size))
-
-  !   logical,     intent(in), target :: val(Max_Dimension_Size)
-  !   call C_kmrnext_view_set(view, C_LOC(val))
-  !   zz = 0
-  ! end function kmrnext_view_set
+  integer function kmrnext_view_set(view, val) result(zz)
+    type(c_ptr),     intent(in), value  :: view
+    logical(c_bool), intent(in), target :: val(Max_Dimension_Size)
+    call C_kmrnext_view_set(view, C_LOC(val))
+    zz = 0
+  end function kmrnext_view_set
 
   subroutine kmrnext_view_string(view, ostring)
     type(c_ptr),       intent(in),  value   :: view
@@ -447,7 +505,11 @@ contains
     call C_F_POINTER(c_str, ostring, [len_str])
   end subroutine kmrnext_view_string
 
-  ! kmrnext_free_datapacks
+  integer function kmrnext_free_datapacks(dps) result(zz)
+    type(datapacks), intent(in), value :: dps
+    call C_kmrnext_free_datapacks(dps)
+    zz = 0
+  end function kmrnext_free_datapacks
 
 #if 0
   subroutine print_string(string)

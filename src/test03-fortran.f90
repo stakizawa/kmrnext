@@ -8,6 +8,9 @@ module test03_constant
   integer(8), parameter :: kDim3_0 = 10
   integer(8), parameter :: kDim3_1 = 10
   integer(8), parameter :: kDim3_2 = 10
+  integer(8), parameter :: kDimension2 = 2
+  integer(8), parameter :: kDim2_0 = 10
+  integer(8), parameter :: kDim2_1 = 10
 end module test03_constant
 
 module test03
@@ -45,6 +48,24 @@ module test03
        integer(c_long),   intent(in), value :: val
        integer(c_size_t), intent(in), value :: vsize
      end subroutine C_print_get_result_helper
+
+     subroutine C_print_get_view_result_helper1(view_str, key_str, dp_count, &
+          print_count) bind(c, name='print_get_view_result_helper1')
+       use iso_c_binding
+       implicit none
+       type(c_ptr),       intent(in), value :: view_str
+       type(c_ptr),       intent(in), value :: key_str
+       integer(c_size_t), intent(in), value :: dp_count
+       integer(c_int),    intent(in), value :: print_count
+     end subroutine C_print_get_view_result_helper1
+
+     subroutine C_print_get_view_result_helper2(dp_key_str, dat_val) &
+          bind(c, name='print_get_view_result_helper2')
+       use iso_c_binding
+       implicit none
+       type(c_ptr),       intent(in), value :: dp_key_str
+       integer(c_long),   intent(in), value :: dat_val
+     end subroutine C_print_get_view_result_helper2
   end interface
 
 contains
@@ -100,6 +121,39 @@ contains
     zz = C_dumper_helper(key_str, val)
   end function dumper
 
+  integer(c_int) function summarizer(ids, ods, key, dps, env) &
+       bind(c) result(zz)
+    implicit none
+    type(c_ptr),     intent(in), value :: ids
+    type(c_ptr),     intent(in), value :: ods
+    type(c_ptr),     intent(in), value :: key
+    type(datapacks), intent(in), value :: dps
+    type(mapenv),    intent(in), value :: env
+
+    integer(c_long), target :: sum
+    integer(c_size_t) :: i
+    type(c_ptr), pointer       :: dplst(:)
+    type(c_ptr) :: dp, dp_dat, valptr, dat
+    integer(c_long), pointer :: val
+    integer :: ierr
+    integer(c_long) dummy1
+
+    sum = 0
+    call C_F_POINTER(dps%data, dplst, [dps%count])
+    do i = 1, dps%count
+       dp = dplst(i)
+       dp_dat = kmrnext_dp_data(dp)
+       valptr = kmrnext_data_value(dp_dat)
+       call C_F_POINTER(valptr, val)
+       sum = sum + val
+    end do
+    dat = kmrnext_create_data(C_LOC(sum), int(8,kind=c_long))
+    ierr = kmrnext_ds_add(ods, key, dat)
+    zz = 0
+    ! for suppress warnings
+    dummy1 = kmrnext_ds_count(ids) + env%rank
+  end function summarizer
+
   subroutine print_data_store(ds, nspace, count, rank)
     implicit none
     type(c_ptr),  intent(in) :: ds
@@ -145,7 +199,46 @@ contains
     call C_print_get_result_helper(key_req_str, key_ans_str, val, vsize)
   end subroutine print_get_result
 
+  subroutine print_get_view_result(dps, view, key, count, rank)
+    implicit none
+    type(datapacks), intent(in), value :: dps
+    type(c_ptr),     intent(in)        :: view
+    type(c_ptr),     intent(in)        :: key
+    integer,         intent(in)        :: count
+    integer,         intent(in)        :: rank
+
+    type(c_ptr)                :: view_str, key_str
+    type(c_ptr), pointer       :: dplst(:)
+    integer(c_size_t)          :: i, cnt
+    type(c_ptr)                :: dp, dp_key, dp_dat, dat_valptr, dp_key_str
+    integer(c_long),   pointer :: dat_val
+
+    if (rank /= 0) then
+       return
+    end if
+
+    view_str = C_kmrnext_view_string(view)
+    key_str = C_kmrnext_key_string(key)
+    call C_print_get_view_result_helper1(view_str, key_str, dps%count, count)
+
+    call C_F_POINTER(dps%data, dplst, [dps%count])
+    cnt = 0
+    do i = 1, dps%count
+       if (count > 0 .and. cnt >= count) exit
+       cnt = cnt + 1
+       dp = dplst(i)
+       dp_key = kmrnext_dp_key(dp)
+       dp_key_str = C_kmrnext_key_string(dp_key)
+       dp_dat = kmrnext_dp_data(dp)
+       dat_valptr = kmrnext_data_value(dp_dat)
+       call C_F_POINTER(dat_valptr, dat_val)
+       call C_print_get_view_result_helper2(dp_key_str, dat_val)
+    end do
+    write (*,*) ''
+  end subroutine print_get_view_result
+
 end module test03
+
 
 program main
   use iso_c_binding
@@ -160,21 +253,36 @@ program main
   integer                    :: rank = 0
   integer                    :: ierr
   type(c_ptr)                :: next
-  type(c_ptr)                :: ds1
+  type(c_ptr)                :: ds1, ds2
   integer(c_size_t)          :: sizes3(Max_Dimension_Size)
+  integer(c_size_t)          :: sizes2(Max_Dimension_Size)
   character(6), dimension(1) :: files
   type(c_ptr)                :: key1, key2
   integer(c_size_t)          :: kval1(Max_Dimension_Size)
   integer(c_size_t)          :: kval2(Max_Dimension_Size)
   type(c_ptr)                :: dp1, dp2
   type(c_ptr)                :: v1, v2, v3, v4
+  logical(c_bool)            :: flags1(Max_Dimension_Size)
+  logical(c_bool)            :: flags2(Max_Dimension_Size)
+  logical(c_bool)            :: flags3(Max_Dimension_Size)
+  logical(c_bool)            :: flags4(Max_Dimension_Size)
+  type(datapacks)            :: dps1, dps2, dps3, dps4, dps5, dps6, dps7, dps8
 
   character(c_char), pointer :: str(:)
 
   data sizes3/kDim3_0,kDim3_1,kDim3_2,0,0,0,0,0/
+  data sizes2/kDim2_0,kDim2_1,0,0,0,0,0,0/
   data files/'dummy1'/
   data kval1/2,2,2,0,0,0,0,0/
   data kval2/2,2,3,0,0,0,0,0/
+  data flags1/.TRUE., .TRUE., .TRUE., &
+       .FALSE., .FALSE., .FALSE., .FALSE., .FALSE./
+  data flags2/.TRUE., .FALSE., .TRUE., &
+       .FALSE., .FALSE., .FALSE., .FALSE., .FALSE./
+  data flags3/.TRUE., .FALSE., .FALSE., &
+       .FALSE., .FALSE., .FALSE., .FALSE., .FALSE./
+  data flags4/.FALSE., .FALSE., .FALSE., &
+       .FALSE., .FALSE., .FALSE., .FALSE., .FALSE./
 
   !---------------------------------------------------------------------------
 
@@ -191,9 +299,6 @@ program main
      call kmrnext_ds_string(ds1, str)
      write (*,*) '  DataStore: ', str
      write (*,*)
-
-     ! write (*,fmt='(a)', advance='no') 'this is test.' ! TODO
-     ! write (*,*) 'another string'
   end if
 
   !------ Load data contents from a file
@@ -233,7 +338,60 @@ program main
   v2 = kmrnext_create_view(kDimension3)
   v3 = kmrnext_create_view(kDimension3)
   v4 = kmrnext_create_view(kDimension3)
-  ! TODO start from here
+  ierr = kmrnext_view_set(v1, flags1)
+  ierr = kmrnext_view_set(v2, flags2)
+  ierr = kmrnext_view_set(v3, flags3)
+  ierr = kmrnext_view_set(v4, flags4)
+
+  !------ Get a data from a DataStore with a view
+  dps1 = kmrnext_ds_get_view(ds1, key1, v1)
+  dps2 = kmrnext_ds_get_view(ds1, key2, v1)
+  dps3 = kmrnext_ds_get_view(ds1, key1, v2)
+  dps4 = kmrnext_ds_get_view(ds1, key2, v2)
+  dps5 = kmrnext_ds_get_view(ds1, key1, v3)
+  dps6 = kmrnext_ds_get_view(ds1, key2, v3)
+  dps7 = kmrnext_ds_get_view(ds1, key1, v4)
+  dps8 = kmrnext_ds_get_view(ds1, key2, v4)
+  if (kPrint) then
+     if (rank == 0) then
+        write (*,*) '3. Get data from a DataStore by get(view)'
+     end if
+     call print_get_view_result(dps1, v1, key1, kDumpCount, rank)
+     call print_get_view_result(dps2, v1, key2, kDumpCount, rank)
+     call print_get_view_result(dps3, v2, key1, kDumpCount, rank)
+     call print_get_view_result(dps4, v2, key2, kDumpCount, rank)
+     call print_get_view_result(dps5, v3, key1, kDumpCount, rank)
+     call print_get_view_result(dps6, v3, key2, kDumpCount, rank)
+     call print_get_view_result(dps7, v4, key1, kDumpCount, rank)
+     call print_get_view_result(dps8, v4, key2, kDumpCount, rank)
+     if (rank == 0) then
+        write (*,*) ''
+     end if
+  end if
+  ierr = kmrnext_free_datapacks(dps1)
+  ierr = kmrnext_free_datapacks(dps2)
+  ierr = kmrnext_free_datapacks(dps3)
+  ierr = kmrnext_free_datapacks(dps4)
+  ierr = kmrnext_free_datapacks(dps5)
+  ierr = kmrnext_free_datapacks(dps6)
+  ierr = kmrnext_free_datapacks(dps7)
+  ierr = kmrnext_free_datapacks(dps8)
+
+  !------ Apply map functions
+  ds2 = kmrnext_create_ds(next, kDimension2)
+  ierr = kmrnext_ds_set_size(ds2, sizes2)
+  ierr = kmrnext_ds_map(ds1, ds2, v2, summarizer)
+  if (kPrint) then
+     if (rank == 0) then
+        write (*,*) '4. Apply map to each data in a DataStore'
+        write (*,*) '  Output DataStore'
+     end if
+     call print_data_store(ds2, 4, kDumpCount, rank)
+     if (rank == 0) then
+        write (*,*) ''
+     end if
+  end if
+  ierr = kmrnext_free_ds(ds2)
 
   ierr = kmrnext_free_view(v1)
   ierr = kmrnext_free_view(v2)
