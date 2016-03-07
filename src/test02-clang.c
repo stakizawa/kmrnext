@@ -127,7 +127,7 @@ main(int argc, char **argv)
     void *ds2 = KMRNEXT_create_ds(next, kDimension2);
     size_t sizes2[kDimension2] = {kDim2_0, kDim2_1};
     KMRNEXT_ds_set_size(ds2, sizes2);
-    KMRNEXT_ds_map(ds1, ds2, v2, summarizer);
+    KMRNEXT_ds_map(ds1, ds2, v2, summarizer, NULL);
     if (kPrint) {
 	if (rank == 0) printf("4. Apply map to each data in a DataStore\n");
 	if (rank == 0) printf("  Output DataStore\n");

@@ -97,15 +97,17 @@ datapacks KMRNEXT_ds_get_view(void *ds, void *key, void *view)
   return dps;
 }
 
-void KMRNEXT_ds_map(void *ids, void *ods, void *view, kmrnext_mapfn_t m)
+void KMRNEXT_ds_map(void *ids, void *ods, void *view, kmrnext_mapfn_t m,
+		    void *p)
 {
   DataStore *_ids = (DataStore*)ids;
   DataStore *_ods = (DataStore*)ods;
   View *_view = (View*)view;
   class WrappedMapper : public DataStore::Mapper {
     kmrnext_mapfn_t fn_;
+    void *p_;
   public:
-    WrappedMapper(kmrnext_mapfn_t fn) : fn_(fn) {}
+    WrappedMapper(kmrnext_mapfn_t fn, void *p) : fn_(fn), p_(p) {}
     int operator()(DataStore *inds, DataStore *outds, Key& key,
 		   vector<DataPack>& dpvec, DataStore::MapEnvironment& env) {
       datapacks dps;
@@ -122,11 +124,12 @@ void KMRNEXT_ds_map(void *ids, void *ods, void *view, kmrnext_mapfn_t m)
 #ifdef BACKEND_KMR
       e.mpi_comm = env.mpi_comm;
 #endif
+      e.p = p_;
       int cc = fn_((void*)inds, (void*)outds, (void*)&key, dps, e);
       free(dps.data);
       return cc;
     }
-  } mapper(m);
+  } mapper(m, p);
   _ids->map(_ods, mapper, *_view);
 }
 
