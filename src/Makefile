@@ -1,6 +1,6 @@
 include ../config.make
 
-HEADERS = kmrnext.hpp ckmrnext.h
+HEADERS = kmrnext.hpp ckmrnext.h kmrnextf.f90
 LIB     = libkmrnext.a
 OBJS    = kmrnext.o basic_data.o data_store.o ckmrnext.o \
 	  api_fortran.o kmrnextf.o
@@ -38,7 +38,7 @@ endif
 
 .f90.o:
 ifeq ($(TARGET), KMR)
-	$(FC) $(DEFS) $(FCFLAGS) -I$(KMRDIR)/include -c $<
+	$(FC) $(DEFS) -DBACKEND_KMR $(FCFLAGS) -I$(KMRDIR)/include -c $<
 else
 	$(FC) $(DEFS) $(FCFLAGS) -c $<
 endif
@@ -62,8 +62,11 @@ test03-fortran: test03-fortran.o test03-fortran-helper.o $(LIB)
 	cp ckmrnext.h _ckmrnext.h
 	sed -e "s/#define BACKEND_[A-Z]* 1/#define BACKEND_$(TARGET) 1/" \
 	< _ckmrnext.h > ckmrnext.h
+	cp kmrnextf.f90 _kmrnextf.f90
+	sed -e "s/#define BACKEND_[A-Z]* 1/#define BACKEND_$(TARGET) 1/" \
+	< _kmrnextf.f90 > kmrnextf.f90
 	touch .update_header
-	rm -f _kmrnext.hpp _ckmrnext.h
+	rm -f _kmrnext.hpp _ckmrnext.h _kmrnextf.f90
 
 .PHONY: install
 install: all

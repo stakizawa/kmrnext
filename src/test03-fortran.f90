@@ -128,7 +128,7 @@ contains
     type(c_ptr),     intent(in), value :: ods
     type(c_ptr),     intent(in), value :: key
     type(datapacks), intent(in), value :: dps
-    type(mapenv),    intent(in), value :: env
+    type(mapenvf),   intent(in), value :: env
 
     integer(c_long), target :: sum
     integer(c_size_t) :: i
@@ -136,7 +136,9 @@ contains
     type(c_ptr) :: dp, dp_dat, valptr, dat
     integer(c_long), pointer :: val
     integer :: ierr
-    integer(c_long) dummy1
+#ifdef BACKEND_KMR
+    integer :: comm_size
+#endif
 
     sum = 0
     call C_F_POINTER(dps%data, dplst, [dps%count])
@@ -150,8 +152,14 @@ contains
     dat = kmrnext_create_data(C_LOC(sum), int(8,kind=c_long))
     ierr = kmrnext_ds_add(ods, key, dat)
     zz = 0
-    ! for suppress warnings
-    dummy1 = kmrnext_ds_count(ids) + env%rank
+#ifdef BACKEND_KMR
+    if (env%rank == 0) then
+       call mpi_comm_size(env%mpi_comm, comm_size, ierr)
+       if (comm_size /= 1) then
+          write (*,*) 'MPI_Comm size should be 1.'
+       end if
+    end if
+#endif
   end function summarizer
 
   subroutine print_data_store(ds, nspace, count, rank)
@@ -245,10 +253,11 @@ program main
   use kmrnextf
   use test03_constant
   use test03
-  implicit none
 #ifdef BACKEND_KMR
-  include "mpif.h"
+  !  include "mpif.h"
+  use mpi
 #endif
+  implicit none
   !---------------------------------------------------------------------------
   integer                    :: rank = 0
   integer                    :: ierr

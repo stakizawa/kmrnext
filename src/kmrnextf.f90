@@ -1,9 +1,11 @@
 ! The backend runtime (SERIAL, KMR)
-#define BACKEND_SERIAL 1  ! TODO automatically set
+#define BACKEND_KMR 1
 
 module kmrnextf
   use iso_c_binding
-  ! TODO MPI
+#ifdef BACKEND_KMR
+  use mpi
+#endif
   implicit none
 
   integer(8), parameter :: Max_Dimension_Size = 8
@@ -13,10 +15,13 @@ module kmrnextf
      type(c_ptr)       :: data
   end type datapacks
 
-  type, bind(c) :: mapenv
+  type, bind(c) :: mapenvf
      integer(c_int) :: rank
-     ! TODO MPI
-  end type mapenv
+#ifdef BACKEND_KMR
+     integer(c_int) :: mpi_comm
+#endif
+     type(c_ptr)    :: p
+  end type mapenvf
 
   abstract interface
      integer(c_int) function kmrnext_loadfn(ds, file_ptr) bind(c)
@@ -30,13 +35,13 @@ module kmrnextf
      integer(c_int) function kmrnext_mapfn(ids, ods, key, dps, env) bind(c)
        use iso_c_binding
        import datapacks
-       import mapenv
+       import mapenvf
        implicit none
        type(c_ptr),     intent(in), value :: ids
        type(c_ptr),     intent(in), value :: ods
        type(c_ptr),     intent(in), value :: key
        type(datapacks), intent(in), value :: dps
-       type(mapenv),    intent(in), value :: env
+       type(mapenvf),   intent(in), value :: env
      end function kmrnext_mapfn
 
      type(c_ptr) function kmrnext_dumpfn(dp) bind(c)
@@ -115,14 +120,15 @@ module kmrnextf
        type(c_ptr), intent(in), value :: view
      end function C_kmrnext_ds_get_view
 
-     subroutine C_kmrnext_ds_map(ids, ods, view, m) &
-          bind(c, name='KMRNEXT_ds_map')
+     subroutine C_kmrnext_ds_map(ids, ods, view, m, p) &
+          bind(c, name='KMRNEXT_ds_map_ff')
        use iso_c_binding
        implicit none
        type(c_ptr),       intent(in), value :: ids
        type(c_ptr),       intent(in), value :: ods
        type(c_ptr),       intent(in), value :: view
        type(c_funptr),    intent(in), value :: m
+       type(c_ptr),       intent(in), value :: p
      end subroutine C_kmrnext_ds_map
 
      integer(c_long) function C_kmrnext_ds_count(ds) &
@@ -371,8 +377,8 @@ contains
     type(c_ptr), intent(in),  value    :: ids
     type(c_ptr), intent(in),  value    :: ods
     type(c_ptr), intent(in),  value    :: view
-    procedure(kmrnext_mapfn), bind(c) :: m
-    call C_kmrnext_ds_map(ids, ods, view, C_FUNLOC(m))
+    procedure(kmrnext_mapfn), bind(c)  :: m
+    call C_kmrnext_ds_map(ids, ods, view, C_FUNLOC(m), C_NULL_PTR)
     zz = 0
   end function kmrnext_ds_map
 
