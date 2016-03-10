@@ -354,11 +354,17 @@ namespace kmrnext {
     /// the same key using a given MPI_Comm.
     void map(DataStore* outds, Mapper& m, const View& view);
 
+#ifdef BACKEND_KMR
     /// It maps each data.
     ///
-    /// It maps after gathering data that have the same key to a single
-    /// process.  That is, the mapper object, m, runs in serial.
-    void gather_map(DataStore* outds, Mapper& m, const View& view);
+    /// It maps on the specified number of nodes.  Before running the
+    /// mapper object, m, data that have the same key are gathered to
+    /// the specified number of nodes and then the mapper runs on the
+    /// nodes.  The number of nodes, nprocs, can not exceed the number
+    /// of nodes which physical store data that have the key.
+    void map_with_procs(DataStore* outds, Mapper& m, const View& view,
+			const int nprocs);
+#endif
 
     /// It dumps data in the DataStore.
     string dump(DataPack::Dumper& dumper);

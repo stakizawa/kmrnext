@@ -204,10 +204,6 @@ namespace kmrnext {
     }
   }
 
-  void DataStore::gather_map(DataStore* outds, Mapper& m, const View& view) {
-    map(outds, m, view);
-  }
-
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
     load_array(files, f);
   }

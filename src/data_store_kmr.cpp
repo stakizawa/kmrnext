@@ -363,8 +363,9 @@ namespace kmrnext {
     }
   }
 
-  void DataStore::gather_map(DataStore* outds, Mapper& m, const View& view) {
-    throw runtime_error("DataStore.gather_map() is not implemented yet.");
+  void DataStore::map_with_procs(DataStore* outds, Mapper& m,
+				 const View& view, const int nprocs) {
+    throw runtime_error("DataStore.map_with_procs() is not implemented yet.");
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
