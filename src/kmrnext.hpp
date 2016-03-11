@@ -357,13 +357,10 @@ namespace kmrnext {
 #ifdef BACKEND_KMR
     /// It maps each data.
     ///
-    /// It maps on the specified number of nodes.  Before running the
-    /// mapper object, m, data that have the same key are gathered to
-    /// the specified number of nodes and then the mapper runs on the
-    /// nodes.  The number of nodes, nprocs, can not exceed the number
-    /// of nodes which physical store data that have the key.
-    void map_with_procs(DataStore* outds, Mapper& m, const View& view,
-			const int nprocs);
+    /// It maps on a single nodes.  Before running the mapper object, m,
+    /// data that have the same key are gathered to a node and then the
+    /// mapper runs on the nodes.
+    void map_single(DataStore* outds, Mapper& m, const View& view);
 #endif
 
     /// It dumps data in the DataStore.

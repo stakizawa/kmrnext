@@ -46,6 +46,13 @@ namespace kmrnext {
   /// the input KVS.
   int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m);
 
+  /// It maps Datas in a DataStore using only one node.
+  ///
+  /// It is a KMR mapper function.  Key and value of the key-value should
+  /// be an integer that represents index of Key-Data vactor.
+  int mapper_map_single(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+			KMR_KVS *kvo, void *p, const long i);
+
   /// Parameter for mapper_map
   typedef struct {
     DataStore::Mapper& mapper;
@@ -56,6 +63,17 @@ namespace kmrnext {
     vector< vector<DataPack> >& dpgroups;
     bool map_local;
   } param_mapper_map;
+
+  /// Parameter for mapper_map_single
+  typedef struct {
+    DataStore::Mapper& mapper;
+    DataStore *ids;
+    DataStore *ods;
+    const View& view;
+    DataStore::MapEnvironment& env;
+    vector< vector<DataPack> >& dpgroups;
+    int key_index;
+  } param_mapper_map_single;
 
   DataStore::~DataStore() {
     if (data_allocated_) {
@@ -363,9 +381,91 @@ namespace kmrnext {
     }
   }
 
-  void DataStore::map_with_procs(DataStore* outds, Mapper& m,
-				 const View& view, const int nprocs) {
-    throw runtime_error("DataStore.map_with_procs() is not implemented yet.");
+  void DataStore::map_single(DataStore* outds, Mapper& m, const View& view) {
+    check_map_args(outds, view);
+    if (data_size_ == 0) {
+      return;
+    }
+
+    int key_idx = -1;
+    for (int i = (int)size_ - 1; i >= 0; i--) {
+      if (view.dim(i)) {
+	key_idx = i;
+	break;
+      }
+    }
+
+    size_t ngrps = 1;
+    int *color_idxs = new int[size_];   // TODO delete?
+    {
+      size_t j = 0;
+      for (int i = 0; i < (int)size_; i++) {
+	if (view.dim(i)) {
+	  if (i == key_idx) {
+	    break;
+	  }
+	  ngrps *= value_[i];
+	  color_idxs[j] = i;
+	  j += 1;
+	}
+      }
+      for (; j < size_; j++) {
+	color_idxs[j] = -1;
+      }
+    }
+
+
+    { // TODO for debug
+      cout << "ngroups: " << ngrps << endl;
+      cout << "key index: " << key_idx << endl;
+      cout << "color indice: ";
+      for (size_t i = 0; i < size_; i++) {
+	if (color_idxs[i] == -1) break;
+	cout << color_idxs[i] << ", ";
+      }
+      cout << endl;
+    }
+
+    View grpview = view;
+    if (key_idx != -1) {
+      grpview.set_dim(key_idx, false);
+    }
+
+    vector< vector<DataPack> > dpgroups(ngrps);
+    for (size_t i = 0; i < data_size_; i++) {
+      if (data_[i].value() == NULL ||
+    	  (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank())) {
+    	continue;
+      }
+      Key tmpkey = index_to_key(i);
+      size_t viewed_idx = key_to_viewed_index(tmpkey, grpview);
+      vector<DataPack>& dps = dpgroups.at(viewed_idx);
+      dps.push_back(DataPack(tmpkey, &(data_[i])));
+    }
+
+    KMR_KVS *ikvs = kmr_create_kvs(kmrnext_->kmr(),
+				   KMR_KV_INTEGER, KMR_KV_INTEGER);
+    for (size_t i = 0; i < ngrps; i++) {
+      vector<DataPack> &dps = dpgroups.at(i);
+      if (dps.size() > 0) {
+	struct kmr_kv_box kv;
+	kv.klen = (int)sizeof(size_t);
+	kv.vlen = (int)sizeof(size_t);
+	kv.k.i  = i;
+	kv.v.i  = i;
+	kmr_add_kv(ikvs, kv);
+      }
+    }
+    kmr_add_kv_done(ikvs);
+
+    MapEnvironment env = { kmrnext_->rank(), MPI_COMM_NULL };
+    if (outds) { outds->parallel_ = true; }
+    param_mapper_map_single param = { m, this, outds, view, env, dpgroups,
+				      key_idx };
+    kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
+				kmrnext_->rank(), kmrnext::mapper_map_single);
+
+    delete[] color_idxs;
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
@@ -646,6 +746,37 @@ namespace kmrnext {
     kmr_nothrd.nothreading = 1;
     kmr_map(kvi, kvo, arg, kmr_nothrd, kmrnext::mapper_map);
     MPI_Comm_free(&self_comm);
+    return MPI_SUCCESS;
+  }
+
+  int mapper_map_single(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+			KMR_KVS *kvo, void *p, const long i) {
+    param_mapper_map_single *param = (param_mapper_map_single *)p;
+    size_t idx = kv0.k.i;
+    vector<DataPack>& dps = param->dpgroups.at(idx);
+    if (dps.size() == 0) {
+      return MPI_SUCCESS;
+    }
+
+    vector<DataPack> map_dps;
+    {
+      KMR_KVS *kvs0 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
+      // TODO add kv here
+      for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
+	   itr++) {
+	//	os << dumper_(*itr);
+      }
+      kmr_add_kv_done(kvs0);
+      KMR_KVS *kvs1 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
+      kmr_shuffle(kvs0, kvs1, kmr_noopt);
+      // TODO copy datas from kvs1 to map_dps
+    }
+    Key viewed_key =
+      param->ids->key_to_viewed_key(map_dps.at(0).key(), param->view);
+    param->env.mpi_comm = MPI_COMM_SELF;
+    param->mapper(param->ids, param->ods, viewed_key, map_dps, param->env);
+
+    kmr_free_kvs(kvs1);
     return MPI_SUCCESS;
   }
 
