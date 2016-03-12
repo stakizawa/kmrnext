@@ -208,6 +208,12 @@ namespace kmrnext {
     /// It returns size of the stored data.
     size_t size() { return value_size_; }
 
+    bool operator==(const Data& rhs) const;
+
+    bool operator!=(const Data& rhs) const {
+      return !(*this == rhs);
+    }
+
 #ifdef BACKEND_KMR
     /// It returns rank of owner process of this Data.
     int owner() { return owner_; };

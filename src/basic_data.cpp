@@ -55,4 +55,15 @@ namespace kmrnext {
 #endif
   }
 
+  bool Data::operator==(const Data& rhs) const {
+    if (value_size_ != rhs.value_size_) {
+      return false;
+    }
+    int cc = memcmp(value_, rhs.value_, value_size_);
+    if (cc != 0) {
+      return false;
+    }
+    return true;
+  }
+
 }
