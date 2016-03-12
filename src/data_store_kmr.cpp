@@ -396,34 +396,22 @@ namespace kmrnext {
     }
 
     size_t ngrps = 1;
-    int *color_idxs = new int[size_];   // TODO delete?
     {
-      size_t j = 0;
+      bool is_local = true;
       for (int i = 0; i < (int)size_; i++) {
 	if (view.dim(i)) {
 	  if (i == key_idx) {
 	    break;
 	  }
 	  ngrps *= value_[i];
-	  color_idxs[j] = i;
-	  j += 1;
+	} else {
+	  is_local = false;
 	}
       }
-      for (; j < size_; j++) {
-	color_idxs[j] = -1;
+      if (is_local) {
+	map(outds, m, view);
+	return;
       }
-    }
-
-
-    { // TODO for debug
-      cout << "ngroups: " << ngrps << endl;
-      cout << "key index: " << key_idx << endl;
-      cout << "color indice: ";
-      for (size_t i = 0; i < size_; i++) {
-	if (color_idxs[i] == -1) break;
-	cout << color_idxs[i] << ", ";
-      }
-      cout << endl;
     }
 
     View grpview = view;
@@ -464,8 +452,6 @@ namespace kmrnext {
 				      key_idx };
     kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
 				kmrnext_->rank(), kmrnext::mapper_map_single);
-
-    delete[] color_idxs;
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
@@ -749,8 +735,101 @@ namespace kmrnext {
     return MPI_SUCCESS;
   }
 
+  static void serialize_datapack(DataPack* dp, char** buf, size_t* buf_siz) {
+    // Memory layout
+    // 1. [key]  size    : sizeof(size_t)
+    // 2. [key]  content : sizeof(size_t) * count_of_key
+    // 3. [data] size    : sizeof(size_t)
+    // 4. [data] content : size of 3
+    // 5. [data] owner   : sizeof(int)
+    //
+    // Two parameters of Data, value_allocated_ and shared_ is not serialized.
+
+    // calculate size
+    Key k = dp->key();
+    Data* d = dp->data();
+    *buf_siz  = sizeof(size_t);            // 1. [key]  size
+    *buf_siz += sizeof(size_t) * k.size(); // 2. [key]  content
+    *buf_siz += sizeof(size_t);            // 3. [data] size
+    *buf_siz += d->size();                 // 4. [data] content
+    *buf_siz += sizeof(int);               // 5. [data] owner
+
+    // set data to buf
+    *buf = (char*)calloc(*buf_siz, sizeof(char));
+    // key
+    char *p = *buf;
+    *(size_t*)p = k.size();
+    p += sizeof(size_t);
+    for (size_t i = 0; i < k.size(); i++) {
+      *(size_t*)p = k.dim(i);
+      p += sizeof(size_t);
+    }
+    // data
+    *(size_t*)p = d->size();
+    p += sizeof(size_t);
+    memcpy(p, d->value(), d->size());
+    p += d->size();
+    *(int*)p = d->owner();
+  }
+
+  static DataPack deserialize_datapack(const char* buf, size_t buf_siz) {
+    // Memory layout
+    // 1. [key]  size    : sizeof(size_t)
+    // 2. [key]  content : sizeof(size_t) * count_of_key
+    // 3. [data] size    : sizeof(size_t)
+    // 4. [data] content : size of 3
+    // 5. [data] owner   : sizeof(int)
+
+    // key
+    const char *p = buf;
+    size_t key_siz = *(size_t*)p;
+    p += sizeof(size_t);
+    size_t *key_ary = new size_t[key_siz];
+    for (size_t i = 0; i < key_siz; i++) {
+      key_ary[i] = *(size_t*)p;
+      p += sizeof(size_t);
+    }
+    Key k(key_siz);
+    k.set(key_ary);
+    delete[] key_ary;
+    // data
+    size_t dat_siz = *(size_t*)p;
+    p += sizeof(size_t);
+    char *dat_val = (char*)calloc(dat_siz, sizeof(char));
+    memcpy(dat_val, p, dat_siz);
+    p += dat_siz;
+    Data *d = new Data(dat_val, dat_siz);
+    d->set_owner(*(int*)p);
+
+    return DataPack(k, d);
+  }
+
+  typedef struct {
+    int key_index;
+    vector< vector<DataPack> >& dpsgroup;
+  } param_mapper_map_single_deserialize;
+
+  int mapper_map_single_deserialize(const struct kmr_kv_box kv0,
+				    const KMR_KVS *kvi, KMR_KVS *kvo,
+				    void *p, const long i) {
+    DataPack dp = deserialize_datapack(kv0.v.p, kv0.vlen);
+    param_mapper_map_single_deserialize *param =
+      (param_mapper_map_single_deserialize*)p;
+    size_t idx = (param->key_index >= 0)?
+      dp.key().dim(param->key_index) : 0;
+#ifdef _OPENMP
+    #pragma omp critical
+    // As a KMR map function is run in parallel by OpenMP, shared resources
+    // should be modified in critical regions.
+#endif
+    {
+      param->dpsgroup.at(idx).push_back(dp);
+    }
+    return MPI_SUCCESS;
+  }
+
   int mapper_map_single(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-			KMR_KVS *kvo, void *p, const long i) {
+			KMR_KVS *kvo, void *p, const long i_) {
     param_mapper_map_single *param = (param_mapper_map_single *)p;
     size_t idx = kv0.k.i;
     vector<DataPack>& dps = param->dpgroups.at(idx);
@@ -758,25 +837,51 @@ namespace kmrnext {
       return MPI_SUCCESS;
     }
 
-    vector<DataPack> map_dps;
+    size_t nkeys = 1;
+    if (param->key_index >= 0) {
+      nkeys = param->ids->dim(param->key_index);
+    }
+    vector< vector<DataPack> > map_dpses(nkeys);
     {
       KMR_KVS *kvs0 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
-      // TODO add kv here
       for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	   itr++) {
-	//	os << dumper_(*itr);
+	char *buf;
+	size_t buf_siz;
+	serialize_datapack(&(*itr), &buf, &buf_siz);
+	struct kmr_kv_box kv;
+	kv.klen = (int)sizeof(size_t);
+	kv.vlen = (int)buf_siz;
+	if (param->key_index >= 0) {
+	  kv.k.i  = (*itr).key().dim(param->key_index);
+	} else {
+	  kv.k.i  = 0;
+	}
+	kv.v.p  = buf;
+	kmr_add_kv(kvs0, kv);
       }
       kmr_add_kv_done(kvs0);
       KMR_KVS *kvs1 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
       kmr_shuffle(kvs0, kvs1, kmr_noopt);
-      // TODO copy datas from kvs1 to map_dps
+      param_mapper_map_single_deserialize p0 = { param->key_index, map_dpses };
+      kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_map_single_deserialize);
     }
-    Key viewed_key =
-      param->ids->key_to_viewed_key(map_dps.at(0).key(), param->view);
-    param->env.mpi_comm = MPI_COMM_SELF;
-    param->mapper(param->ids, param->ods, viewed_key, map_dps, param->env);
 
-    kmr_free_kvs(kvs1);
+    for (size_t i = 0; i < nkeys; i++) {
+      vector<DataPack> map_dps = map_dpses.at(i);
+      if (map_dps.size() != 0) {
+	Key viewed_key =
+	  param->ids->key_to_viewed_key(map_dps.at(0).key(), param->view);
+	param->env.mpi_comm = MPI_COMM_SELF;
+	param->mapper(param->ids, param->ods, viewed_key, map_dps, param->env);
+
+	for (vector<DataPack>::iterator itr = map_dps.begin();
+	     itr != map_dps.end(); itr++) {
+	  Data *d = (*itr).data();
+	  free(d->value()); delete d;
+	}
+      }
+    }
     return MPI_SUCCESS;
   }
 

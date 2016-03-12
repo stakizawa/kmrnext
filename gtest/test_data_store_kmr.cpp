@@ -45,6 +45,20 @@ namespace {
       ds2_->set(ds2_array_);
       ds2_->load_array(ds2_vec, ds2_loader1d);
 
+      ds3_array_ = new size_t[3];
+      ds3_array_[0] = 4;
+      ds3_array_[1] = 4;
+      ds3_array_[2] = 4;
+      std::vector<int> ds3_vec;
+      for (size_t i = 0; i < ds3_array_[0] * ds3_array_[1]; i++) {
+	ds3_vec.push_back(1);
+      }
+      DataLoader1D ds3_loader1d(ds3_array_[2]);
+      ds3_ = new kmrnext::DataStore(3, gNext);
+      ds3_->set(ds3_array_);
+      ds3_->load_array(ds3_vec, ds3_loader1d);
+
+
       size_t ary_k2_00[2] = {0,0};
       init_key(&k2_00_, 2, ary_k2_00);
       size_t ary_k2_11[2] = {1,1};
@@ -53,6 +67,15 @@ namespace {
       init_key(&k2_22_, 2, ary_k2_22);
       size_t ary_k2_33[2] = {3,3};
       init_key(&k2_33_, 2, ary_k2_33);
+
+      size_t ary_k3_000[3] = {0,0,0};
+      init_key(&k3_000_, 3, ary_k3_000);
+      size_t ary_k3_030[3] = {0,3,0};
+      init_key(&k3_030_, 3, ary_k3_030);
+      size_t ary_k3_010[3] = {0,1,0};
+      init_key(&k3_010_, 3, ary_k3_010);
+      size_t ary_k3_113[3] = {1,1,3};
+      init_key(&k3_113_, 3, ary_k3_113);
     }
 
     void init_key(kmrnext::Key **kp, size_t size, size_t *array) {
@@ -77,10 +100,16 @@ namespace {
       delete[] ds2_array_;
       delete   ds2_;
       delete[] ds2_owners_;
+      delete[] ds3_array_;
+      delete   ds3_;
       delete   k2_00_;
       delete   k2_11_;
       delete   k2_22_;
       delete   k2_33_;
+      delete   k3_000_;
+      delete   k3_030_;
+      delete   k3_010_;
+      delete   k3_113_;
     }
 
     int rank;
@@ -92,10 +121,19 @@ namespace {
                               //       <3,x> => 4
     int *ds2_owners_;         // size is 4, calculated at runtime
 
+    size_t *ds3_array_;       // {4,4,4}
+    kmrnext::DataStore *ds3_; // Dimension: {4,4,4}
+                              // Data: all 1
+
     kmrnext::Key *k2_00_;     // <0,0>
     kmrnext::Key *k2_11_;     // <0,0>
     kmrnext::Key *k2_22_;     // <2,2>
     kmrnext::Key *k2_33_;     // <3,3>
+
+    kmrnext::Key *k3_000_;    // <0,0,0>
+    kmrnext::Key *k3_030_;    // <0,3,0>
+    kmrnext::Key *k3_010_;    // <0,1,0>
+    kmrnext::Key *k3_113_;    // <1,1,3>
   };
 
   TEST_F(KMRDataStoreTest, Load_array) {
@@ -259,6 +297,83 @@ namespace {
     EXPECT_EQ(ds2_owners_[1], ods1.get(k1_1).data()->owner());
     EXPECT_EQ(ds2_owners_[2], ods1.get(k1_2).data()->owner());
     EXPECT_EQ(ds2_owners_[3], ods1.get(k1_3).data()->owner());
+  }
+
+  // A mapper class that calculates sum of all data.  The resultant value
+  // is written to the coordinates where summed values are located.
+  class SummarizerSingle0 : public kmrnext::DataStore::Mapper {
+    int base_;
+  public:
+    SummarizerSingle0(int base) : base_((base + 1) * 1000) {}
+    int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
+		   kmrnext::Key& key, std::vector<kmrnext::DataPack>& dps,
+		   kmrnext::DataStore::MapEnvironment& env)
+    {
+      {
+	int nprocs;
+	MPI_Comm_size(env.mpi_comm, &nprocs);
+	assert(nprocs == 1);
+      }
+      int val = base_;
+      for (std::vector<kmrnext::DataPack>:: iterator itr = dps.begin();
+	   itr != dps.end(); itr++) {
+	val += *(int*)(*itr).data()->value();
+      }
+      kmrnext::Data d(&val, sizeof(int));
+
+      for (std::vector<kmrnext::DataPack>:: iterator itr = dps.begin();
+	   itr != dps.end(); itr++) {
+	kmrnext::Key k = (*itr).key();
+	outds->add(k, d);
+      }
+      return 0;
+    }
+  };
+
+  TEST_F(KMRDataStoreTest, Map_single) {
+    // If the coordinates whose View is Ture are same,
+    // the owner process is same.
+    kmrnext::DataStore ods0(3, gNext);
+    ods0.set(ds3_array_);
+    SummarizerSingle0 mapper0(rank);
+    kmrnext::View v0(3);
+    bool flags0[3] = {true, false, true};
+    v0.set(flags0);
+    ds3_->map_single(&ods0, mapper0, v0);
+    EXPECT_EQ(ods0.get(*k3_000_).data()->owner(),
+	      ods0.get(*k3_030_).data()->owner());
+
+    kmrnext::DataStore ods1(3, gNext);
+    ods1.set(ds3_array_);
+    kmrnext::View v1(3);
+    bool flags1[3] = {false, true, false};
+    v1.set(flags1);
+    ds3_->map_single(&ods1, mapper0, v1);
+    EXPECT_EQ(ods1.get(*k3_010_).data()->owner(),
+	      ods1.get(*k3_113_).data()->owner());
+
+    // If all fields of a View is false, all data is gathered to a
+    // specific rank
+    kmrnext::DataStore ods2(3, gNext);
+    ods2.set(ds3_array_);
+    kmrnext::View v2(3);
+    bool flags2[3] = {false, false, false};
+    v2.set(flags2);
+    ds3_->map_single(&ods2, mapper0, v2);
+    EXPECT_EQ(ods2.get(*k3_000_).data()->owner(),
+	      ods2.get(*k3_030_).data()->owner());
+    EXPECT_EQ(ods2.get(*k3_010_).data()->owner(),
+	      ods2.get(*k3_113_).data()->owner());
+    EXPECT_EQ(ods2.get(*k3_000_).data()->owner(),
+	      ods2.get(*k3_010_).data()->owner());
+
+    // If all field of a View is true, DataStore::map() is called.
+    kmrnext::DataStore ods3(3, gNext);
+    ods3.set(ds3_array_);
+    kmrnext::View v3(3);
+    bool flags3[3] = {true, true, true};
+    v3.set(flags3);
+    ds3_->map_single(&ods3, mapper0, v3);
   }
 
 }
