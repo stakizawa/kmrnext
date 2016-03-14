@@ -454,6 +454,42 @@ namespace kmrnext {
 				kmrnext_->rank(), kmrnext::mapper_map_single);
   }
 
+  void DataStore::collate(const View& view) {
+    check_collate_args(view);
+
+    size_t nsegments = 1;
+    {
+      // Just for error checking.  The current implementation is very naive.
+      for (size_t i = 0; i < size_; i++) {
+	if (view.dim(i)) {
+	  nsegments *= value_[i];
+	}
+      }
+      if (nsegments != (size_t)kmrnext_->kmr()->nprocs) {
+	throw runtime_error("The number of processes should be equal to "
+			    "the multiple of dimension sizes whose view "
+			    " are set to be True.");
+      }
+    }
+
+    vector< vector<DataPack> > dpgroups(nsegments);
+    for (size_t i = 0; i < data_size_; i++) {
+      if (data_[i].value() == NULL ||
+    	  (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank())) {
+    	continue;
+      }
+      Key tmpkey = index_to_key(i);
+      size_t viewed_idx = key_to_viewed_index(tmpkey, view);
+      vector<DataPack>& dps = dpgroups.at(viewed_idx);
+      dps.push_back(DataPack(tmpkey, &(data_[i])));
+    }
+
+    // TODO from here
+    // shuffle by using rank id as key
+    //   do not send data stored locally
+    // copy data from key-value
+  }
+
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
     load_array(files, f);
   }
@@ -883,6 +919,16 @@ namespace kmrnext {
       }
     }
     return MPI_SUCCESS;
+  }
+
+  void DataStore::check_collate_args(const View& view) {
+    if (size_ != view.size()) {
+      throw runtime_error("Dimension size of the DataStore and "
+			  "view should be same.");
+    }
+    if (data_size_ == 0) {
+      throw runtime_error("Data should be set to the DataStore.");
+    }
   }
 
 }

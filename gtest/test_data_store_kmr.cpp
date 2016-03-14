@@ -331,8 +331,8 @@ namespace {
   };
 
   TEST_F(KMRDataStoreTest, Map_single) {
-    // If the coordinates whose View is Ture are same,
-    // the owner process is same.
+    // The owners of data in the output DS whose coordinates are
+    // same by applying the View is same.
     kmrnext::DataStore ods0(3, gNext);
     ods0.set(ds3_array_);
     SummarizerSingle0 mapper0(rank);
@@ -374,6 +374,46 @@ namespace {
     bool flags3[3] = {true, true, true};
     v3.set(flags3);
     ds3_->map_single(&ods3, mapper0, v3);
+  }
+
+  TEST_F(KMRDataStoreTest, Collate) {
+#if 0
+    if (nprocs < 4) {
+      EXPECT_TRUE(false) << "Test for DataStore.collate() is skipped "
+			 << "as there are not enough number of processes.  "
+			 << "Specify more than 4 processes.";
+      return;
+    }
+#endif
+
+    // The same operation of the first test in Map_single.
+    kmrnext::DataStore ods0(3, gNext);
+    ods0.set(ds3_array_);
+    SummarizerSingle0 mapper0(rank);
+    kmrnext::View v0(3);
+    bool flags0[3] = {true, false, true};
+    v0.set(flags0);
+    ds3_->map_single(&ods0, mapper0, v0);
+    EXPECT_EQ(ods0.get(*k3_000_).data()->owner(),
+	      ods0.get(*k3_030_).data()->owner());
+
+    // Data whose coorinate of the second dimension are same are gathered
+    // to the same node.
+    kmrnext::View cv0(3);
+    bool cflags0[3] = {false, true, false};
+    cv0.set(cflags0);
+    ods0.collate(cv0);
+#if 0
+    EXPECT_EQ(ods0.get(*k3_010_).data()->owner(),
+	      ods0.get(*k3_113_).data()->owner());
+    EXPECT_NE(ods0.get(*k3_000_).data()->owner(),
+	      ods0.get(*k3_030_).data()->owner());
+#endif
+
+    // TODO add one more test
+
+    // TODO {false, false, false}
+    // TODO {true, true, true}
   }
 
 }

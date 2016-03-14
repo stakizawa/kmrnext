@@ -365,8 +365,15 @@ namespace kmrnext {
     ///
     /// It maps on a single nodes.  Before running the mapper object, m,
     /// data that have the same key are gathered to a node and then the
-    /// mapper runs on the nodes.
+    /// mapper runs on the nodes as a serial program.
     void map_single(DataStore* outds, Mapper& m, const View& view);
+
+    /// It globally sorts data.
+    ///
+    /// It changes the arrangement of data elements in the DS among nodes
+    /// using the View.  Data elements are distributed among nodes by
+    /// dimensions whose values are TURE in the View
+    void collate(const View& view);
 #endif
 
     /// It dumps data in the DataStore.
@@ -486,6 +493,9 @@ namespace kmrnext {
 
     // It checks the arguments of map().
     void check_map_args(DataStore *outds, const View& view);
+
+    // It checks the arguments of collate().
+    void check_collate_args(const View& view);
   };
 
 }
