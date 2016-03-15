@@ -4,7 +4,8 @@ LIB    = ../src/libkmrnext.a
 PROGS  = map-basic map-scale\
 	 nicam-letkf-pattern nicam-letkf-pattern-kmr \
 	 viz-pattern viz-pattern-kmr \
-	 remd-pattern remd-pattern-kmr
+	 remd-pattern remd-pattern-kmr \
+	 nicam-letkf-pattern-cell
 DEPLIB = $(KMRDIR)/lib/libkmr.a
 
 .Phony: all
@@ -32,6 +33,9 @@ viz-pattern-kmr: viz-pattern-kmr.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 remd-pattern-kmr: remd-pattern-kmr.o
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
+
+nicam-letkf-pattern-cell: nicam-letkf-pattern-cell.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 .cpp.o:

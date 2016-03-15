@@ -1,7 +1,15 @@
+/// \file
+/// Benchmark program for NICAM-LETKF data access pattern
+///
+/// It requires KMR backend.
+/// The number of MPI processes running this program should be
+/// "kNumEnsemble x kNumRegion" because of the limitation of
+/// DataStore::collate(9.
 #include <iostream>
 #include <sstream>
 #include <cassert>
 #include <ctime>
+#include <unistd.h>
 #include "kmrnext.hpp"
 
 using namespace std;
@@ -9,34 +17,27 @@ using namespace kmrnext;
 
 int rank = 0;
 
-// If true, LETKF works on regions. If false, it works on each cell.
-//
-// When LETKF works on regions, LETKF is called by DataStore::map() to
-// use multiple nodes.
-// When LETKF works on cells, LETKF is called by DataStore::map_single()
-// to gather ensemble data on a node and then perform LETKF on the node.
-// In this case, the allowed number of nodes is
-//   kNumEnsemble x kNumRegion
-// because of the limitation of DataStore::collate().
-const bool kLETKFRegion = false;
-
-const size_t kNumIteration = 10;
+const size_t kNumIteration = 5;
 
 const size_t kDimEnsembleData = 3;
 //const size_t kDimRegionData   = 2;
 const size_t kDimCellData     = 1;
 
 #if DEBUG
-const size_t kNumEnsemble  = 2;
-const size_t kNumRegion    = 10;
-const size_t kNumCell      = 10;
-const size_t kElementCount = 2;
+const size_t kNumEnsemble	= 2;
+const size_t kNumRegion		= 10;
+const size_t kNumCell		= 10;
+const size_t kElementCount	= 2;
+const unsigned int kTimeNICAM	= 1000; // msec
+const unsigned int kTimeLETKF	= 1000; // msec
 #else
-const size_t kNumEnsemble  = 64;
-const size_t kNumRegion    = 10;
-const size_t kNumCell      = 1156;
-// Assume that each grid point has 6160 bytes of data (6160 = 1540 * 4)
-const size_t kElementCount = 1540;
+const size_t kNumEnsemble       = 64;
+const size_t kNumRegion         = 10;
+const size_t kNumCell           = 1156;
+// Assume that each lattice has 6160 bytes of data (6160 = 1540 * 4)
+const size_t kElementCount      = 1540;
+const unsigned int kTimeNICAM   = 50000; // msec
+const unsigned int kTimeLETKF   = 50;    // msec
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
@@ -112,18 +113,12 @@ int
 main(int argc, char **argv)
 {
   KMRNext *next = KMRNext::init(argc, argv);
-#ifdef BACKEND_KMR
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
 
   DataStore* ds0 = next->create_ds(kDimEnsembleData);
   ds0->set(kEnsembleDataDimSizes);
   load_data(ds0);
   DataPrinter dp;
-#if DEBUG
-  string str0 = ds0->dump(dp);
-  print_line(str0);
-#endif
 
   for (size_t i = 0; i < kNumIteration; i++) {
     ostringstream os0;
@@ -137,20 +132,12 @@ main(int argc, char **argv)
     ds1->set(kEnsembleDataDimSizes);
     run_nicam(ds0, ds1, time);
     delete ds0;
-#if DEBUG
-    string str1 = ds1->dump(dp);
-    print_line(str1);
-#endif
 
     // run pseudo-LETKF
     ds0 = next->create_ds(kDimEnsembleData);
     ds0->set(kEnsembleDataDimSizes);
     run_letkf(ds1, ds0, time);
     delete ds1;
-#if DEBUG
-    string str2 = ds0->dump(dp);
-    print_line(str2);
-#endif
 
     // collate for parallel execution
     collate_ds(ds0, time);
@@ -162,9 +149,7 @@ main(int argc, char **argv)
     os1 << "    NICAM consumes " << time.nicam() << " sec." << endl;
     os1 << "  Invoking LETKF takes " << time.letkf_launch() << " sec." << endl;
     os1 << "    LETKF consumes " << time.letkf() << " sec." << endl;
-    if (!kLETKFRegion) {
-      os1 << "  Collate takes " << time.collate() << " sec." << endl;
-    }
+    os1 << "  Collate takes " << time.collate() << " sec." << endl;
     print_line(os1);
   }
 
@@ -215,18 +200,17 @@ public:
 		 DataStore::MapEnvironment& env)
   {
 #if DEBUG
-#ifdef BACKEND_SERIAL
-    assert(dps.size() == (size_t)(kNumRegion * kNumCell));
-#elif defined BACKEND_KMR
     size_t local_count = dps.size();
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
     assert(total_count == (size_t)(kNumRegion * kNumCell));
 #endif
-#endif
 
     time_.nicam_start = gettime(env);
+    usleep(kTimeNICAM * 1000);
+    time_.nicam_finish = gettime(env);
+
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
@@ -238,7 +222,6 @@ public:
       outds->add(itr->key(), data);
       delete[] data_new;
     }
-    time_.nicam_finish = gettime(env);
     return 0;
   }
 };
@@ -264,26 +247,17 @@ public:
 		 DataStore::MapEnvironment& env)
   {
 #if DEBUG
-#ifdef BACKEND_SERIAL
-    if (kLETKFRegion) {
-      assert(dps.size() == (size_t)(kNumEnsemble * kNumCell));
-    } else {
-      assert(dps.size() == (size_t)kNumEnsemble);
-    }
-#elif defined BACKEND_KMR
+    int nprocs;
+    MPI_Comm_size(env.mpi_comm, &nprocs);
+    assert(nprocs == 1);
     size_t local_count = dps.size();
-    size_t total_count;
-    MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
-		  env.mpi_comm);
-    if (kLETKFRegion) {
-      assert(total_count == (size_t)(kNumEnsemble * kNumCell));
-    } else {
-      assert(total_count == (size_t)kNumEnsemble);
-    }
-#endif
+    assert(local_count == (size_t)kNumEnsemble);
 #endif
 
     time_.letkf_start = gettime(env);
+    usleep(kTimeLETKF * 1000);
+    time_.letkf_finish = gettime(env);
+
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
@@ -295,7 +269,6 @@ public:
       outds->add(itr->key(), data);
       delete[] data_new;
     }
-    time_.letkf_finish = gettime(env);
     return 0;
   }
 };
@@ -305,28 +278,20 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time)
   PseudoLETKF mapper(time);
   time.letkf_invoke = gettime();
   View view(kDimEnsembleData);
-  if (kLETKFRegion) {
-    bool view_flag[3] = {false, true, false};
-    view.set(view_flag);
-    inds->map(outds, mapper, view);
-  } else {
-    bool view_flag[3] = {false, true, true};
-    view.set(view_flag);
-    inds->map_single(outds, mapper, view);
-  }
+  bool view_flag[3] = {false, true, true};
+  view.set(view_flag);
+  inds->map_single(outds, mapper, view);
   time.letkf_cleanup = gettime();
 }
 
 void collate_ds(DataStore* ds, Time& time)
 {
-  if (!kLETKFRegion) {
-    time.collate_start = gettime();
-    View view(kDimEnsembleData);
-    bool view_flag[3] = {true, true, false};
-    view.set(view_flag);
-    ds->collate(view);
-    time.collate_finish = gettime();
-  }
+  time.collate_start = gettime();
+  View view(kDimEnsembleData);
+  bool view_flag[3] = {true, true, false};
+  view.set(view_flag);
+  ds->collate(view);
+  time.collate_finish = gettime();
 }
 
 void print_line(string& str) {
@@ -341,18 +306,14 @@ void print_line(ostringstream& os) {
 }
 
 double gettime() {
-#ifdef BACKEND_KMR
   MPI_Barrier(MPI_COMM_WORLD);
-#endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
   return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
 }
 
 double gettime(DataStore::MapEnvironment& env) {
-#ifdef BACKEND_KMR
   MPI_Barrier(env.mpi_comm);
-#endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
   return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
