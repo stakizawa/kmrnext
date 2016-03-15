@@ -202,11 +202,17 @@ namespace kmrnext {
 
     void copy_shallow(const Data& src);
 
+    /// It copies the specified buffer to this data.
+    void copy_buf(void *val, const size_t val_siz);
+
     /// It returns a pointer to the stored data.
     void *value() { return value_; }
 
     /// It returns size of the stored data.
     size_t size() { return value_size_; }
+
+    /// It clears the Data but does not delete it.
+    void clear();
 
     bool operator==(const Data& rhs) const;
 
@@ -216,13 +222,16 @@ namespace kmrnext {
 
 #ifdef BACKEND_KMR
     /// It returns rank of owner process of this Data.
-    int owner() { return owner_; };
+    int owner() { return owner_; }
 
     /// It sets owner of this Data.
     void set_owner(int rank) { owner_ = rank; }
 
     /// It sets that this Data is shared among processes.
     void shared() { shared_ = true; }
+
+    /// It sets that this Data is not shared among processes.
+    void unshared() { shared_ = false; }
 
     /// It returns true if this Data is shared among processes.
     bool is_shared() { return shared_; }

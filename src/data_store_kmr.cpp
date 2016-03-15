@@ -25,8 +25,8 @@ namespace kmrnext {
   /// It is a KMR mapper function.  Key of the key-value should be an
   /// integer and value of the key-value should be a DataPack.  It also
   /// sets shared flags to data in the DataStore.
-  int mapper_get_view(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-		      KMR_KVS *kvo, void *p, const long i);
+  static int mapper_get_view(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+			     KMR_KVS *kvo, void *p, const long i);
 
   /// Parameter for mapper_get_view
   typedef struct {
@@ -39,19 +39,34 @@ namespace kmrnext {
   ///
   /// It is a KMR mapper function.  Key and value of the key-value should
   /// be an integer that represents index of Key-Data vactor.
-  int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-		 KMR_KVS *kvo, void *p, const long i);
+  static int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+			KMR_KVS *kvo, void *p, const long i);
 
   /// It is a wrapper of KMR map function that locally maps key-values in
   /// the input KVS.
-  int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m);
+  static int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m);
 
   /// It maps Datas in a DataStore using only one node.
   ///
   /// It is a KMR mapper function.  Key and value of the key-value should
   /// be an integer that represents index of Key-Data vactor.
-  int mapper_map_single(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-			KMR_KVS *kvo, void *p, const long i);
+  static int mapper_map_single(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+			       KMR_KVS *kvo, void *p, const long i);
+
+  /// It deserializes a Data from a key-value and add the Data to
+  /// the DataStore.
+  ///
+  /// It is a KMR mapper function.  The key of the key-value should be
+  /// an integer and the value should be a byte array that represents
+  /// a DataPack.
+  static int mapper_collate(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+			    KMR_KVS *kvo, void *p, const long i);
+
+  /// It serializes a datapack to a byte array.
+  static void serialize_datapack(DataPack* dp, char** buf, size_t* buf_siz);
+
+  /// It deserializes a datapack from a byte array.
+  static DataPack deserialize_datapack(const char* buf, size_t buf_siz);
 
   /// Parameter for mapper_map
   typedef struct {
@@ -74,6 +89,10 @@ namespace kmrnext {
     vector< vector<DataPack> >& dpgroups;
     int key_index;
   } param_mapper_map_single;
+
+  typedef struct {
+    DataStore *ds;
+  } param_mapper_collate;
 
   DataStore::~DataStore() {
     if (data_allocated_) {
@@ -105,7 +124,8 @@ namespace kmrnext {
       }
       catch (runtime_error& e) {
 	cerr << "Failed to add a data to DataStore" << to_string()
-	     << " at Key" << key.to_string() << "." << endl;
+	     << " at Key" << key.to_string()
+	     << "on Rank" << kmrnext_->rank() << "." << endl;
 	throw e;
       }
       d->set_owner(kmrnext_->rank());
@@ -468,26 +488,58 @@ namespace kmrnext {
       if (nsegments != (size_t)kmrnext_->kmr()->nprocs) {
 	throw runtime_error("The number of processes should be equal to "
 			    "the multiple of dimension sizes whose view "
-			    " are set to be True.");
+			    "are set to be True.");
       }
     }
 
     vector< vector<DataPack> > dpgroups(nsegments);
     for (size_t i = 0; i < data_size_; i++) {
-      if (data_[i].value() == NULL ||
-    	  (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank())) {
+      if (data_[i].value() == NULL) {
+	continue;
+      }
+      if (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank()) {
+	data_[i].clear();
     	continue;
       }
+      data_[i].unshared();
       Key tmpkey = index_to_key(i);
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
-      vector<DataPack>& dps = dpgroups.at(viewed_idx);
-      dps.push_back(DataPack(tmpkey, &(data_[i])));
+      if (viewed_idx != (size_t)kmrnext_->rank()) {
+	vector<DataPack>& dps = dpgroups.at(viewed_idx);
+	dps.push_back(DataPack(tmpkey, &(data_[i])));
+      }
     }
 
-    // TODO from here
-    // shuffle by using rank id as key
-    //   do not send data stored locally
-    // copy data from key-value
+    KMR_KVS *kvs0 = kmr_create_kvs(kmrnext_->kmr(),
+				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
+    for (size_t i = 0; i < nsegments; i++) {
+      vector<DataPack> &dps = dpgroups.at(i);
+      if (dps.size() > 0) {
+	for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
+	     itr++) {
+	  char *buf;
+	  size_t buf_siz;
+	  serialize_datapack(&(*itr), &buf, &buf_siz);
+	  struct kmr_kv_box kv;
+	  kv.klen = (int)sizeof(size_t);
+	  kv.vlen = (int)buf_siz;
+	  kv.k.i  = i;
+	  kv.v.p  = buf;
+	  kmr_add_kv(kvs0, kv);
+	  free(buf);
+	  (*itr).data()->clear();
+	}
+      }
+    }
+    kmr_add_kv_done(kvs0);
+
+    KMR_KVS *kvs1 = kmr_create_kvs(kmrnext_->kmr(),
+				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
+    struct kmr_option kmr_shflopt = kmr_noopt;
+    kmr_shflopt.key_as_rank = 1;
+    kmr_shuffle(kvs0, kvs1, kmr_shflopt);
+    param_mapper_collate p0 = { this };
+    kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
@@ -831,10 +883,9 @@ namespace kmrnext {
     // data
     size_t dat_siz = *(size_t*)p;
     p += sizeof(size_t);
-    char *dat_val = (char*)calloc(dat_siz, sizeof(char));
-    memcpy(dat_val, p, dat_siz);
+    Data *d = new Data();
+    d->copy_buf((void*)p, dat_siz);
     p += dat_siz;
-    Data *d = new Data(dat_val, dat_siz);
     d->set_owner(*(int*)p);
 
     return DataPack(k, d);
@@ -895,6 +946,7 @@ namespace kmrnext {
 	}
 	kv.v.p  = buf;
 	kmr_add_kv(kvs0, kv);
+	free(buf);
       }
       kmr_add_kv_done(kvs0);
       KMR_KVS *kvs1 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
@@ -914,7 +966,7 @@ namespace kmrnext {
 	for (vector<DataPack>::iterator itr = map_dps.begin();
 	     itr != map_dps.end(); itr++) {
 	  Data *d = (*itr).data();
-	  free(d->value()); delete d;
+	  delete d;
 	}
       }
     }
@@ -929,6 +981,22 @@ namespace kmrnext {
     if (data_size_ == 0) {
       throw runtime_error("Data should be set to the DataStore.");
     }
+  }
+
+  static int mapper_collate(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
+			    KMR_KVS *kvo, void *p, const long i) {
+    DataPack dp = deserialize_datapack(kv0.v.p, kv0.vlen);
+    param_mapper_collate *param = (param_mapper_collate*)p;
+#ifdef _OPENMP
+    #pragma omp critical
+    // As a KMR map function is run in parallel by OpenMP, shared resources
+    // should be modified in critical regions.
+#endif
+    {
+      param->ds->add(dp.key(), *(dp.data()));
+    }
+    delete dp.data();
+    return MPI_SUCCESS;
   }
 
 }

@@ -377,14 +377,12 @@ namespace {
   }
 
   TEST_F(KMRDataStoreTest, Collate) {
-#if 0
     if (nprocs < 4) {
       EXPECT_TRUE(false) << "Test for DataStore.collate() is skipped "
 			 << "as there are not enough number of processes.  "
 			 << "Specify more than 4 processes.";
       return;
     }
-#endif
 
     // The same operation of the first test in Map_single.
     kmrnext::DataStore ods0(3, gNext);
@@ -403,17 +401,19 @@ namespace {
     bool cflags0[3] = {false, true, false};
     cv0.set(cflags0);
     ods0.collate(cv0);
-#if 0
     EXPECT_EQ(ods0.get(*k3_010_).data()->owner(),
 	      ods0.get(*k3_113_).data()->owner());
     EXPECT_NE(ods0.get(*k3_000_).data()->owner(),
 	      ods0.get(*k3_030_).data()->owner());
-#endif
 
-    // TODO add one more test
-
-    // TODO {false, false, false}
-    // TODO {true, true, true}
+    // Data whose coorinate of the first dimension are same are gathered
+    // to the same node.
+    kmrnext::View cv1(3);
+    bool cflags1[3] = {true, false, false};
+    cv1.set(cflags1);
+    ods0.collate(cv1);
+    EXPECT_EQ(ods0.get(*k3_010_).data()->owner(),
+	      ods0.get(*k3_000_).data()->owner());
   }
 
 }
