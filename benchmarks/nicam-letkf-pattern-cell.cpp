@@ -4,7 +4,7 @@
 /// It requires KMR backend.
 /// The number of MPI processes running this program should be
 /// "kNumEnsemble x kNumRegion" because of the limitation of
-/// DataStore::collate(9.
+/// DataStore::collate().
 #include <iostream>
 #include <sstream>
 #include <cassert>
@@ -28,16 +28,12 @@ const size_t kNumEnsemble	= 2;
 const size_t kNumRegion		= 10;
 const size_t kNumCell		= 10;
 const size_t kElementCount	= 2;
-const unsigned int kTimeNICAM	= 1000; // msec
-const unsigned int kTimeLETKF	= 1000; // msec
 #else
 const size_t kNumEnsemble       = 64;
 const size_t kNumRegion         = 10;
 const size_t kNumCell           = 1156;
 // Assume that each lattice has 6160 bytes of data (6160 = 1540 * 4)
 const size_t kElementCount      = 1540;
-const unsigned int kTimeNICAM   = 50000; // msec
-const unsigned int kTimeLETKF   = 50;    // msec
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
@@ -144,12 +140,12 @@ main(int argc, char **argv)
 
     time.loop_finish = gettime();
     ostringstream os1;
-    os1 << "Iteration[" << i << "] ends in " << time.loop() << " sec." << endl;
-    os1 << "  Invoking NICAM takes " << time.nicam_launch() << " sec." << endl;
-    os1 << "    NICAM consumes " << time.nicam() << " sec." << endl;
-    os1 << "  Invoking LETKF takes " << time.letkf_launch() << " sec." << endl;
-    os1 << "    LETKF consumes " << time.letkf() << " sec." << endl;
-    os1 << "  Collate takes " << time.collate() << " sec." << endl;
+    os1 << "Iteration[" << i << "]," << time.loop() << endl;
+    os1 << "Invoke NICAM," << time.nicam_launch() << endl;
+    os1 << "NICAM,"        << time.nicam() << endl;
+    os1 << "Invoke LETKF," << time.letkf_launch() << endl;
+    os1 << "LETKF,"        << time.letkf() << endl;
+    os1 << "Collate,"      << time.collate() << endl;
     print_line(os1);
   }
 
@@ -208,9 +204,6 @@ public:
 #endif
 
     time_.nicam_start = gettime(env);
-    usleep(kTimeNICAM * 1000);
-    time_.nicam_finish = gettime(env);
-
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
@@ -222,6 +215,8 @@ public:
       outds->add(itr->key(), data);
       delete[] data_new;
     }
+    time_.nicam_finish = gettime(env);
+
     return 0;
   }
 };
@@ -255,9 +250,6 @@ public:
 #endif
 
     time_.letkf_start = gettime(env);
-    usleep(kTimeLETKF * 1000);
-    time_.letkf_finish = gettime(env);
-
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
@@ -269,6 +261,8 @@ public:
       outds->add(itr->key(), data);
       delete[] data_new;
     }
+    time_.letkf_finish = gettime(env);
+
     return 0;
   }
 };
