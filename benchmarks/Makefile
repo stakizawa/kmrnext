@@ -2,9 +2,6 @@ include ../config.make
 
 LIB    = ../src/libkmrnext.a
 PROGS  = map-basic map-scale\
-	 nicam-letkf-pattern nicam-letkf-pattern-kmr \
-	 viz-pattern viz-pattern-kmr \
-	 remd-pattern remd-pattern-kmr \
 	 nicam-letkf-pattern-cell
 DEPLIB = $(KMRDIR)/lib/libkmr.a
 
@@ -15,24 +12,6 @@ map-basic: map-basic.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 map-scale: map-scale.o
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
-
-nicam-letkf-pattern: nicam-letkf-pattern.o
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
-
-viz-pattern: viz-pattern.o
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
-
-remd-pattern: remd-pattern.o
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
-
-nicam-letkf-pattern-kmr: nicam-letkf-pattern-kmr.o
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
-
-viz-pattern-kmr: viz-pattern-kmr.o
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
-
-remd-pattern-kmr: remd-pattern-kmr.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 nicam-letkf-pattern-cell: nicam-letkf-pattern-cell.o
@@ -47,6 +26,8 @@ endif
 .PHONY: clean
 clean:
 	-rm -rf $(PROGS) *.o *.d
+	cd unpublished; make clean
 
 .PHONY: distclean
 distclean: clean
+	cd unpublished; make distclean
