@@ -2,7 +2,8 @@ include ../config.make
 
 LIB    = ../src/libkmrnext.a
 PROGS  = map-basic map-scale\
-	 nicam-letkf-pattern-cell nicam-letkf-pattern-region
+	 nicam-letkf-pattern-cell nicam-letkf-pattern-region \
+	 nicam-letkf-pattern-mpi
 DEPLIB = $(KMRDIR)/lib/libkmr.a
 
 .Phony: all
@@ -18,6 +19,9 @@ nicam-letkf-pattern-cell: nicam-letkf-pattern-cell.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 nicam-letkf-pattern-region: nicam-letkf-pattern-region.o
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
+
+nicam-letkf-pattern-mpi: nicam-letkf-pattern-mpi.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 .cpp.o:
