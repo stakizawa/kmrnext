@@ -23,14 +23,18 @@ const size_t kDimEnsembleData = 3;
 const size_t kDimCellData     = 1;
 
 #if DEBUG
-const size_t kNumEnsemble	= 2;
-const size_t kNumRegion		= 10;
-const size_t kNumCell		= 10;
-const size_t kElementCount	= 2;
+const size_t kNumEnsemble  = 2;
+const size_t kNumRegion    = 10;
+const size_t kNumCell      = 10;
+const size_t kElementCount = 2;
 #else
-const size_t kNumEnsemble       = 64;
-const size_t kNumRegion         = 10;
-const size_t kNumCell           = 1156;
+const size_t kNumEnsemble  = 64;
+const size_t kNumRegion    = 10;
+const size_t kNumCell      = 1156;
+// const size_t kNumCell      = 4624;
+// const size_t kNumCell      = 18496;
+// const size_t kNumCell      = 73984;
+
 // Assume that each lattice has 6160 bytes of data (6160 = 1540 * 4)
 const size_t kElementCount      = 1540;
 #endif

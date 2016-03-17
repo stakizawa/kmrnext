@@ -2,7 +2,7 @@
 /// Benchmark program for NICAM-LETKF data access pattern
 ///
 /// It requires KMR backend.
-/// The number of MPI processes running this program is recommended to be
+/// The number of MPI processes running this program should be
 /// "kNumEnsemble x kNumRegion".
 #include <iostream>
 #include <sstream>
@@ -30,6 +30,10 @@ const size_t kElementCount = 2;
 const size_t kNumEnsemble  = 64;
 const size_t kNumRegion    = 10;
 const size_t kNumCell      = 1156;
+// const size_t kNumCell      = 4624;
+// const size_t kNumCell      = 18496;
+// const size_t kNumCell      = 73984;
+
 // Assume that each grid point has 6160 bytes of data (6160 = 1540 * 4)
 const size_t kElementCount = 1540;
 #endif
