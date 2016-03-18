@@ -160,6 +160,7 @@ main(int argc, char **argv)
     os1 << "Collate,"      << time.collate() << endl;
     print_line(os1);
   }
+  delete ds0;
 
   KMRNext::finalize();
   return 0;

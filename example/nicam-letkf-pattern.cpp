@@ -167,6 +167,7 @@ main(int argc, char **argv)
     }
     print_line(os1);
   }
+  delete ds0;
 
   KMRNext::finalize();
   return 0;

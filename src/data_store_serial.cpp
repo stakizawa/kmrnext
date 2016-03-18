@@ -1,7 +1,6 @@
 #include "../config.hpp"
 
 #include <cstdlib>
-#include <cstring>
 #include "kmrnext.hpp"
 #include "util.hpp"
 
@@ -9,7 +8,7 @@ namespace kmrnext {
 
   DataStore::~DataStore() {
     if (data_allocated_) {
-      free(data_);
+      delete[] data_;
     }
   }
 
@@ -23,7 +22,7 @@ namespace kmrnext {
       value_[i] = val[i];
       data_size_ *= val[i];
     }
-    data_ = static_cast<Data*>(calloc(data_size_, sizeof(Data)));
+    data_ = new Data[data_size_];
     data_allocated_ = true;
   }
 
@@ -63,8 +62,8 @@ namespace kmrnext {
     check_key_range(key);
     size_t idx = key_to_index(key);
     Data *d = new Data();
-    d->copy_shallow(data_[idx]);
-    memset(&(data_[idx]), 0, sizeof(Data));
+    d->copy_deep(data_[idx]);
+    data_[idx].clear();
     return DataPack(key, d);
   }
 
@@ -108,12 +107,14 @@ namespace kmrnext {
     for (size_t i = 0; i < size_; i++) {
       data_size_ *= value_[i];
     }
-    data_ = static_cast<Data*>(calloc(data_size_, sizeof(Data)));
+    data_ = new Data[data_size_];
 
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
       DataStore *src = dslist.at(i);
-      memcpy(data_ + offset, src->data_, sizeof(Data) * src->data_size_);
+      for (size_t j = 0; j < src->data_size_; j++) {
+	data_[offset + j].copy_deep(src->data_[j]);
+      }
       offset += src->data_size_;
     }
   }
@@ -151,7 +152,9 @@ namespace kmrnext {
     for (size_t i = 0; i < dslist.size(); i++) {
       DataStore *dst = dslist.at(i);
       dst->set(split_dims);
-      memcpy(dst->data_, data_ + offset, sizeof(Data) * dst->data_size_);
+      for (size_t j = 0; j < dst->data_size_; j++) {
+	dst->data_[j].copy_deep(data_[offset + j]);
+      }
       offset += dst->data_size_;
     }
   }

@@ -128,12 +128,12 @@ public:
       value[i] = num;
     }
     Data data((void*)value, sizeof(long) * element_count_);
-    delete[] value;
-
     for (size_t i = 0; i < data_count; i++) {
       Key key = ds->index_to_key(i);
       ds->add(key, data);
     }
+    delete[] value;
+
     return 0;
   }
 };
@@ -157,12 +157,12 @@ public:
       value[i] = num;
     }
     Data data((void*)value, bytes_);
-    delete[] value;
-
     for (size_t i = 0; i < data_count; i++) {
       Key key = ds->index_to_key(i);
       ds->add(key, data);
     }
+    delete[] value;
+
     return 0;
   }
 };

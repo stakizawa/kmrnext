@@ -160,6 +160,7 @@ main(int argc, char **argv)
     os1 << "LETKF,"        << time.letkf() << endl;
     print_line(os1);
   }
+  delete ds0;
 
   KMRNext::finalize();
   return 0;
@@ -329,6 +330,7 @@ public:
     delete[] sdispls;
     delete[] recv_cnts;
     delete[] rdispls;
+    delete[] rcvbuf;
 
     // emit data
     int *p = sndbuf;

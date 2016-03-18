@@ -208,7 +208,9 @@ main(int argc, char **argv)
   DataStore *ds0 = new DataStore(kDimEnsembleData);
   ds0->set(kEnsembleDataDimSizes);
   load_data(ds0);
+#if 0
   ds0->dump();
+#endif
 
   for (size_t i = 0; i < kNumIteration; i++) {
     Time time;
@@ -219,14 +221,18 @@ main(int argc, char **argv)
     ds1->set(kEnsembleDataDimSizes);
     run_nicam(ds0, ds1, time);
     delete ds0;
+#if 0
     ds1->dump();
+#endif
 
     // run pseudo-LETKF
     ds0 = new DataStore(kDimEnsembleData);
     ds0->set(kEnsembleDataDimSizes);
     run_letkf(ds1, ds0, time);
     delete ds1;
+#if 0
     ds0->dump();
+#endif
 
     time.loop_finish = gettime();
     ostringstream os1;
@@ -237,6 +243,7 @@ main(int argc, char **argv)
     os1 << "LETKF,"        << time.letkf() << endl;
     print_line(os1);
   }
+  delete ds0;
 
   MPI_Finalize();
   return 0;
@@ -329,6 +336,7 @@ void letkf(int *in, int *out, size_t size, MPI_Comm comm) {
   delete[] sdispls;
   delete[] recv_cnts;
   delete[] rdispls;
+  delete[] rcvbuf;
 }
 
 void run_letkf(DataStore* inds, DataStore* outds, Time& time)

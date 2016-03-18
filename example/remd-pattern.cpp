@@ -141,6 +141,7 @@ main(int argc, char **argv)
     os1 << "    EX consumes " << time.ex() << " sec." << endl;
     print_line(os1);
   }
+  delete ds0;
 
   KMRNext::finalize();
   return 0;
