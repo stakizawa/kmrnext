@@ -57,6 +57,11 @@ struct Time {
   double letkf_invoke;
   double letkf_cleanup;
 
+  double del0_start;
+  double del0_finish;
+  double del1_start;
+  double del1_finish;
+
   double loop() {
     return (loop_finish - loop_start) / 10E9;
   }
@@ -71,6 +76,12 @@ struct Time {
   }
   double letkf_launch() {
     return (letkf_cleanup - letkf_invoke) / 10E9;
+  }
+  double del0() {
+    return (del0_finish - del0_start) / 10E9;
+  }
+  double del1() {
+    return (del1_finish - del1_start) / 10E9;
   }
 };
 
@@ -102,6 +113,9 @@ public:
     assert(buf_ == NULL);
     buf_size_ = dim_sizes_[2] * kElementCount; // kNumCell
     buf_ = new int[buf_size_];
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (size_t i = 0; i < buf_size_; i++) {
       buf_[i] = (int)prcid_ + 1;
     }
@@ -221,7 +235,9 @@ main(int argc, char **argv)
     DataStore* ds1 = new DataStore(kDimEnsembleData);
     ds1->set(kEnsembleDataDimSizes);
     run_nicam(ds0, ds1, time);
+    time.del0_start = gettime();
     delete ds0;
+    time.del0_finish = gettime();
 #if 0
     ds1->dump();
 #endif
@@ -230,7 +246,9 @@ main(int argc, char **argv)
     ds0 = new DataStore(kDimEnsembleData);
     ds0->set(kEnsembleDataDimSizes);
     run_letkf(ds1, ds0, time);
+    time.del1_start = gettime();
     delete ds1;
+    time.del1_finish = gettime();
 #if 0
     ds0->dump();
 #endif
@@ -240,8 +258,10 @@ main(int argc, char **argv)
     os1 << "Iteration[" << i << "]," << time.loop() << endl;
     os1 << "Invoke NICAM," << time.nicam_launch() << endl;
     os1 << "NICAM,"        << time.nicam() << endl;
+    os1 << "Del NICAM In," << time.del0() << endl;
     os1 << "Invoke LETKF," << time.letkf_launch() << endl;
     os1 << "LETKF,"        << time.letkf() << endl;
+    os1 << "Del LETKF In," << time.del1() << endl;
     print_line(os1);
   }
   delete ds0;
@@ -271,6 +291,9 @@ void run_nicam(DataStore* inds, DataStore* outds, Time& time)
   int *buf;
   size_t buf_size;
   inds->read(&buf, &buf_size);
+#ifdef _OPENMP
+  #pragma omp parallel for
+#endif
   for (size_t i = 0; i < buf_size; i++) {
     buf[i] += 1;
   }
@@ -326,6 +349,9 @@ void letkf(int *in, int *out, size_t size, MPI_Comm comm) {
 		rcvbuf, recv_cnts, rdispls, MPI_INT, comm);
 
   // computation: just decrease the value
+#ifdef _OPENMP
+  #pragma omp parallel for
+#endif
   for (size_t i = 0; i < (size_t)rcvbuf_siz; i++) {
     rcvbuf[i] -= 1;
   }
