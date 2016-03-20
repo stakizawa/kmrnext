@@ -28,7 +28,7 @@ const size_t kNumCell      = 10;
 const size_t kElementCount = 2;
 #else
 const size_t kNumEnsemble  = 64;
-const size_t kNumRegion    = 10;
+const size_t kNumRegion    = 40;
 const size_t kNumCell      = 1156;
 // const size_t kNumCell      = 4624;
 // const size_t kNumCell      = 18496;
