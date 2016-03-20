@@ -19,7 +19,7 @@ const size_t kNumIteration = 10;
 
 const size_t kDimEnsembleData = 3;
 //const size_t kDimRegionData   = 2;
-const size_t kDimCellData     = 1;
+//const size_t kDimCellData     = 1;
 
 #if DEBUG
 const size_t kNumEnsemble  = 2;
@@ -203,6 +203,7 @@ main(int argc, char **argv)
       MPI_Barrier(MPI_COMM_WORLD);
       MPI_Abort(MPI_COMM_WORLD, 1);
     }
+    rank_offset = nprocs / 2;
   }
 
   DataStore *ds0 = new DataStore(kDimEnsembleData);
