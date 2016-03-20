@@ -210,6 +210,9 @@ namespace kmrnext {
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
     KMR_KVS *rcv = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (size_t i = 0; i < data_size_; i++) {
       if (data_[i].value() == NULL) {
 	continue;
@@ -225,6 +228,9 @@ namespace kmrnext {
       if (match) {
 	if (data_[i].is_shared()) {
 	  // the data is already replicated
+#ifdef _OPENMP
+          #pragma omp critical
+#endif
 	  dps->push_back(DataPack(tmpkey, &(data_[i])));
 	  continue;
 	} else {
@@ -372,6 +378,9 @@ namespace kmrnext {
     }
 
     vector< vector<DataPack> > dpgroups(nkeys);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (size_t i = 0; i < data_size_; i++) {
       if (data_[i].value() == NULL ||
 	  (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank())) {
@@ -380,6 +389,9 @@ namespace kmrnext {
       Key tmpkey = index_to_key(i);
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
+#ifdef _OPENMP
+      #pragma omp critical
+#endif
       dps.push_back(DataPack(tmpkey, &(data_[i])));
     }
 
@@ -398,6 +410,9 @@ namespace kmrnext {
 
     KMR_KVS *ikvs = kmr_create_kvs(kmrnext_->kmr(),
 				   KMR_KV_INTEGER, KMR_KV_INTEGER);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (size_t i = 0; i < nkeys; i++) {
       vector<DataPack> &dps = dpgroups.at(i);
       if (dps.size() > 0) {
@@ -462,6 +477,9 @@ namespace kmrnext {
     }
 
     vector< vector<DataPack> > dpgroups(ngrps);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (size_t i = 0; i < data_size_; i++) {
       if (data_[i].value() == NULL ||
     	  (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank())) {
@@ -470,11 +488,17 @@ namespace kmrnext {
       Key tmpkey = index_to_key(i);
       size_t viewed_idx = key_to_viewed_index(tmpkey, grpview);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
+#ifdef _OPENMP
+      #pragma omp critical
+#endif
       dps.push_back(DataPack(tmpkey, &(data_[i])));
     }
 
     KMR_KVS *ikvs = kmr_create_kvs(kmrnext_->kmr(),
 				   KMR_KV_INTEGER, KMR_KV_INTEGER);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (size_t i = 0; i < ngrps; i++) {
       vector<DataPack> &dps = dpgroups.at(i);
       if (dps.size() > 0) {
@@ -515,6 +539,9 @@ namespace kmrnext {
     }
 
     vector< vector<DataPack> > dpgroups(nsegments);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (size_t i = 0; i < data_size_; i++) {
       if (data_[i].value() == NULL) {
 	continue;
@@ -528,12 +555,18 @@ namespace kmrnext {
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       if (viewed_idx != (size_t)kmrnext_->rank()) {
 	vector<DataPack>& dps = dpgroups.at(viewed_idx);
+#ifdef _OPENMP
+        #pragma omp critical
+#endif
 	dps.push_back(DataPack(tmpkey, &(data_[i])));
       }
     }
 
     KMR_KVS *kvs0 = kmr_create_kvs(kmrnext_->kmr(),
 				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (size_t i = 0; i < nsegments; i++) {
       vector<DataPack> &dps = dpgroups.at(i);
       if (dps.size() > 0) {
