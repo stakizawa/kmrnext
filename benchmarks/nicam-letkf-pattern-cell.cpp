@@ -199,7 +199,7 @@ public:
     Data data((void*)data_val, sizeof(int) * kElementCount);
 
 #ifdef _OPENMP
-    #pragma omp parallel for
+    #pragma omp parallel for firstprivate(key)
 #endif
     for (size_t i = 0; i < kNumCell; i++) {
       key.set_dim(0, i);
