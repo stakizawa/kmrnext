@@ -73,6 +73,11 @@ struct Time {
   double letkf_invoke;
   double letkf_cleanup;
 
+  double alc0_start;
+  double alc0_finish;
+  double alc1_start;
+  double alc1_finish;
+
   double del0_start;
   double del0_finish;
   double del1_start;
@@ -95,6 +100,12 @@ struct Time {
   }
   double letkf_launch() {
     return (letkf_cleanup - letkf_invoke) / 10E9;
+  }
+  double alc0() {
+    return (alc0_finish - alc0_start) / 10E9;
+  }
+  double alc1() {
+    return (alc1_finish - alc1_start) / 10E9;
   }
   double del0() {
     return (del0_finish - del0_start) / 10E9;
@@ -147,16 +158,20 @@ main(int argc, char **argv)
     time.loop_start = gettime();
 
     // run pseudo-NICAM
+    time.alc0_start = gettime();
     DataStore* ds1 = next->create_ds(kDimEnsembleData);
     ds1->set(kEnsembleDataDimSizes);
+    time.alc0_finish = gettime();
     run_nicam(ds0, ds1, time);
     time.del0_start = gettime();
     delete ds0;
     time.del0_finish = gettime();
 
     // run pseudo-LETKF
+    time.alc1_start = gettime();
     ds0 = next->create_ds(kDimEnsembleData);
     ds0->set(kEnsembleDataDimSizes);
+    time.alc1_finish = gettime();
     run_letkf(ds1, ds0, time);
     time.del1_start = gettime();
     delete ds1;
@@ -168,11 +183,13 @@ main(int argc, char **argv)
     time.loop_finish = gettime();
     ostringstream os1;
     os1 << "Iteration[" << i << "]," << time.loop() << endl;
+    os1 << "Alc NICAM In," << time.alc0() << endl;
     os1 << "Invoke NICAM," << time.nicam_launch() << endl;
-    os1 << "NICAM,"        << time.nicam() << endl;
+    //os1 << "NICAM,"        << time.nicam() << endl;
     os1 << "Del NICAM In," << time.del0() << endl;
+    os1 << "Alc LETKF In," << time.alc1() << endl;
     os1 << "Invoke LETKF," << time.letkf_launch() << endl;
-    os1 << "LETKF,"        << time.letkf() << endl;
+    //os1 << "LETKF,"        << time.letkf() << endl;
     os1 << "Del LETKF In," << time.del1() << endl;
     os1 << "Collate,"      << time.collate() << endl;
     print_line(os1);
