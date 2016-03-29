@@ -374,14 +374,15 @@ namespace kmrnext {
     /// should be written to another DataStore, specify the last parameter
     /// of the output DataStore, outds.  If the last parameter is omitted,
     /// data elements of this DataStore are updated in-place.
-    void map(Mapper& m, const View& view, DataStore* outds=NULL);
+    void map(Mapper& m, const View& view, DataStore* outds=DUMMY);
 
     /// It maps each data.
     ///
     /// It maps on a single nodes.  Before running the mapper object, m,
     /// data that have the same key are gathered to a node and then the
     /// mapper runs on the nodes as a serial program.
-    void map_single(Mapper& m, const View& view, DataStore* outds=NULL);
+    void map_single(Mapper& m, const View& view,
+		    DataStore* outds=DUMMY);
 
     /// It globally sorts data.
     ///
@@ -498,6 +499,8 @@ namespace kmrnext {
     bool parallel_;
     // A KMRNext object that stores execution status
     KMRNext *kmrnext_;
+
+    static DataStore* DUMMY;
 
     // It sets size of each dimension.
     // It just sets pointer to data, not performs malloc and memcpy.

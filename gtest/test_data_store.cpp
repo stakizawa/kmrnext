@@ -416,6 +416,9 @@ namespace {
     ods2.set(array_ds0_);
     EXPECT_THROW({ds1_->map(mapper, *v0_, &ods2);}, std::runtime_error);
 
+    // If NULL is given to the output DataStore, it throws runtime_error.
+    EXPECT_THROW({ds0_->map(mapper, *v0_, NULL);}, std::runtime_error);
+
     // If the output DataStore is omitted, map overwrites the input DataStore.
     kmrnext::DataStore *ds0 = ds0_->duplicate();
     EXPECT_EQ(1, *(long*)ds0->get(*key0_).data()->value());

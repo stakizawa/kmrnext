@@ -112,6 +112,8 @@ namespace {
 
 namespace kmrnext {
 
+  DataStore *DataStore::DUMMY = new DataStore(0);
+
   DataStore::~DataStore() {
     if (data_allocated_) {
       delete[] data_;
@@ -431,7 +433,7 @@ namespace kmrnext {
     kmr_add_kv_done(ikvs);
 
     DataStore *_outds = outds;
-    if (outds == NULL) {
+    if (outds == DUMMY) {
       inplace_update_ = true;
       _outds = this;
     }
@@ -446,7 +448,7 @@ namespace kmrnext {
 				  kmrnext_->rank(), mapper_map);
     }
     _outds->parallel_ = false;
-    if (outds == NULL) {
+    if (outds == DUMMY) {
       inplace_update_ = false;
       // unshare all data
 #ifdef _OPENMP
@@ -537,7 +539,7 @@ namespace kmrnext {
     kmr_add_kv_done(ikvs);
 
     DataStore *_outds = outds;
-    if (outds == NULL) {
+    if (outds == DUMMY) {
       inplace_update_ = true;
       _outds = this;
     }
@@ -548,7 +550,7 @@ namespace kmrnext {
     kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
 				kmrnext_->rank(), mapper_map_single);
     _outds->parallel_ = false;
-    if (outds == NULL) {
+    if (outds == DUMMY) {
       inplace_update_ = false;
       // unshare all data
 #ifdef _OPENMP
@@ -697,7 +699,7 @@ namespace kmrnext {
     for (size_t i = 0; i < size_; i++) {
       view.set_dim(i, false);
     }
-    map(dmpr, view, NULL);
+    map(dmpr, view);
     // find master
     int token = (dmpr.result_.size() > 0)? kmrnext_->rank() : -1;
     int master;
@@ -736,7 +738,7 @@ namespace kmrnext {
     for (size_t i = 0; i < size_; i++) {
       view.set_dim(i, false);
     }
-    map(counter, view, NULL);
+    map(counter, view);
     long result;
     MPI_Allreduce(&counter.result_, &result, 1, MPI_LONG, MPI_MAX,
 		  kmrnext_->kmr()->comm);
@@ -891,6 +893,9 @@ namespace kmrnext {
   }
 
   void DataStore::check_map_args(const View& view, DataStore *outds) {
+    if (outds == NULL) {
+      throw runtime_error("The output DataStore should not be NULL.");
+    }
     if (outds == this) {
       throw runtime_error("The input and output DataStore should be "
 			  "different.");

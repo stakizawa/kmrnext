@@ -6,6 +6,8 @@
 
 namespace kmrnext {
 
+  DataStore *DataStore::DUMMY = new DataStore(0);
+
   DataStore::~DataStore() {
     if (data_allocated_) {
       delete[] data_;
@@ -201,7 +203,7 @@ namespace kmrnext {
     }
 
     DataStore* _outds = outds;
-    if (outds == NULL) {
+    if (outds == DUMMY) {
       inplace_update_ = true;
       _outds = this;
     }
@@ -214,7 +216,7 @@ namespace kmrnext {
 	m(this, _outds, viewed_key, dps, env);
       }
     }
-    if (outds == NULL) {
+    if (outds == DUMMY) {
       inplace_update_ = false;
     }
   }
@@ -257,7 +259,7 @@ namespace kmrnext {
       view.set_dim(i, false);
     }
 
-    map(dmpr, view, NULL);
+    map(dmpr, view);
     return dmpr.result_;
   }
 
@@ -279,7 +281,7 @@ namespace kmrnext {
     for (size_t i = 0; i < size_; i++) {
       view.set_dim(i, false);
     }
-    map(counter, view, NULL);
+    map(counter, view);
     return counter.result_;
   }
 
@@ -414,6 +416,9 @@ namespace kmrnext {
   }
 
   void DataStore::check_map_args(const View& view, DataStore* outds) {
+    if (outds == NULL) {
+      throw runtime_error("The output DataStore should not be NULL.");
+    }
     if (outds == this) {
       throw runtime_error("The input and output DataStore should be "
 			  "different.");
