@@ -396,6 +396,12 @@ namespace kmrnext {
     /// It returns stored data count.
     long count();
 
+    /// It duplicates the DataStore.
+    /// It performs deep copy, that is, all data elements in the DataStore
+    /// are deeply copied.  Moreover, it copies all attributes of data
+    /// elements.
+    DataStore* duplicate();
+
     /// It loads files to the DataStore.
     ///
     /// \param[in] files the array of files to be loaded

@@ -283,6 +283,32 @@ namespace kmrnext {
     return counter.result_;
   }
 
+  DataStore* DataStore::duplicate() {
+    class Copier : public Mapper {
+    public:
+      int operator()(DataStore *inds, DataStore *outds,
+		     Key& key, vector<DataPack>& dps,
+		     MapEnvironment& env)
+      {
+	for (std::vector<kmrnext::DataPack>:: iterator itr = dps.begin();
+	     itr != dps.end(); itr++) {
+	  Data d((*itr).data()->value(), (*itr).data()->size());
+	  outds->add((*itr).key(), d);
+	}
+	return 0;
+      }
+    } copier;
+
+    View view(size_);
+    for (size_t i = 0; i < size_; i++) {
+      view.set_dim(i, false);
+    }
+    DataStore* ds = new DataStore(size_, kmrnext_);
+    ds->set(value_);
+    map(copier, view, ds);
+    return ds;
+  }
+
   void DataStore::set(const size_t *val, Data *dat_ptr) {
     if (data_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");

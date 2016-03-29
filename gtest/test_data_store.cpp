@@ -417,10 +417,10 @@ namespace {
     EXPECT_THROW({ds1_->map(mapper, *v0_, &ods2);}, std::runtime_error);
 
     // If the output DataStore is omitted, map overwrites the input DataStore.
-    // TODO before this, copy DataStore
-    EXPECT_EQ(1, *(long*)ds0_->get(*key0_).data()->value());
-    ds0_->map(mapper, *v0_);
-    EXPECT_EQ(2, *(long*)ds0_->get(*key0_).data()->value());
+    kmrnext::DataStore *ds0 = ds0_->duplicate();
+    EXPECT_EQ(1, *(long*)ds0->get(*key0_).data()->value());
+    ds0->map(mapper, *v0_);
+    EXPECT_EQ(2, *(long*)ds0->get(*key0_).data()->value());
   }
 
   class DataLoader1D : public kmrnext::DataStore::Loader<long> {
@@ -579,6 +579,18 @@ namespace {
     // If one Data is added, it returns 1.
     ds1.add(*key0_, *d0_);
     EXPECT_EQ(1, ds1.count());
+  }
+
+  TEST_F(DataStoreTest, Duplicate) {
+    kmrnext::DataStore* ds0 = ds0_->duplicate();
+    // Pointer to the duplicated DataStore is different
+    EXPECT_NE(ds0_, ds0);
+    // Pointers to data elements having the same coordinate are not same
+    void *v_ds0_ = ds0_->get(*key0_).data()->value();
+    void *v_ds0  = ds0 ->get(*key0_).data()->value();
+    EXPECT_NE(v_ds0_, v_ds0);
+    // Values of data elements having the same coordinate are same
+    EXPECT_EQ(*(long*)v_ds0_, *(long*)v_ds0);
   }
 
 }
