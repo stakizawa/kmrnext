@@ -78,8 +78,8 @@ struct Time {
 };
 
 void load_data(DataStore* ds);
-void run_md(DataStore* inds, DataStore* outds, Time& time);
-void run_ex(DataStore* inds, DataStore* outds, Time& time);
+void run_md(DataStore* ds, Time& time);
+void run_ex(DataStore* ds, Time& time);
 void print_line(string& str);
 void print_line(ostringstream& os);
 double gettime();
@@ -113,20 +113,14 @@ main(int argc, char **argv)
     time.loop_start = gettime();
 
     // run pseudo-MD
-    DataStore* ds1 = next->create_ds(kNumDimensions);
-    ds1->set(kDataStoreSizes);
-    run_md(ds0, ds1, time);
-    delete ds0;
+    run_md(ds0, time);
 #if DEBUG
-    string str1 = ds1->dump(dp);
+    string str1 = ds0->dump(dp);
     print_line(str1);
 #endif
 
     // run pseudo-EX
-    ds0 = next->create_ds(kNumDimensions);
-    ds0->set(kDataStoreSizes);
-    run_ex(ds1, ds0, time);
-    delete ds1;
+    run_ex(ds0, time);
 #if DEBUG
     string str2 = ds0->dump(dp);
     print_line(str2);
@@ -218,14 +212,14 @@ public:
   }
 };
 
-void run_md(DataStore* inds, DataStore* outds, Time& time)
+void run_md(DataStore* ds, Time& time)
 {
   PseudoMD mapper(time);
   time.md_invoke = gettime();
   View view(kNumDimensions);
   bool view_flag[3] = {true, false, false};
   view.set(view_flag);
-  inds->map(outds, mapper, view);
+  ds->map(mapper, view);
   time.md_cleanup = gettime();
 }
 
@@ -267,14 +261,14 @@ public:
   }
 };
 
-void run_ex(DataStore* inds, DataStore* outds, Time& time)
+void run_ex(DataStore* ds, Time& time)
 {
   PseudoEX mapper(time);
   time.ex_invoke = gettime();
   View view(kNumDimensions);
   bool view_flag[3] = {false, true, false};
   view.set(view_flag);
-  inds->map(outds, mapper, view);
+  ds->map(mapper, view);
   time.ex_cleanup = gettime();
 }
 

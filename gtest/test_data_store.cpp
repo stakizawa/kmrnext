@@ -395,7 +395,7 @@ namespace {
 
     kmrnext::DataStore ods0(ds_size_, gNext);
     ods0.set(array_ds0_);
-    ds0_->map(&ods0, mapper, *v0_);
+    ds0_->map(mapper, *v0_, &ods0);
     EXPECT_EQ(2, *(long*)ods0.get(*key0_).data()->value());
     EXPECT_EQ(2, *(long*)ods0.get(*key1_).data()->value());
     EXPECT_EQ(2, *(long*)ods0.get(*key2_).data()->value());
@@ -403,18 +403,24 @@ namespace {
     kmrnext::DataStore ods1(2, gNext);
     size_t ary_ods1[2] = {2,2};
     ods1.set(ary_ods1);
-    ds0_->map(&ods1, mapper, *v1_);
+    ds0_->map(mapper, *v1_, &ods1);
     EXPECT_EQ(2, *(long*)ods1.get(*key2d0_).data()->value());
     EXPECT_EQ(2, *(long*)ods1.get(*key2d1_).data()->value());
 
     // If the input and output DataStores are same, it throws runtime_error.
-    EXPECT_THROW({ds0_->map(ds0_, mapper, *v0_);}, std::runtime_error);
+    EXPECT_THROW({ds0_->map(mapper, *v0_, ds0_);}, std::runtime_error);
 
     // If the dimension of view does not match that of the input DataStore,
     // it throws runtime_error.
     kmrnext::DataStore ods2(ds_size_, gNext);
     ods2.set(array_ds0_);
-    EXPECT_THROW({ds1_->map(&ods2, mapper, *v0_);}, std::runtime_error);
+    EXPECT_THROW({ds1_->map(mapper, *v0_, &ods2);}, std::runtime_error);
+
+    // If the output DataStore is omitted, map overwrites the input DataStore.
+    // TODO before this, copy DataStore
+    EXPECT_EQ(1, *(long*)ds0_->get(*key0_).data()->value());
+    ds0_->map(mapper, *v0_);
+    EXPECT_EQ(2, *(long*)ds0_->get(*key0_).data()->value());
   }
 
   class DataLoader1D : public kmrnext::DataStore::Loader<long> {

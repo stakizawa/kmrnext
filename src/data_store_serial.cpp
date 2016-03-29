@@ -30,7 +30,11 @@ namespace kmrnext {
     check_key_range(key);
     size_t idx = key_to_index(key);
     Data *d = &(data_[idx]);
-    d->copy_deep(data);
+    if (inplace_update_) {
+      d->copy_deep(data, true);
+    } else {
+      d->copy_deep(data);
+    }
   }
 
   DataPack DataStore::get(const Key& key) {
@@ -159,8 +163,8 @@ namespace kmrnext {
     }
   }
 
-  void DataStore::map(DataStore* outds, Mapper& m, const View& view) {
-    check_map_args(outds, view);
+  void DataStore::map(Mapper& m, const View& view, DataStore* outds) {
+    check_map_args(view, outds);
     if (data_size_ == 0) {
       return;
     }
@@ -196,15 +200,31 @@ namespace kmrnext {
       profile_out(os.str());
     }
 
+    DataStore* _outds = outds;
+    if (outds == NULL) {
+      inplace_update_ = true;
+      _outds = this;
+    }
     MapEnvironment env;
     env.rank = 0;
     for (size_t i = 0; i < dpgroups.size(); i++) {
       vector<DataPack> &dps = dpgroups.at(i);
       if (dps.size() > 0) {
 	Key viewed_key = key_to_viewed_key(dps.at(0).key(), view);
-	m(this, outds, viewed_key, dps, env);
+	m(this, _outds, viewed_key, dps, env);
       }
     }
+    if (outds == NULL) {
+      inplace_update_ = false;
+    }
+  }
+
+  void DataStore::map_single(Mapper& m, const View& view, DataStore* outds) {
+    map(m, view, outds);
+  }
+
+  void DataStore::collate(const View& view) {
+    // Do nothing
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
@@ -237,7 +257,7 @@ namespace kmrnext {
       view.set_dim(i, false);
     }
 
-    map(NULL, dmpr, view);
+    map(dmpr, view, NULL);
     return dmpr.result_;
   }
 
@@ -259,7 +279,7 @@ namespace kmrnext {
     for (size_t i = 0; i < size_; i++) {
       view.set_dim(i, false);
     }
-    map(NULL, counter, view);
+    map(counter, view, NULL);
     return counter.result_;
   }
 
@@ -367,8 +387,8 @@ namespace kmrnext {
     }
   }
 
-  void DataStore::check_map_args(DataStore *outds, const View& view) {
-    if (this == outds) {
+  void DataStore::check_map_args(const View& view, DataStore* outds) {
+    if (outds == this) {
       throw runtime_error("The input and output DataStore should be "
 			  "different.");
     }

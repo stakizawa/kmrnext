@@ -198,8 +198,12 @@ namespace kmrnext {
 
     ~Data();
 
-    void copy_deep(const Data& src);
+    /// It deeply copies the specified Data.
+    /// If the overwrite option is true, it removes the current data and
+    /// overwrites by the specified Data.
+    void copy_deep(const Data& src, bool overwrite=false);
 
+    /// It shallowly copies the specified Data.
     void copy_shallow(const Data& src);
 
     /// It copies the specified buffer to this data.
@@ -283,12 +287,12 @@ namespace kmrnext {
   public:
     explicit DataStore(size_t siz)
       : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false), parallel_(false),
+      data_allocated_(false), inplace_update_(false), parallel_(false),
       kmrnext_(NULL) {}
 
     explicit DataStore(size_t siz, KMRNext *kn)
       : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false), parallel_(false),
+      data_allocated_(false), inplace_update_(false), parallel_(false),
       kmrnext_(kn) {}
 
     virtual ~DataStore();
@@ -366,16 +370,18 @@ namespace kmrnext {
     /// It maps each data.
     ///
     /// The mapper object, m, can be run in parallel on data that have
-    /// the same key using a given MPI_Comm.
-    void map(DataStore* outds, Mapper& m, const View& view);
+    /// the same key using a given MPI_Comm.  If the output of the mapper
+    /// should be written to another DataStore, specify the last parameter
+    /// of the output DataStore, outds.  If the last parameter is omitted,
+    /// data elements of this DataStore are updated in-place.
+    void map(Mapper& m, const View& view, DataStore* outds=NULL);
 
-#ifdef BACKEND_KMR
     /// It maps each data.
     ///
     /// It maps on a single nodes.  Before running the mapper object, m,
     /// data that have the same key are gathered to a node and then the
     /// mapper runs on the nodes as a serial program.
-    void map_single(DataStore* outds, Mapper& m, const View& view);
+    void map_single(Mapper& m, const View& view, DataStore* outds=NULL);
 
     /// It globally sorts data.
     ///
@@ -383,7 +389,6 @@ namespace kmrnext {
     /// using the View.  Data elements are distributed among nodes by
     /// dimensions whose values are TURE in the View
     void collate(const View& view);
-#endif
 
     /// It dumps data in the DataStore.
     string dump(DataPack::Dumper& dumper);
@@ -481,6 +486,8 @@ namespace kmrnext {
     size_t data_size_;
     // True if the data_ is already allocated
     bool data_allocated_;
+    // True if the input and output DataStore of map function is same
+    bool inplace_update_;
     // True if the DataStore should be processed in parallel
     bool parallel_;
     // A KMRNext object that stores execution status
@@ -501,7 +508,7 @@ namespace kmrnext {
     void check_key_range(const Key& key);
 
     // It checks the arguments of map().
-    void check_map_args(DataStore *outds, const View& view);
+    void check_map_args(const View& view, DataStore* outds);
 
     // It checks the arguments of collate().
     void check_collate_args(const View& view);

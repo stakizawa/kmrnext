@@ -124,7 +124,7 @@ void transpose(DataStore* ids, DataStore* ods)
   View view(kDimMatrix);
   bool view_flag[kDimMatrix] = {true, true};
   view.set(view_flag);
-  ids->map(ods, mapper, view);
+  ids->map(mapper, view, ods);
 }
 
 void print_matrix(DataStore* ds)

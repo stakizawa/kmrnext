@@ -130,7 +130,7 @@ void KMRNEXT_ds_map(void *ids, void *ods, void *view, kmrnext_mapfn_t m,
       return cc;
     }
   } mapper(m, p);
-  _ids->map(_ods, mapper, *_view);
+  _ids->map(mapper, *_view, _ods);
 }
 
 long KMRNEXT_ds_count(void *ds)

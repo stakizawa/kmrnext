@@ -138,7 +138,11 @@ namespace kmrnext {
       size_t idx = key_to_index(key);
       Data *d = &(data_[idx]);
       try {
-	d->copy_deep(data);
+	if (inplace_update_) {
+	  d->copy_deep(data, true);
+	} else {
+	  d->copy_deep(data);
+	}
       }
       catch (runtime_error& e) {
 	cerr << "Failed to add a data to DataStore" << to_string()
@@ -361,8 +365,8 @@ namespace kmrnext {
     }
   }
 
-  void DataStore::map(DataStore* outds, Mapper& m, const View& view) {
-    check_map_args(outds, view);
+  void DataStore::map(Mapper& m, const View& view, DataStore* outds) {
+    check_map_args(view, outds);
     if (data_size_ == 0) {
       return;
     }
@@ -426,9 +430,14 @@ namespace kmrnext {
     }
     kmr_add_kv_done(ikvs);
 
+    DataStore *_outds = outds;
+    if (outds == NULL) {
+      inplace_update_ = true;
+      _outds = this;
+    }
+    _outds->parallel_ = true;
     MapEnvironment env = { kmrnext_->rank(), MPI_COMM_NULL };
-    if (outds) { outds->parallel_ = true; }
-    param_mapper_map param = { m, this, outds, view, env, dpgroups,
+    param_mapper_map param = { m, this, _outds, view, env, dpgroups,
 			       is_local };
     if (is_local) {
       map_local(ikvs, NULL, (void*)&param, mapper_map);
@@ -436,10 +445,25 @@ namespace kmrnext {
       kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
 				  kmrnext_->rank(), mapper_map);
     }
+    _outds->parallel_ = false;
+    if (outds == NULL) {
+      inplace_update_ = false;
+      // unshare all data
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (size_t i = 0; i < data_size_; i++) {
+	if (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank()) {
+	  data_[i].clear();
+	  continue;
+	}
+	data_[i].unshared();
+      }
+    }
   }
 
-  void DataStore::map_single(DataStore* outds, Mapper& m, const View& view) {
-    check_map_args(outds, view);
+  void DataStore::map_single(Mapper& m, const View& view, DataStore* outds) {
+    check_map_args(view, outds);
     if (data_size_ == 0) {
       return;
     }
@@ -466,7 +490,7 @@ namespace kmrnext {
 	}
       }
       if (is_local) {
-	map(outds, m, view);
+	map(m, view, outds);
 	return;
       }
     }
@@ -512,12 +536,32 @@ namespace kmrnext {
     }
     kmr_add_kv_done(ikvs);
 
+    DataStore *_outds = outds;
+    if (outds == NULL) {
+      inplace_update_ = true;
+      _outds = this;
+    }
+    _outds->parallel_ = true;
     MapEnvironment env = { kmrnext_->rank(), MPI_COMM_NULL };
-    if (outds) { outds->parallel_ = true; }
-    param_mapper_map_single param = { m, this, outds, view, env, dpgroups,
+    param_mapper_map_single param = { m, this, _outds, view, env, dpgroups,
 				      key_idx };
     kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
 				kmrnext_->rank(), mapper_map_single);
+    _outds->parallel_ = false;
+    if (outds == NULL) {
+      inplace_update_ = false;
+      // unshare all data
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (size_t i = 0; i < data_size_; i++) {
+	if (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank()) {
+	  data_[i].clear();
+	  continue;
+	}
+	data_[i].unshared();
+      }
+    }
   }
 
   void DataStore::collate(const View& view) {
@@ -593,8 +637,12 @@ namespace kmrnext {
     struct kmr_option kmr_shflopt = kmr_noopt;
     kmr_shflopt.key_as_rank = 1;
     kmr_shuffle(kvs0, kvs1, kmr_shflopt);
+    parallel_ = true;
+    inplace_update_ = true;
     param_mapper_collate p0 = { this };
     kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
+    inplace_update_ = false;
+    parallel_ = false;
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
@@ -649,7 +697,7 @@ namespace kmrnext {
     for (size_t i = 0; i < size_; i++) {
       view.set_dim(i, false);
     }
-    map(NULL, dmpr, view);
+    map(dmpr, view, NULL);
     // find master
     int token = (dmpr.result_.size() > 0)? kmrnext_->rank() : -1;
     int master;
@@ -688,7 +736,7 @@ namespace kmrnext {
     for (size_t i = 0; i < size_; i++) {
       view.set_dim(i, false);
     }
-    map(NULL, counter, view);
+    map(counter, view, NULL);
     long result;
     MPI_Allreduce(&counter.result_, &result, 1, MPI_LONG, MPI_MAX,
 		  kmrnext_->kmr()->comm);
@@ -816,8 +864,8 @@ namespace kmrnext {
     }
   }
 
-  void DataStore::check_map_args(DataStore *outds, const View& view) {
-    if (this == outds) {
+  void DataStore::check_map_args(const View& view, DataStore *outds) {
+    if (outds == this) {
       throw runtime_error("The input and output DataStore should be "
 			  "different.");
     }

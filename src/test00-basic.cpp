@@ -141,7 +141,7 @@ main(int argc, char **argv) {
   size_t sizes2[kDimension2] = {kDim2_0, kDim2_1};
   ds2->set(sizes2);
   Summarizer sumr;
-  ds1->map(ds2, sumr, v2);
+  ds1->map(sumr, v2, ds2);
   if (kPrint) {
     print_line("4. Apply map to each data in a DataStore");
     print_line("  Output DataStore");

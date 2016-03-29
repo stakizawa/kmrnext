@@ -261,7 +261,7 @@ namespace {
     kmrnext::View v0(2);
     bool flags0[2] = {true, true};
     v0.set(flags0);
-    ds2_->map(&ods0, mapper0, v0);
+    ds2_->map(mapper0, v0, &ods0);
     EXPECT_EQ(1, *(int*)ods0.get(*k2_00_).data()->value());
     EXPECT_EQ(2, *(int*)ods0.get(*k2_11_).data()->value());
     EXPECT_EQ(3, *(int*)ods0.get(*k2_22_).data()->value());
@@ -279,7 +279,7 @@ namespace {
     kmrnext::View v1(2);
     bool flags1[2] = {false, true};
     v1.set(flags1);
-    ds2_->map(&ods1, mapper1, v1);
+    ds2_->map(mapper1, v1, &ods1);
     kmrnext::Key k1_0(1), k1_1(1), k1_2(1), k1_3(1);
     size_t ary_k1_0[1] = {0};
     size_t ary_k1_1[1] = {1};
@@ -339,7 +339,7 @@ namespace {
     kmrnext::View v0(3);
     bool flags0[3] = {true, false, true};
     v0.set(flags0);
-    ds3_->map_single(&ods0, mapper0, v0);
+    ds3_->map_single(mapper0, v0, &ods0);
     EXPECT_EQ(ods0.get(*k3_000_).data()->owner(),
 	      ods0.get(*k3_030_).data()->owner());
 
@@ -348,7 +348,7 @@ namespace {
     kmrnext::View v1(3);
     bool flags1[3] = {false, true, false};
     v1.set(flags1);
-    ds3_->map_single(&ods1, mapper0, v1);
+    ds3_->map_single(mapper0, v1, &ods1);
     EXPECT_EQ(ods1.get(*k3_010_).data()->owner(),
 	      ods1.get(*k3_113_).data()->owner());
 
@@ -359,7 +359,7 @@ namespace {
     kmrnext::View v2(3);
     bool flags2[3] = {false, false, false};
     v2.set(flags2);
-    ds3_->map_single(&ods2, mapper0, v2);
+    ds3_->map_single(mapper0, v2, &ods2);
     EXPECT_EQ(ods2.get(*k3_000_).data()->owner(),
 	      ods2.get(*k3_030_).data()->owner());
     EXPECT_EQ(ods2.get(*k3_010_).data()->owner(),
@@ -373,7 +373,7 @@ namespace {
     kmrnext::View v3(3);
     bool flags3[3] = {true, true, true};
     v3.set(flags3);
-    ds3_->map_single(&ods3, mapper0, v3);
+    ds3_->map_single(mapper0, v3, &ods3);
   }
 
   TEST_F(KMRDataStoreTest, Collate) {
@@ -391,7 +391,7 @@ namespace {
     kmrnext::View v0(3);
     bool flags0[3] = {true, false, true};
     v0.set(flags0);
-    ds3_->map_single(&ods0, mapper0, v0);
+    ds3_->map_single(mapper0, v0, &ods0);
     EXPECT_EQ(ods0.get(*k3_000_).data()->owner(),
 	      ods0.get(*k3_030_).data()->owner());
 

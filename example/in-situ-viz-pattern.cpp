@@ -31,6 +31,7 @@ const size_t kSpaceSizes[kDimSpace] = {kX, kY, kZ};
 
 const bool kPrint = true;
 
+#if DEBUG
 class DataPrinter : public DataPack::Dumper {
 public:
   string operator()(DataPack& dp)
@@ -45,6 +46,7 @@ public:
     return os.str();
   }
 };
+#endif
 
 struct Time {
   double main_start;
@@ -78,8 +80,8 @@ struct Time {
 };
 
 void load_data(DataStore* ds);
-void run_simulation(DataStore* inds, DataStore* outds, Time& time);
-void run_viz(DataStore* inds, DataStore* outds, Time& time);
+void run_simulation(DataStore* ds, Time& time);
+void run_viz(DataStore* ds, Time& time);
 void print_line(string& str);
 void print_line(ostringstream& os);
 double gettime();
@@ -104,25 +106,22 @@ main(int argc, char **argv)
   DataStore* ds0 = next->create_ds(kDimSpace);
   ds0->set(kSpaceSizes);
   load_data(ds0);
-  DataPrinter dp;
 #if DEBUG
+  DataPrinter dp;
   string str0 = ds0->dump(dp);
   print_line(str0);
 #endif
 
   // run pseudo-Simulation
-  DataStore* ds1 = next->create_ds(kDimSpace);
-  ds1->set(kSpaceSizes);
-  run_simulation(ds0, ds1, time);
-  delete ds0;
+  run_simulation(ds0, time);
 #if DEBUG
-  string str1 = ds1->dump(dp);
+  string str1 = ds0->dump(dp);
   print_line(str1);
 #endif
 
   // run pseudo-Visualization
-  run_viz(ds1, NULL, time);
-  delete ds1;
+  run_viz(ds0, time);
+  delete ds0;
 
   time.main_finish = gettime();
   ostringstream os;
@@ -212,14 +211,14 @@ public:
   }
 };
 
-void run_simulation(DataStore* inds, DataStore* outds, Time& time)
+void run_simulation(DataStore* ds, Time& time)
 {
   PseudoSimulation mapper(time);
   time.sim_invoke = gettime();
   View view(kDimSpace);
   bool view_flag[3] = {false, false, false};
   view.set(view_flag);
-  inds->map(outds, mapper, view);
+  ds->map(mapper, view);
   time.sim_cleanup = gettime();
 }
 
@@ -259,14 +258,14 @@ public:
   }
 };
 
-void run_viz(DataStore* inds, DataStore* outds, Time& time)
+void run_viz(DataStore* ds, Time& time)
 {
   PseudoVisualization mapper(time);
   time.viz_invoke = gettime();
   View view(kDimSpace);
   bool view_flag[3] = {true, true, true};
   view.set(view_flag);
-  inds->map(outds, mapper, view);
+  ds->map(mapper, view);
   time.viz_cleanup = gettime();
 }
 

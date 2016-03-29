@@ -28,13 +28,28 @@ namespace kmrnext {
     }
   }
 
-  void Data::copy_deep(const Data& src) {
-    if (value_ != NULL) {
-      throw runtime_error("Data is already set value.");
-    }
-    if (src.value_ != NULL) {
-      value_ = static_cast<void*>(calloc(src.value_size_, sizeof(char)));
+  void Data::copy_deep(const Data& src, bool overwrite) {
+    if (overwrite) {
+      if (src.value_ == NULL) {
+	throw runtime_error("The copy target Data should not be NULL.");
+      }
+      if (value_ == NULL) {
+	value_ = static_cast<void*>(calloc(src.value_size_, sizeof(char)));
+      } else {
+	if (value_size_ != src.value_size_) {
+	  value_ = static_cast<void*>(realloc(value_,
+					      src.value_size_ * sizeof(char)));
+	}
+      }
       memcpy(value_, src.value_, src.value_size_);
+    } else {
+      if (value_ != NULL) {
+	throw runtime_error("Data is already set value.");
+      }
+      if (src.value_ != NULL) {
+	value_ = static_cast<void*>(calloc(src.value_size_, sizeof(char)));
+	memcpy(value_, src.value_, src.value_size_);
+      }
     }
     value_size_ = src.value_size_;
     value_allocated_ = true;

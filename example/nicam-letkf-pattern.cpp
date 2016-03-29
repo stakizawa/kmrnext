@@ -44,6 +44,7 @@ const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
 
 const bool kPrint = true;
 
+#if DEBUG
 class DataPrinter : public DataPack::Dumper {
 public:
   string operator()(DataPack& dp)
@@ -58,6 +59,7 @@ public:
     return os.str();
   }
 };
+#endif
 
 struct Time {
   double loop_start;
@@ -97,8 +99,8 @@ struct Time {
 };
 
 void load_data(DataStore* ds);
-void run_nicam(DataStore* inds, DataStore* outds, Time& time);
-void run_letkf(DataStore* inds, DataStore* outds, Time& time);
+void run_nicam(DataStore* ds, Time& time);
+void run_letkf(DataStore* ds, Time& time);
 void collate_ds(DataStore* ds, Time& time);
 void print_line(string& str);
 void print_line(ostringstream& os);
@@ -119,8 +121,8 @@ main(int argc, char **argv)
   DataStore* ds0 = next->create_ds(kDimEnsembleData);
   ds0->set(kEnsembleDataDimSizes);
   load_data(ds0);
-  DataPrinter dp;
 #if DEBUG
+  DataPrinter dp;
   string str0 = ds0->dump(dp);
   print_line(str0);
 #endif
@@ -133,20 +135,14 @@ main(int argc, char **argv)
     time.loop_start = gettime();
 
     // run pseudo-NICAM
-    DataStore* ds1 = next->create_ds(kDimEnsembleData);
-    ds1->set(kEnsembleDataDimSizes);
-    run_nicam(ds0, ds1, time);
-    delete ds0;
+    run_nicam(ds0, time);
 #if DEBUG
-    string str1 = ds1->dump(dp);
+    string str1 = ds0->dump(dp);
     print_line(str1);
 #endif
 
     // run pseudo-LETKF
-    ds0 = next->create_ds(kDimEnsembleData);
-    ds0->set(kEnsembleDataDimSizes);
-    run_letkf(ds1, ds0, time);
-    delete ds1;
+    run_letkf(ds0, time);
 #if DEBUG
     string str2 = ds0->dump(dp);
     print_line(str2);
@@ -244,14 +240,14 @@ public:
   }
 };
 
-void run_nicam(DataStore* inds, DataStore* outds, Time& time)
+void run_nicam(DataStore* ds, Time& time)
 {
   PseudoNICAM mapper(time);
   time.nicam_invoke = gettime();
   View view(kDimEnsembleData);
   bool view_flag[3] = {true, false, false};
   view.set(view_flag);
-  inds->map(outds, mapper, view);
+  ds->map(mapper, view);
   time.nicam_cleanup = gettime();
 }
 
@@ -301,7 +297,7 @@ public:
   }
 };
 
-void run_letkf(DataStore* inds, DataStore* outds, Time& time)
+void run_letkf(DataStore* ds, Time& time)
 {
   PseudoLETKF mapper(time);
   time.letkf_invoke = gettime();
@@ -309,11 +305,11 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time)
   if (kLETKFRegion) {
     bool view_flag[3] = {false, true, false};
     view.set(view_flag);
-    inds->map(outds, mapper, view);
+    ds->map(mapper, view);
   } else {
     bool view_flag[3] = {false, true, true};
     view.set(view_flag);
-    inds->map_single(outds, mapper, view);
+    ds->map_single(mapper, view);
   }
   time.letkf_cleanup = gettime();
 }
