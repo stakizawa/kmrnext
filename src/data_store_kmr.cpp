@@ -136,7 +136,7 @@ namespace kmrnext {
       size_t idx = key_to_index(key);
       Data *d = &(data_[idx]);
       try {
-	if (inplace_update_) {
+	if (map_inplace_) {
 	  d->copy_deep(data, true);
 	} else {
 	  d->copy_deep(data);
@@ -429,8 +429,8 @@ namespace kmrnext {
     kmr_add_kv_done(ikvs);
 
     DataStore *_outds = outds;
-    if (outds == DUMMY) {
-      inplace_update_ = true;
+    if (outds == DUMMY || outds == this) {
+      map_inplace_ = true;
       _outds = this;
     }
     _outds->parallel_ = true;
@@ -444,8 +444,8 @@ namespace kmrnext {
 				  kmrnext_->rank(), mapper_map);
     }
     _outds->parallel_ = false;
-    if (outds == DUMMY) {
-      inplace_update_ = false;
+    if (outds == DUMMY || outds == this) {
+      map_inplace_ = false;
       // unshare all data
 #ifdef _OPENMP
       #pragma omp parallel for
@@ -541,9 +541,9 @@ namespace kmrnext {
 				kmrnext_->rank(), mapper_map_single);
 
     DataStore *_outds = outds;
-    if (outds == DUMMY) {
+    if (outds == DUMMY || outds == this) {
       _outds = this;
-      inplace_update_ = true;
+      map_inplace_ = true;
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
@@ -570,8 +570,8 @@ namespace kmrnext {
     }
 
     _outds->parallel_ = false;
-    if (outds == DUMMY) {
-      inplace_update_ = false;
+    if (outds == DUMMY || outds == this) {
+      map_inplace_ = false;
       // clear old data
 #ifdef _OPENMP
       #pragma omp parallel for
@@ -658,10 +658,10 @@ namespace kmrnext {
     kmr_shflopt.key_as_rank = 1;
     kmr_shuffle(kvs0, kvs1, kmr_shflopt);
     parallel_ = true;
-    inplace_update_ = true;
+    map_inplace_ = true;
     param_mapper_collate p0 = { this };
     kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
-    inplace_update_ = false;
+    map_inplace_ = false;
     parallel_ = false;
   }
 
@@ -913,10 +913,6 @@ namespace kmrnext {
   void DataStore::check_map_args(const View& view, DataStore *outds) {
     if (outds == NULL) {
       throw runtime_error("The output DataStore should not be NULL.");
-    }
-    if (outds == this) {
-      throw runtime_error("The input and output DataStore should be "
-			  "different.");
     }
     if (size_ != view.size()) {
       throw runtime_error("Dimension size of the input DataStore and "

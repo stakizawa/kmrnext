@@ -32,7 +32,7 @@ namespace kmrnext {
     check_key_range(key);
     size_t idx = key_to_index(key);
     Data *d = &(data_[idx]);
-    if (inplace_update_) {
+    if (map_inplace_) {
       d->copy_deep(data, true);
     } else {
       d->copy_deep(data);
@@ -203,8 +203,8 @@ namespace kmrnext {
     }
 
     DataStore* _outds = outds;
-    if (outds == DUMMY) {
-      inplace_update_ = true;
+    if (outds == DUMMY || outds == this) {
+      map_inplace_ = true;
       _outds = this;
     }
     MapEnvironment env;
@@ -216,8 +216,8 @@ namespace kmrnext {
 	m(this, _outds, viewed_key, dps, env);
       }
     }
-    if (outds == DUMMY) {
-      inplace_update_ = false;
+    if (outds == DUMMY || outds == this) {
+      map_inplace_ = false;
     }
   }
 
@@ -418,10 +418,6 @@ namespace kmrnext {
   void DataStore::check_map_args(const View& view, DataStore* outds) {
     if (outds == NULL) {
       throw runtime_error("The output DataStore should not be NULL.");
-    }
-    if (outds == this) {
-      throw runtime_error("The input and output DataStore should be "
-			  "different.");
     }
     if (size_ != view.size()) {
       throw runtime_error("Dimension size of the input DataStore and "

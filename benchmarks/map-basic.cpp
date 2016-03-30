@@ -233,7 +233,7 @@ eval_dimension_once(string description, KMRNext* next, int rank, int ndim,
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
     timer.start();
-    ds->map(NULL, mapper, view);
+    ds->map(mapper, view);
     timer.finish();
   }
   delete ds;
@@ -299,22 +299,24 @@ eval_dimension(KMRNext* next, int rank, int nprocs)
 }
 
 static void
-eval_view_once(string description, int rank, DataStore* ds,
+eval_view_once(string description, int rank, DataStore* _ds,
 	       bool* view_ary)
 {
+  DataStore *ds = _ds->duplicate();
   View view(ds->size());
   view.set(view_ary);
   Timer timer;
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
     timer.start();
-    ds->map(NULL, mapper, view);
+    ds->map(mapper, view);
     timer.finish();
   }
   if (rank == 0) {
     cout << description << endl;
     cout << timer.str() << endl;
   }
+  delete ds;
 }
 
 void
@@ -377,7 +379,7 @@ eval_count_once(string description, KMRNext* next, int rank, View& view,
     for (size_t j = 0; j < kNumIterations; j++) {
       PseudoMapper mapper(rank);
       timers[i].start();
-      ds->map(NULL, mapper, view);
+      ds->map(mapper, view);
       timers[i].finish();
     }
     delete ds;
@@ -449,7 +451,7 @@ eval_size_once(string description, KMRNext* next, int rank, View& view,
     for (size_t j = 0; j < kNumIterations; j++) {
       PseudoMapper mapper(rank);
       timers[i].start();
-      ds->map(NULL, mapper, view);
+      ds->map(mapper, view);
       timers[i].finish();
     }
     delete ds;

@@ -4,7 +4,7 @@
 /// KMR Next Interface
 
 /// The backend runtime (SERIAL, KMR)
-#define BACKEND_KMR 1
+#define BACKEND_SERIAL 1
 
 #include <stdexcept>
 #include <sstream>
@@ -290,12 +290,12 @@ namespace kmrnext {
   public:
     explicit DataStore(size_t siz)
       : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false), inplace_update_(false), parallel_(false),
+      data_allocated_(false), map_inplace_(false), parallel_(false),
       kmrnext_(NULL) {}
 
     explicit DataStore(size_t siz, KMRNext *kn)
       : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false), inplace_update_(false), parallel_(false),
+      data_allocated_(false), map_inplace_(false), parallel_(false),
       kmrnext_(kn) {}
 
     virtual ~DataStore();
@@ -497,7 +497,7 @@ namespace kmrnext {
     // True if the data_ is already allocated
     bool data_allocated_;
     // True if the input and output DataStore of map function is same
-    bool inplace_update_;
+    bool map_inplace_;
     // True if the DataStore should be processed in parallel
     bool parallel_;
     // A KMRNext object that stores execution status

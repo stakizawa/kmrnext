@@ -16,6 +16,9 @@ using namespace kmrnext;
 
 int rank = 0;
 
+// If true, map works in-place.
+const bool kMapInplace = true;
+
 const size_t kNumIteration = 10;
 
 const size_t kDimEnsembleData = 3;
@@ -153,29 +156,48 @@ main(int argc, char **argv)
   load_data(ds0);
   DataPrinter dp;
 
+  DataStore* ds1;
   for (size_t i = 0; i < kNumIteration; i++) {
     Time time;
     time.loop_start = gettime();
 
     // run pseudo-NICAM
-    time.alc0_start = gettime();
-    DataStore* ds1 = next->create_ds(kDimEnsembleData);
-    ds1->set(kEnsembleDataDimSizes);
-    time.alc0_finish = gettime();
-    run_nicam(ds0, ds1, time);
-    time.del0_start = gettime();
-    delete ds0;
-    time.del0_finish = gettime();
+    if (kMapInplace) {
+      ds1 = ds0;
+      time.alc0_start = gettime();
+      time.alc0_finish = gettime();
+      run_nicam(ds0, ds1, time);
+      time.del0_start = gettime();
+      time.del0_finish = gettime();
+    } else {
+      time.alc0_start = gettime();
+      ds1 = next->create_ds(kDimEnsembleData);
+      ds1->set(kEnsembleDataDimSizes);
+      time.alc0_finish = gettime();
+      run_nicam(ds0, ds1, time);
+      time.del0_start = gettime();
+      delete ds0;
+      time.del0_finish = gettime();
+    }
 
     // run pseudo-LETKF
-    time.alc1_start = gettime();
-    ds0 = next->create_ds(kDimEnsembleData);
-    ds0->set(kEnsembleDataDimSizes);
-    time.alc1_finish = gettime();
-    run_letkf(ds1, ds0, time);
-    time.del1_start = gettime();
-    delete ds1;
-    time.del1_finish = gettime();
+    if (kMapInplace) {
+      ds0 = ds1;
+      time.alc1_start = gettime();
+      time.alc1_finish = gettime();
+      run_letkf(ds1, ds0, time);
+      time.del1_start = gettime();
+      time.del1_finish = gettime();
+    } else {
+      time.alc1_start = gettime();
+      ds0 = next->create_ds(kDimEnsembleData);
+      ds0->set(kEnsembleDataDimSizes);
+      time.alc1_finish = gettime();
+      run_letkf(ds1, ds0, time);
+      time.del1_start = gettime();
+      delete ds1;
+      time.del1_finish = gettime();
+    }
 
     // collate for parallel execution
     collate_ds(ds0, time);
@@ -284,7 +306,7 @@ void run_nicam(DataStore* inds, DataStore* outds, Time& time)
   View view(kDimEnsembleData);
   bool view_flag[3] = {true, false, false};
   view.set(view_flag);
-  inds->map(outds, mapper, view);
+  inds->map(mapper, view, outds);
   time.nicam_cleanup = gettime();
 }
 
@@ -333,7 +355,7 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time)
   View view(kDimEnsembleData);
   bool view_flag[3] = {false, true, true};
   view.set(view_flag);
-  inds->map_single(outds, mapper, view);
+  inds->map_single(mapper, view, outds);
   time.letkf_cleanup = gettime();
 }
 

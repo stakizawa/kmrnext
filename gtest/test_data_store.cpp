@@ -407,9 +407,6 @@ namespace {
     EXPECT_EQ(2, *(long*)ods1.get(*key2d0_).data()->value());
     EXPECT_EQ(2, *(long*)ods1.get(*key2d1_).data()->value());
 
-    // If the input and output DataStores are same, it throws runtime_error.
-    EXPECT_THROW({ds0_->map(mapper, *v0_, ds0_);}, std::runtime_error);
-
     // If the dimension of view does not match that of the input DataStore,
     // it throws runtime_error.
     kmrnext::DataStore ods2(ds_size_, gNext);

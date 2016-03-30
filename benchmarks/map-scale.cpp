@@ -187,9 +187,9 @@ evaluate(KMRNext* next, int rank, int nprocs)
   DataLoader loader(1);
 
   size_t dim_ary[2] = {(size_t)nprocs, 100};
-  DataStore *ds = next->create_ds(2);
-  ds->set(dim_ary);
-  ds->load_array(datalist, loader);
+  DataStore *ds0 = next->create_ds(2);
+  ds0->set(dim_ary);
+  ds0->load_array(datalist, loader);
 
   bool ary_ff[2] = {false, false};
   View vff(2);
@@ -205,34 +205,45 @@ evaluate(KMRNext* next, int rank, int nprocs)
   vtf.set(ary_tt);
 
   Timer timer_ff;
+  DataStore *ds = ds0->duplicate();
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
     timer_ff.start();
-    ds->map(NULL, mapper, vff);
+    ds->map(mapper, vff);
     timer_ff.finish();
   }
+  delete ds;
+
   Timer timer_ft;
+  ds = ds0->duplicate();
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
     timer_ft.start();
-    ds->map(NULL, mapper, vft);
+    ds->map(mapper, vft);
     timer_ft.finish();
   }
+  delete ds;
+
   Timer timer_tf;
+  ds = ds0->duplicate();
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
     timer_tf.start();
-    ds->map(NULL, mapper, vtf);
+    ds->map(mapper, vtf);
     timer_tf.finish();
   }
+  delete ds;
+
   Timer timer_tt;
+  ds = ds0->duplicate();;
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
     timer_tt.start();
-    ds->map(NULL, mapper, vtt);
+    ds->map(mapper, vtt);
     timer_tt.finish();
   }
   delete ds;
+  delete ds0;
   if (rank == 0) {
     cout << "  ," << timer_ff.str(true, true);
     cout << "FF," << timer_ff.str(false);
