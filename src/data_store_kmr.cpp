@@ -40,13 +40,9 @@ namespace {
 
   /// Parameter for mapper_map_single
   typedef struct {
-    DataStore::Mapper& mapper;
-    DataStore *ids;
-    DataStore *ods;
-    const View& view;
-    DataStore::MapEnvironment& env;
     vector< vector<DataPack> >& dpgroups;
     int key_index;
+    vector< vector<DataPack> >& map_dpses;
   } param_mapper_map_single;
 
   /// Parameter for mapper_collate
@@ -538,30 +534,52 @@ namespace kmrnext {
     }
     kmr_add_kv_done(ikvs);
 
-    DataStore *_outds = outds;
-    if (outds == DUMMY) {
-      inplace_update_ = true;
-      _outds = this;
-    }
-    _outds->parallel_ = true;
-    MapEnvironment env = { kmrnext_->rank(), MPI_COMM_NULL };
-    param_mapper_map_single param = { m, this, _outds, view, env, dpgroups,
-				      key_idx };
+    size_t nkeys = (key_idx >= 0)? dim(key_idx) : 1;
+    vector< vector<DataPack> > map_dpses(nkeys);
+    param_mapper_map_single param = { dpgroups, key_idx, map_dpses };
     kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
 				kmrnext_->rank(), mapper_map_single);
-    _outds->parallel_ = false;
+
+    DataStore *_outds = outds;
     if (outds == DUMMY) {
-      inplace_update_ = false;
-      // unshare all data
+      _outds = this;
+      inplace_update_ = true;
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
       for (size_t i = 0; i < data_size_; i++) {
-	if (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank()) {
-	  data_[i].clear();
-	  continue;
+	data_[i].reset_share();
+      }
+    }
+    _outds->parallel_ = true;
+
+    MapEnvironment env = { kmrnext_->rank(), MPI_COMM_SELF };
+    for (size_t i = 0; i < nkeys; i++) {
+      vector<DataPack> map_dps = map_dpses.at(i);
+      if (map_dps.size() != 0) {
+	Key viewed_key =
+	  key_to_viewed_key(map_dps.at(0).key(), view);
+	m(this, _outds, viewed_key, map_dps, env);
+
+	for (vector<DataPack>::iterator itr = map_dps.begin();
+	     itr != map_dps.end(); itr++) {
+	  Data *d = (*itr).data();
+	  delete d;
 	}
-	data_[i].unshared();
+      }
+    }
+
+    _outds->parallel_ = false;
+    if (outds == DUMMY) {
+      inplace_update_ = false;
+      // clear old data
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (size_t i = 0; i < data_size_; i++) {
+	if (data_[i].owner() != kmrnext_->rank()) {
+	  data_[i].clear();
+	}
       }
     }
   }
@@ -966,52 +984,31 @@ namespace {
       return MPI_SUCCESS;
     }
 
-    size_t nkeys = 1;
-    if (param->key_index >= 0) {
-      nkeys = param->ids->dim(param->key_index);
-    }
-    vector< vector<DataPack> > map_dpses(nkeys);
-    {
-      KMR_KVS *kvs0 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
-      for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
-	   itr++) {
-	char *buf;
-	size_t buf_siz;
-	serialize_datapack(&(*itr), &buf, &buf_siz);
-	struct kmr_kv_box kv;
-	kv.klen = (int)sizeof(size_t);
-	kv.vlen = (int)buf_siz;
-	if (param->key_index >= 0) {
-	  kv.k.i  = (*itr).key().dim(param->key_index);
-	} else {
-	  kv.k.i  = 0;
-	}
-	kv.v.p  = buf;
-	kmr_add_kv(kvs0, kv);
-	free(buf);
+    KMR_KVS *kvs0 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
+    for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
+	 itr++) {
+      char *buf;
+      size_t buf_siz;
+      serialize_datapack(&(*itr), &buf, &buf_siz);
+      struct kmr_kv_box kv;
+      kv.klen = (int)sizeof(size_t);
+      kv.vlen = (int)buf_siz;
+      if (param->key_index >= 0) {
+	kv.k.i  = (*itr).key().dim(param->key_index);
+      } else {
+	kv.k.i  = 0;
       }
-      kmr_add_kv_done(kvs0);
-      KMR_KVS *kvs1 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
-      kmr_shuffle(kvs0, kvs1, kmr_noopt);
-      param_mapper_map_single_deserialize p0 = { param->key_index, map_dpses };
-      kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_map_single_deserialize);
+      kv.v.p  = buf;
+      kmr_add_kv(kvs0, kv);
+      free(buf);
     }
+    kmr_add_kv_done(kvs0);
+    KMR_KVS *kvs1 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
+    kmr_shuffle(kvs0, kvs1, kmr_noopt);
+    param_mapper_map_single_deserialize p0 = { param->key_index,
+					       param->map_dpses };
+    kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_map_single_deserialize);
 
-    for (size_t i = 0; i < nkeys; i++) {
-      vector<DataPack> map_dps = map_dpses.at(i);
-      if (map_dps.size() != 0) {
-	Key viewed_key =
-	  param->ids->key_to_viewed_key(map_dps.at(0).key(), param->view);
-	param->env.mpi_comm = MPI_COMM_SELF;
-	param->mapper(param->ids, param->ods, viewed_key, map_dps, param->env);
-
-	for (vector<DataPack>::iterator itr = map_dps.begin();
-	     itr != map_dps.end(); itr++) {
-	  Data *d = (*itr).data();
-	  delete d;
-	}
-      }
-    }
     return MPI_SUCCESS;
   }
 

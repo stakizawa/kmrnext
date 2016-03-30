@@ -239,6 +239,9 @@ namespace kmrnext {
 
     /// It returns true if this Data is shared among processes.
     bool is_shared() { return shared_; }
+
+    /// It resets the share information.
+    void reset_share() { owner_ = -1; shared_ = false; }
 #endif
 
   private:

@@ -332,7 +332,7 @@ namespace {
 
   TEST_F(KMRDataStoreTest, Map_single) {
     // The owners of data in the output DS whose coordinates are
-    // same by applying the View is same.
+    // same by applying the View are same.
     kmrnext::DataStore ods0(3, gNext);
     ods0.set(ds3_array_);
     SummarizerSingle0 mapper0(rank);
@@ -374,6 +374,43 @@ namespace {
     bool flags3[3] = {true, true, true};
     v3.set(flags3);
     ds3_->map_single(mapper0, v3, &ods3);
+    EXPECT_EQ(ds3_->get(*k3_000_).data()->owner(),
+	      ods3.get(*k3_000_).data()->owner());
+    EXPECT_EQ(ds3_->get(*k3_030_).data()->owner(),
+	      ods3.get(*k3_030_).data()->owner());
+    EXPECT_EQ(ds3_->get(*k3_113_).data()->owner(),
+	      ods3.get(*k3_113_).data()->owner());
+
+    // If the output DS is omitted, the results are writted to the input DS
+    kmrnext::DataStore *ds3 = ds3_->duplicate();
+    ds3->map_single(mapper0, v0);
+    EXPECT_EQ(*(int*)ods0.get(*k3_000_).data()->value(),
+	      *(int*)ds3->get(*k3_000_).data()->value());
+    EXPECT_EQ(*(int*)ods0.get(*k3_030_).data()->value(),
+	      *(int*)ds3->get(*k3_030_).data()->value());
+    EXPECT_EQ(ds3->get(*k3_000_).data()->owner(),
+	      ds3->get(*k3_030_).data()->owner());
+    delete ds3;
+
+    ds3 = ds3_->duplicate();
+    ds3->map_single(mapper0, v1);
+    EXPECT_EQ(*(int*)ods1.get(*k3_010_).data()->value(),
+    	      *(int*)ds3->get(*k3_010_).data()->value());
+    EXPECT_EQ(ds3->get(*k3_010_).data()->owner(),
+     	      ds3->get(*k3_113_).data()->owner());
+    delete ds3;
+
+    ds3 = ds3_->duplicate();
+    ds3->map_single(mapper0, v2);
+    EXPECT_EQ(*(int*)ods2.get(*k3_000_).data()->value(),
+    	      *(int*)ds3->get(*k3_000_).data()->value());
+    EXPECT_EQ(*(int*)ods2.get(*k3_113_).data()->value(),
+    	      *(int*)ds3->get(*k3_113_).data()->value());
+    EXPECT_EQ(ds3->get(*k3_000_).data()->owner(),
+    	      ds3->get(*k3_030_).data()->owner());
+    EXPECT_EQ(ds3->get(*k3_010_).data()->owner(),
+    	      ds3->get(*k3_113_).data()->owner());
+    delete ds3;
   }
 
   TEST_F(KMRDataStoreTest, Collate) {
@@ -395,8 +432,8 @@ namespace {
     EXPECT_EQ(ods0.get(*k3_000_).data()->owner(),
 	      ods0.get(*k3_030_).data()->owner());
 
-    // Data whose coorinate of the second dimension are same are gathered
-    // to the same node.
+    // 1. Data whose coorinate of the second dimension are same are
+    //    gathered to the same node.
     kmrnext::View cv0(3);
     bool cflags0[3] = {false, true, false};
     cv0.set(cflags0);
@@ -406,14 +443,40 @@ namespace {
     EXPECT_NE(ods0.get(*k3_000_).data()->owner(),
 	      ods0.get(*k3_030_).data()->owner());
 
-    // Data whose coorinate of the first dimension are same are gathered
-    // to the same node.
+    // 2. Data whose coorinate of the first dimension are same aregathered
+    //    gathered to the same node.
     kmrnext::View cv1(3);
     bool cflags1[3] = {true, false, false};
     cv1.set(cflags1);
     ods0.collate(cv1);
     EXPECT_EQ(ods0.get(*k3_010_).data()->owner(),
 	      ods0.get(*k3_000_).data()->owner());
+
+    // The ame operation of the first test in Map_single, except that
+    // it performs in-place mapping.
+    kmrnext::DataStore *ds3 = ds3_->duplicate();
+    ds3->map_single(mapper0, v0);
+    EXPECT_EQ(*(int*)ods0.get(*k3_000_).data()->value(),
+	      *(int*)ds3->get(*k3_000_).data()->value());
+    EXPECT_EQ(*(int*)ods0.get(*k3_030_).data()->value(),
+	      *(int*)ds3->get(*k3_030_).data()->value());
+    EXPECT_EQ(ds3->get(*k3_000_).data()->owner(),
+	      ds3->get(*k3_030_).data()->owner());
+
+    // 3. Data whose coorinate of the second dimension are same are
+    //    gathered to the same node.
+    ds3->collate(cv0);
+    EXPECT_EQ(ds3->get(*k3_010_).data()->owner(),
+	      ds3->get(*k3_113_).data()->owner());
+    EXPECT_NE(ds3->get(*k3_000_).data()->owner(),
+	      ds3->get(*k3_030_).data()->owner());
+
+    // 4. Data whose coorinate of the first dimension are same aregathered
+    //    gathered to the same node.
+    ds3->collate(cv1);
+    EXPECT_EQ(ds3->get(*k3_010_).data()->owner(),
+	      ds3->get(*k3_000_).data()->owner());
+    delete ds3;
   }
 
 }

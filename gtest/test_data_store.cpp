@@ -424,6 +424,7 @@ namespace {
     EXPECT_EQ(1, *(long*)ds0->get(*key0_).data()->value());
     ds0->map(mapper, *v0_);
     EXPECT_EQ(2, *(long*)ds0->get(*key0_).data()->value());
+    delete ds0;
   }
 
   class DataLoader1D : public kmrnext::DataStore::Loader<long> {
@@ -594,6 +595,7 @@ namespace {
     EXPECT_NE(v_ds0_, v_ds0);
     // Values of data elements having the same coordinate are same
     EXPECT_EQ(*(long*)v_ds0_, *(long*)v_ds0);
+    delete ds0;
   }
 
 }
