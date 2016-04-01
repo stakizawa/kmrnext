@@ -156,20 +156,18 @@ main(int argc, char **argv) {
 }
 
 
-class Loader : public kmrnext::DataStore::Loader<string> {
+class IntLoader : public kmrnext::DataStore::Loader<int> {
 public:
-  int operator()(kmrnext::DataStore *ds, const string& file) {
+  int operator()(kmrnext::DataStore *ds, const int& i) {
     kmrnext::Key key(kDimension3);
-    for (size_t i = 0; i < kDim3_0; i++) {
-      key.set_dim(0, i);
-      for (size_t j = 0; j < kDim3_1; j++) {
-	key.set_dim(1, j);
-	for (size_t k = 0; k < kDim3_2; k++) {
-	  key.set_dim(2, k);
-	  long val = (long)(i*j*k);
-	  kmrnext::Data d(&val, sizeof(long));
-	  ds->add(key, d);
-	}
+    key.set_dim(0, i);
+    for (size_t j = 0; j < kDim3_1; j++) {
+      key.set_dim(1, j);
+      for (size_t k = 0; k < kDim3_2; k++) {
+	key.set_dim(2, k);
+	long val = (long)(i*j*k);
+	kmrnext::Data d(&val, sizeof(long));
+	ds->add(key, d);
       }
     }
     return 0;
@@ -177,11 +175,19 @@ public:
 };
 
 void load_data(kmrnext::DataStore *ds) {
-  vector<string> files;
-  files.push_back("dummy1");
-  //  files.push_back("dummy2");
-  Loader loader;
-  ds->load_files(files, loader);
+  vector<int> ints;
+  ints.push_back(0);
+  ints.push_back(1);
+  ints.push_back(2);
+  ints.push_back(3);
+  ints.push_back(4);
+  ints.push_back(5);
+  ints.push_back(6);
+  ints.push_back(7);
+  ints.push_back(8);
+  ints.push_back(9);
+  IntLoader loader;
+  ds->load_integers(ints, loader);
 }
 
 void print_line(string str) {

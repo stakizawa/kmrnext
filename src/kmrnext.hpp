@@ -41,12 +41,6 @@ namespace kmrnext {
     /// It finalizes the whole system.
     static void finalize();
 
-    /// It creates a DataStore with the specified dimension size.
-    ///
-    /// \param[in] siz the dimension size of a new DataStore
-    /// \return        an instance of DataStore
-    DataStore* create_ds(size_t siz);
-
     /// It enables profiling option.
     void enable_profile();
 
@@ -55,6 +49,12 @@ namespace kmrnext {
 
     /// It returns true if profiling option is set.
     bool profile() { return profile_; };
+
+    /// It creates a DataStore with the specified dimension size.
+    ///
+    /// \param[in] siz the dimension size of a new DataStore
+    /// \return        an instance of DataStore
+    DataStore* create_ds(size_t siz);
 
 #ifdef BACKEND_KMR
     /// It returns MPI processes.
@@ -409,6 +409,28 @@ namespace kmrnext {
     DataStore* duplicate();
 
     /// It loads files to the DataStore.
+    /// A file in files is passed to the loader.
+    ///
+    /// \param[in] files  the array of files to be loaded
+    /// \param[in] loader the mapper function object used to load each file
+    /// \exception std::runtime_error
+    ///                when there is a mismatch between the number of files
+    ///                and dimension sizes of the DataStore.
+    void load_files(const vector<string>& files, Loader<string>& loader);
+
+    /// It loads integers to the DataStore.
+    /// An integer value in ints is passed to the loader.
+    ///
+    /// \param[in] files  the array of integers to be loaded
+    /// \param[in] loader the mapper function object used to load
+    ///                   each integer
+    /// \exception std::runtime_error
+    ///                when there is a mismatch between the number of integers
+    ///                and dimension sizes of the DataStore.
+    void load_integers(const vector<int>& ints, Loader<int>& loader);
+
+#if 0  // TODO delete
+    /// It loads files to the DataStore.
     ///
     /// \param[in] files the array of files to be loaded
     /// \param[in] f     the function object used to load each files
@@ -484,6 +506,7 @@ namespace kmrnext {
 	offset += sub_ds_siz;
       }
     }
+#endif
 
     /// It returns a Key of the specified indexed Data.
     Key index_to_key(const size_t index);

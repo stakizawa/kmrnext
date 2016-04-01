@@ -52,6 +52,9 @@ namespace kmrnext {
 
   void DataStore::add(const Key& key, const Data& data) {
     check_key_range(key);
+    if (!data_allocated_) {
+      set(value_);
+    }
     size_t idx = key_to_index(key);
     Data *d = &(data_[idx]);
     if (map_inplace_) {
@@ -250,10 +253,6 @@ namespace kmrnext {
 
   void DataStore::collate(const View& view) {
     // Do nothing
-  }
-
-  void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
-    load_array(files, f);
   }
 
   string DataStore::dump(DataPack::Dumper& dumper) {
