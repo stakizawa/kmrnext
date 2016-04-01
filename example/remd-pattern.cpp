@@ -142,19 +142,23 @@ main(int argc, char **argv)
 }
 
 
-class DataLoader : public DataStore::Loader<double> {
+class DataLoader : public DataStore::Loader<int> {
 public:
-  int operator()(DataStore* ds, const double& num)
+  int operator()(DataStore* ds, const int& num)
   {
-    Key key(1);
+    int x = num / (int)kNumProc;
+    int y = num % (int)kNumProc;
     double *data_val = new double[kElementCount];
     for (size_t i = 0; i < kElementCount; i++) {
-      data_val[i] = num;
+      data_val[i] = (double)(y + 1);
     }
     Data data((void*)data_val, sizeof(double) * kElementCount);
 
+    Key key(kNumDimensions);
+    key.set_dim(0, x);
+    key.set_dim(1, y);
     for (size_t i = 0; i < kNumData; i++) {
-      key.set_dim(0, i);
+      key.set_dim(2, i);
       ds->add(key, data);
     }
     delete[] data_val;
@@ -164,14 +168,14 @@ public:
 
 void load_data(DataStore* ds)
 {
-  vector<double> data_srcs;
+  vector<int> data_srcs;
   for (size_t i = 0; i < kNumEnsemble; i++) {
     for (size_t j = 0; j < kNumProc; j++) {
-      data_srcs.push_back((double)(i+1));
+      data_srcs.push_back((int)(i * kNumProc + j));
     }
   }
   DataLoader dl;
-  ds->load_array(data_srcs, dl);
+  ds->load_integers(data_srcs, dl);
 }
 
 class PseudoMD : public DataStore::Mapper {

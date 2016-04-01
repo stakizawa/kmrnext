@@ -23,8 +23,6 @@ const bool kLETKFRegion = false;
 const size_t kNumIteration = 10;
 
 const size_t kDimEnsembleData = 3;
-//const size_t kDimRegionData   = 2;
-const size_t kDimCellData     = 1;
 
 #if DEBUG
 const size_t kNumEnsemble  = 2;
@@ -174,15 +172,19 @@ class DataLoader : public DataStore::Loader<int> {
 public:
   int operator()(DataStore* ds, const int& num)
   {
-    Key key(kDimCellData);
+    int x = num / (int)kNumRegion;
+    int y = num % (int)kNumRegion;
     int *data_val = new int[kElementCount];
     for (size_t i = 0; i < kElementCount; i++) {
-      data_val[i] = num;
+      data_val[i] = y + 1;
     }
     Data data((void*)data_val, sizeof(int) * kElementCount);
 
+    Key key(kDimEnsembleData);
+    key.set_dim(0, x);
+    key.set_dim(1, y);
     for (size_t i = 0; i < kNumCell; i++) {
-      key.set_dim(0, i);
+      key.set_dim(2, i);
       ds->add(key, data);
     }
     delete[] data_val;
@@ -195,11 +197,11 @@ void load_data(DataStore* ds)
   vector<int> data_srcs;
   for (size_t i = 0; i < kNumEnsemble; i++) {
     for (size_t j = 0; j < kNumRegion; j++) {
-      data_srcs.push_back((int)(j+1));
+      data_srcs.push_back((int)(i * kNumRegion + j));
     }
   }
   DataLoader dl;
-  ds->load_array(data_srcs, dl);
+  ds->load_integers(data_srcs, dl);
 }
 
 class PseudoNICAM : public DataStore::Mapper {

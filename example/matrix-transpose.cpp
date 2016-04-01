@@ -74,11 +74,13 @@ class DataLoader : public DataStore::Loader<int> {
 public:
   int operator()(DataStore* ds, const int& num)
   {
-    Key key(1);
-    Data data((void*)&num, sizeof(int));
+    int val = num + 1;
+    Data data((void*)&val, sizeof(int));
 
+    Key key(kDimMatrix);
+    key.set_dim(0, num);
     for (size_t i = 0; i < matrix_size; i++) {
-      key.set_dim(0, i);
+      key.set_dim(1, i);
       ds->add(key, data);
     }
     return 0;
@@ -89,10 +91,10 @@ void load_data(DataStore* ds)
 {
   vector<int> dlist;
   for (size_t i = 0; i < matrix_size; i++) {
-    dlist.push_back((int)(i+1));
+    dlist.push_back((int)i);
   }
   DataLoader dl;
-  ds->load_array(dlist, dl);
+  ds->load_integers(dlist, dl);
 }
 
 class Transposer : public DataStore::Mapper {
