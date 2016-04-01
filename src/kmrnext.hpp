@@ -491,6 +491,16 @@ namespace kmrnext {
     /// It converts the specified Key by applying the specified View.
     Key key_to_viewed_key(const Key& key, const View& view);
 
+    /// It initializes the static fields.
+    /// It should be called before using DataStore class.  If you call
+    /// KMRNext::init(), this method is also called.
+    static void initialize();
+
+    /// It finalizes the static fields.
+    /// It should be called if you no longer use DataStore class.
+    /// If you call KMRNext::finalize(), this method is also called.
+    static void finalize();
+
   private:
     // Pointer to stored Data
     Data *data_;

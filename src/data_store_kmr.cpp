@@ -108,9 +108,26 @@ namespace {
 
 namespace kmrnext {
 
-  DataStore *DataStore::self_ = new DataStore(0);
+  DataStore *DataStore::self_;
+  View *DataStore::default_physical_view_;
 
-  View *DataStore::default_physical_view_ = new View(0);
+  void DataStore::initialize() {
+    if (DataStore::self_ == NULL) {
+      DataStore::self_ = new DataStore(0);
+    }
+    if (DataStore::default_physical_view_ == NULL) {
+      DataStore::default_physical_view_ = new View(0);
+    }
+  }
+
+  void DataStore::finalize() {
+    if (DataStore::self_ != NULL) {
+      delete DataStore::self_;
+    }
+    if (DataStore::default_physical_view_ != NULL) {
+      delete DataStore::default_physical_view_;
+    }
+  }
 
   DataStore::DataStore(size_t siz)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),

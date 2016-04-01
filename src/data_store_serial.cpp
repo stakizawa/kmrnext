@@ -6,7 +6,19 @@
 
 namespace kmrnext {
 
-  DataStore *DataStore::self_ = new DataStore(0);
+  DataStore *DataStore::self_;
+
+  void DataStore::initialize() {
+    if (DataStore::self_ == NULL) {
+      DataStore::self_ = new DataStore(0);
+    }
+  }
+
+  void DataStore::finalize() {
+    if (DataStore::self_ != NULL) {
+      delete DataStore::self_;
+    }
+  }
 
   DataStore::DataStore(size_t siz)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),

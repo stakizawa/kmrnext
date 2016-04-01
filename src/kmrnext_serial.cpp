@@ -7,10 +7,12 @@ namespace kmrnext {
     if (kmrnext_ == NULL) {
       kmrnext_ = new KMRNext();
     }
+    DataStore::initialize();
     return kmrnext_;
   }
 
   void KMRNext::finalize() {
+    DataStore::finalize();
     if (kmrnext_ != NULL) {
       delete kmrnext_;
     }

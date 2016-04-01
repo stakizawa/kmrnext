@@ -22,10 +22,12 @@ namespace kmrnext {
       kmr_init();
       kmrnext_ = new KMRNext();
     }
+    DataStore::initialize();
     return kmrnext_;
   }
 
   void KMRNext::finalize() {
+    DataStore::finalize();
     if (kmrnext_ != NULL) {
       delete kmrnext_;
       kmr_fin();
