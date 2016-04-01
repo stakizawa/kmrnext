@@ -479,4 +479,32 @@ namespace {
     delete ds3;
   }
 
+  TEST_F(KMRDataStoreTest, Set_physical_view) {
+    // By default, the physical view is NULL
+    EXPECT_EQ(NULL, ds3_->get_physical_view());
+
+    kmrnext::View v2(2);
+    bool flags2[2] = {true, true};
+    v2.set(flags2);
+    kmrnext::View v3_0(3);
+    bool flags3_0[3] = {true, true, false};
+    v3_0.set(flags3_0);
+    kmrnext::View v3_1(3);
+    bool flags3_1[3] = {false, true, true};
+    v3_1.set(flags3_1);
+
+    // If the size of DataStore and View is not same, it throws runtime_error.
+    EXPECT_THROW({ds3_->set_physical_view(v2);}, std::runtime_error);
+
+    // If a view is set to the DataStore, the gotten View should be same.
+    ds3_->set_physical_view(v3_0);
+    kmrnext::View *v0 = ds3_->get_physical_view();
+    EXPECT_EQ(v3_0, *v0);
+
+    // If another view is set to the DataStore, the View should be replaced.
+    ds3_->set_physical_view(v3_1);
+    v0 = ds3_->get_physical_view();
+    EXPECT_EQ(v3_1, *v0);
+  }
+
 }

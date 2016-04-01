@@ -37,7 +37,7 @@ int
 main(int argc, char **argv)
 {
     void *next = KMRNEXT_init(argc, argv);
-#if BACKEND_KMR
+#ifdef BACKEND_KMR
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
 

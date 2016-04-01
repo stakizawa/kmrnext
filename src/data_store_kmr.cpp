@@ -108,7 +108,19 @@ namespace {
 
 namespace kmrnext {
 
-  DataStore *DataStore::DUMMY = new DataStore(0);
+  DataStore *DataStore::self_ = new DataStore(0);
+
+  View *DataStore::default_physical_view_ = new View(0);
+
+  DataStore::DataStore(size_t siz)
+    : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
+    data_allocated_(false), map_inplace_(false), parallel_(false),
+    kmrnext_(NULL), physical_view_(default_physical_view_) {}
+
+  DataStore::DataStore(size_t siz, KMRNext *kn)
+    : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
+    data_allocated_(false), map_inplace_(false), parallel_(false),
+    kmrnext_(kn), physical_view_(default_physical_view_) {}
 
   DataStore::~DataStore() {
     if (data_allocated_) {
@@ -205,6 +217,7 @@ namespace kmrnext {
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
+    check_view(view);
     check_key_range(key);
     vector<DataPack> *dps = new vector<DataPack>();
 
@@ -429,7 +442,7 @@ namespace kmrnext {
     kmr_add_kv_done(ikvs);
 
     DataStore *_outds = outds;
-    if (outds == DUMMY || outds == this) {
+    if (outds == self_ || outds == this) {
       map_inplace_ = true;
       _outds = this;
     }
@@ -444,7 +457,7 @@ namespace kmrnext {
 				  kmrnext_->rank(), mapper_map);
     }
     _outds->parallel_ = false;
-    if (outds == DUMMY || outds == this) {
+    if (outds == self_ || outds == this) {
       map_inplace_ = false;
       // unshare all data
 #ifdef _OPENMP
@@ -541,7 +554,7 @@ namespace kmrnext {
 				kmrnext_->rank(), mapper_map_single);
 
     DataStore *_outds = outds;
-    if (outds == DUMMY || outds == this) {
+    if (outds == self_ || outds == this) {
       _outds = this;
       map_inplace_ = true;
 #ifdef _OPENMP
@@ -570,7 +583,7 @@ namespace kmrnext {
     }
 
     _outds->parallel_ = false;
-    if (outds == DUMMY || outds == this) {
+    if (outds == self_ || outds == this) {
       map_inplace_ = false;
       // clear old data
 #ifdef _OPENMP
@@ -663,6 +676,24 @@ namespace kmrnext {
     kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
     map_inplace_ = false;
     parallel_ = false;
+  }
+
+  void DataStore::set_physical_view(const View& view) {
+    check_view(view);
+    if (physical_view_ != default_physical_view_) {
+      delete physical_view_;
+    }
+    physical_view_ = new View(view.size());
+    for (size_t i = 0; i < view.size(); i++) {
+      physical_view_->set_dim(i, view.dim(i));
+    }
+  }
+
+  View* DataStore::get_physical_view() {
+    if (physical_view_ == default_physical_view_) {
+      return NULL;
+    }
+    return physical_view_;
   }
 
   void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
@@ -894,41 +925,6 @@ namespace kmrnext {
     return viewed_key;
   }
 #endif
-
-  void DataStore::check_key_range(const Key& key) {
-    if (size_ != key.size()) {
-      throw runtime_error("Dimension size of Key should be same as "
-			  "that of DataStore.");
-    }
-    for (size_t i = 0; i < size_; i++) {
-      if (key.dim(i) >= value_[i]) {
-	ostringstream os;
-	os << "Dimension " << (i+1) << " of Key" << key.to_string()
-	   << " is out of range.";
-	throw runtime_error(os.str());
-      }
-    }
-  }
-
-  void DataStore::check_map_args(const View& view, DataStore *outds) {
-    if (outds == NULL) {
-      throw runtime_error("The output DataStore should not be NULL.");
-    }
-    if (size_ != view.size()) {
-      throw runtime_error("Dimension size of the input DataStore and "
-			  "view should be same.");
-    }
-  }
-
-  void DataStore::check_collate_args(const View& view) {
-    if (size_ != view.size()) {
-      throw runtime_error("Dimension size of the DataStore and "
-			  "view should be same.");
-    }
-    if (data_size_ == 0) {
-      throw runtime_error("Data should be set to the DataStore.");
-    }
-  }
 
 }
 

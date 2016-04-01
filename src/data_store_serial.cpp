@@ -6,7 +6,17 @@
 
 namespace kmrnext {
 
-  DataStore *DataStore::DUMMY = new DataStore(0);
+  DataStore *DataStore::self_ = new DataStore(0);
+
+  DataStore::DataStore(size_t siz)
+    : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
+    data_allocated_(false), map_inplace_(false), parallel_(false),
+    kmrnext_(NULL) {}
+
+  DataStore::DataStore(size_t siz, KMRNext *kn)
+    : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
+    data_allocated_(false), map_inplace_(false), parallel_(false),
+    kmrnext_(kn) {}
 
   DataStore::~DataStore() {
     if (data_allocated_) {
@@ -46,6 +56,7 @@ namespace kmrnext {
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
+    check_view(view);
     check_key_range(key);
     vector<DataPack> *dps = new vector<DataPack>();
     for (size_t i = 0; i < data_size_; i++) {
@@ -203,7 +214,7 @@ namespace kmrnext {
     }
 
     DataStore* _outds = outds;
-    if (outds == DUMMY || outds == this) {
+    if (outds == self_ || outds == this) {
       map_inplace_ = true;
       _outds = this;
     }
@@ -216,7 +227,7 @@ namespace kmrnext {
 	m(this, _outds, viewed_key, dps, env);
       }
     }
-    if (outds == DUMMY || outds == this) {
+    if (outds == self_ || outds == this) {
       map_inplace_ = false;
     }
   }
@@ -399,30 +410,5 @@ namespace kmrnext {
     return viewed_key;
   }
 #endif
-
-  void DataStore::check_key_range(const Key& key) {
-    if (size_ != key.size()) {
-      throw runtime_error("Dimension size of Key should be same as "
-			  "that of DataStore.");
-    }
-    for (size_t i = 0; i < size_; i++) {
-      if (key.dim(i) >= value_[i]) {
-	ostringstream os;
-	os << "Dimension " << (i+1) << " of Key" << key.to_string()
-	   << " is out of range.";
-	throw runtime_error(os.str());
-      }
-    }
-  }
-
-  void DataStore::check_map_args(const View& view, DataStore* outds) {
-    if (outds == NULL) {
-      throw runtime_error("The output DataStore should not be NULL.");
-    }
-    if (size_ != view.size()) {
-      throw runtime_error("Dimension size of the input DataStore and "
-			  "view should be same.");
-    }
-  }
 
 }

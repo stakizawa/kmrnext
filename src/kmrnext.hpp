@@ -288,15 +288,9 @@ namespace kmrnext {
   ///////////////////////////////////////////////////////////////////////////
   class DataStore : public Dimensional<size_t> {
   public:
-    explicit DataStore(size_t siz)
-      : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false), map_inplace_(false), parallel_(false),
-      kmrnext_(NULL) {}
+    explicit DataStore(size_t siz);
 
-    explicit DataStore(size_t siz, KMRNext *kn)
-      : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-      data_allocated_(false), map_inplace_(false), parallel_(false),
-      kmrnext_(kn) {}
+    explicit DataStore(size_t siz, KMRNext *kn);
 
     virtual ~DataStore();
 
@@ -377,7 +371,7 @@ namespace kmrnext {
     /// should be written to another DataStore, specify the last parameter
     /// of the output DataStore, outds.  If the last parameter is omitted,
     /// data elements of this DataStore are updated in-place.
-    void map(Mapper& m, const View& view, DataStore* outds=DUMMY);
+    void map(Mapper& m, const View& view, DataStore* outds=self_);
 
     /// It maps each data.
     ///
@@ -385,7 +379,7 @@ namespace kmrnext {
     /// data that have the same key are gathered to a node and then the
     /// mapper runs on the nodes as a serial program.
     void map_single(Mapper& m, const View& view,
-		    DataStore* outds=DUMMY);
+		    DataStore* outds=self_);
 
     /// It globally sorts data.
     ///
@@ -393,6 +387,14 @@ namespace kmrnext {
     /// using the View.  Data elements are distributed among nodes by
     /// dimensions whose values are TURE in the View
     void collate(const View& view);
+
+#ifdef BACKEND_KMR
+    /// It sets the physical view of the DataStore.
+    void set_physical_view(const View& view);
+
+    /// It returns the physical view of the DataStore.
+    View* get_physical_view();
+#endif
 
     /// It dumps data in the DataStore.
     string dump(DataPack::Dumper& dumper);
@@ -502,8 +504,16 @@ namespace kmrnext {
     bool parallel_;
     // A KMRNext object that stores execution status
     KMRNext *kmrnext_;
+#ifdef BACKEND_KMR
+    /// Physical view of DataStore, that defines data distribution
+    View *physical_view_;
+#endif
 
-    static DataStore* DUMMY;
+    static DataStore* self_;
+
+#ifdef BACKEND_KMR
+    static View* default_physical_view_;
+#endif
 
     // It sets size of each dimension.
     // It just sets pointer to data, not performs malloc and memcpy.
@@ -515,6 +525,9 @@ namespace kmrnext {
     // It returns the index of Data calculated from the specified Key when
     // the specified view is applied.
     size_t key_to_viewed_index(const Key& key, const View& view);
+
+    // It checks if the given view is correct.
+    void check_view(const View& view);
 
     // It checks if dimensions of key are inside the range.
     void check_key_range(const Key& key);
