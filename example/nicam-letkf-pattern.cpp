@@ -168,15 +168,15 @@ main(int argc, char **argv)
 }
 
 
-class DataLoader : public DataStore::Loader<int> {
+class DataLoader : public DataStore::Loader<long> {
 public:
-  int operator()(DataStore* ds, const int& num)
+  int operator()(DataStore* ds, const long& num)
   {
-    int x = num / (int)kNumRegion;
-    int y = num % (int)kNumRegion;
+    size_t x = num / kNumRegion;
+    size_t y = num % kNumRegion;
     int *data_val = new int[kElementCount];
     for (size_t i = 0; i < kElementCount; i++) {
-      data_val[i] = y + 1;
+      data_val[i] = (int)y + 1;
     }
     Data data((void*)data_val, sizeof(int) * kElementCount);
 
@@ -194,10 +194,10 @@ public:
 
 void load_data(DataStore* ds)
 {
-  vector<int> data_srcs;
+  vector<long> data_srcs;
   for (size_t i = 0; i < kNumEnsemble; i++) {
     for (size_t j = 0; j < kNumRegion; j++) {
-      data_srcs.push_back((int)(i * kNumRegion + j));
+      data_srcs.push_back(i * kNumRegion + j);
     }
   }
   DataLoader dl;

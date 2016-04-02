@@ -156,9 +156,9 @@ main(int argc, char **argv) {
 }
 
 
-class IntLoader : public kmrnext::DataStore::Loader<int> {
+class IntLoader : public kmrnext::DataStore::Loader<long> {
 public:
-  int operator()(kmrnext::DataStore *ds, const int& i) {
+  int operator()(kmrnext::DataStore *ds, const long& i) {
     kmrnext::Key key(kDimension3);
     key.set_dim(0, i);
     for (size_t j = 0; j < kDim3_1; j++) {
@@ -175,7 +175,7 @@ public:
 };
 
 void load_data(kmrnext::DataStore *ds) {
-  vector<int> ints;
+  vector<long> ints;
   ints.push_back(0);
   ints.push_back(1);
   ints.push_back(2);

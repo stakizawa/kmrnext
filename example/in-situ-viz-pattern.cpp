@@ -137,15 +137,15 @@ main(int argc, char **argv)
 }
 
 
-class DataLoader : public DataStore::Loader<int> {
+class DataLoader : public DataStore::Loader<long> {
 public:
-  int operator()(DataStore* ds, const int& num)
+  int operator()(DataStore* ds, const long& num)
   {
-    int x = num / (int)kY;
-    int y = num % (int)kY;
+    size_t x = num / kY;
+    size_t y = num % kY;
     int *data_val = new int[kDataCount];
     for (size_t i = 0; i < kDataCount; i++) {
-      data_val[i] = y + 1;
+      data_val[i] = (int)y + 1;
     }
     Data data((void*)data_val, sizeof(int) * kDataCount);
 
@@ -163,10 +163,10 @@ public:
 
 void load_data(DataStore* ds)
 {
-  vector<int> data_srcs;
+  vector<long> data_srcs;
   for (size_t i = 0; i < kX; i++) {
     for (size_t j = 0; j < kY; j++) {
-      data_srcs.push_back((int)(i * kY + j));
+      data_srcs.push_back(i * kY + j);
     }
   }
   DataLoader dl;

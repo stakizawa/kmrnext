@@ -20,10 +20,10 @@ namespace {
   void deserialize(char* buf, size_t buf_siz, string** str);
 
   // It serializes an integer.
-  void serialize(const int& val, char** buf, size_t* buf_siz);
+  void serialize(const long& val, char** buf, size_t* buf_siz);
 
   // It deserializes an integer.
-  void deserialize(char* buf, size_t buf_siz, int** val);
+  void deserialize(char* buf, size_t buf_siz, long** val);
 }
 
 namespace kmrnext {
@@ -33,8 +33,8 @@ namespace kmrnext {
     load_array(files, loader, kmrnext_, this, value_, size_);
   }
 
-  void DataStore::load_integers(const vector<int>& ints,
-				Loader<int>& loader) {
+  void DataStore::load_integers(const vector<long>& ints,
+				Loader<long>& loader) {
     load_array(ints, loader, kmrnext_, this, value_, size_);
   }
 
@@ -164,14 +164,14 @@ namespace {
     *str = new string(buf);
   }
 
-  void serialize(const int& val, char** buf, size_t* buf_siz) {
+  void serialize(const long& val, char** buf, size_t* buf_siz) {
     *buf = (char*)&val;
-    *buf_siz = sizeof(int);
+    *buf_siz = sizeof(long);
   }
 
-  void deserialize(char* buf, size_t buf_siz, int** val) {
-    *val = new int[1];
-    **val = (int)*buf;
+  void deserialize(char* buf, size_t buf_siz, long** val) {
+    *val = new long[1];
+    **val = (long)*buf;
   }
 
 }

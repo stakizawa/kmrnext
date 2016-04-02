@@ -427,7 +427,7 @@ namespace kmrnext {
     /// \exception std::runtime_error
     ///                when there is a mismatch between the number of integers
     ///                and dimension sizes of the DataStore.
-    void load_integers(const vector<int>& ints, Loader<int>& loader);
+    void load_integers(const vector<long>& ints, Loader<long>& loader);
 
 #if 0  // TODO delete
     /// It loads files to the DataStore.

@@ -70,11 +70,11 @@ main(int argc, char **argv)
 }
 
 
-class DataLoader : public DataStore::Loader<int> {
+class DataLoader : public DataStore::Loader<long> {
 public:
-  int operator()(DataStore* ds, const int& num)
+  int operator()(DataStore* ds, const long& num)
   {
-    int val = num + 1;
+    int val = (int)num + 1;
     Data data((void*)&val, sizeof(int));
 
     Key key(kDimMatrix);
@@ -89,7 +89,7 @@ public:
 
 void load_data(DataStore* ds)
 {
-  vector<int> dlist;
+  vector<long> dlist;
   for (size_t i = 0; i < matrix_size; i++) {
     dlist.push_back((int)i);
   }
