@@ -259,13 +259,19 @@ namespace kmrnext {
   ///////////////////////////////////////////////////////////////////////////
   class DataPack {
   public:
-    DataPack(const Key k, Data *d) : key_(k), data_(d) {}
+    DataPack(const Key k, Data *d) : key_(k), data_(d), delete_(false) {}
+
+    ~DataPack() { if (delete_) { delete data_; } }
 
     /// It returns the key.
     Key& key() { return key_; }
 
     /// It returns the stored data.
     Data *data() { return data_; }
+
+    /// If it is called, the Data will be deleted when this DataPack
+    /// is deleted.
+    void set_delete() { delete_ = true; }
 
     /////////////////////////////////////////////////////////////////////////
     /// A virtual class used for dumping data in a DataStore
@@ -281,6 +287,7 @@ namespace kmrnext {
   private:
     Key key_;
     Data *data_;
+    bool delete_;
   };
 
   ///////////////////////////////////////////////////////////////////////////

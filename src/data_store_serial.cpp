@@ -96,7 +96,9 @@ namespace kmrnext {
     Data *d = new Data();
     d->copy_deep(data_[idx]);
     data_[idx].clear();
-    return DataPack(key, d);
+    DataPack dp(key, d);
+    dp.set_delete();
+    return dp;
   }
 
   void DataStore::set_from(const vector<DataStore*>& dslist) {
@@ -140,6 +142,7 @@ namespace kmrnext {
       data_size_ *= value_[i];
     }
     data_ = new Data[data_size_];
+    data_allocated_ = true;
 
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
