@@ -3,7 +3,7 @@
 /* \file KMR Next Interface for C */
 
 /* The backend runtime (SERIAL, KMR) */
-#define BACKEND_SERIAL 1
+#define BACKEND_KMR 1
 
 #include <stdio.h>
 #include <stdbool.h>

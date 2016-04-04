@@ -4,6 +4,8 @@
 #include "kmrnext.hpp"
 #include "util.hpp"
 
+/// TODO update this document
+///
 /// The current implementation of KMR-based DataStore consumes huge amount
 /// of memory.  It uses just an array, dense matrix, to store Data, but
 /// actually it is sparse.  It should be modified.
@@ -161,6 +163,9 @@ namespace kmrnext {
 
   void DataStore::add(const Key& key, const Data& data) {
     check_key_range(key);
+    if (!data_allocated_) {
+      set(value_);
+    }
     if (parallel_ || kmrnext_->rank() == 0) {
       size_t idx = key_to_index(key);
       Data *d = &(data_[idx]);
@@ -342,6 +347,7 @@ namespace kmrnext {
       data_size_ *= value_[i];
     }
     data_ = new Data[data_size_];
+    data_allocated_ = true;
 
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
@@ -711,10 +717,6 @@ namespace kmrnext {
       return NULL;
     }
     return physical_view_;
-  }
-
-  void DataStore::load_files(const vector<string>& files, Loader<string>& f) {
-    load_array(files, f);
   }
 
   string DataStore::dump(DataPack::Dumper& dumper) {

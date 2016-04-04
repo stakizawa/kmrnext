@@ -4,7 +4,7 @@
 /// KMR Next Interface
 
 /// The backend runtime (SERIAL, KMR)
-#define BACKEND_SERIAL 1
+#define BACKEND_KMR 1
 
 #include <stdexcept>
 #include <sstream>
