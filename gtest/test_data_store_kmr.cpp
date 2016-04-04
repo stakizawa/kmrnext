@@ -9,21 +9,49 @@ extern kmrnext::KMRNext *gNext;
 
 namespace {
 
-  class DataLoader1D : public kmrnext::DataStore::Loader<int> {
+  class DataLoader2D : public kmrnext::DataStore::Loader<long> {
     size_t size_;
   public:
-    DataLoader1D(size_t siz) : size_(siz) {}
+    DataLoader2D(size_t siz) : size_(siz) {}
 
-    int operator()(kmrnext::DataStore *ds, const int& num)
+    int operator()(kmrnext::DataStore *ds, const long& num)
     {
-      kmrnext::Data data((void*)&num, sizeof(int));
+      kmrnext::Key key(2);
+      key.set_dim(0, num);
+      int val = (int)num + 1;
+      kmrnext::Data data((void*)&val, sizeof(int));
       for (size_t i = 0; i < size_; i++) {
-	kmrnext::Key key = ds->index_to_key(i);
+	key.set_dim(1, i);
 	ds->add(key, data);
       }
       return 0;
     }
   };
+
+  class DataLoader3D : public kmrnext::DataStore::Loader<long> {
+    size_t size_y_;
+    size_t size_z_;
+  public:
+    DataLoader3D(size_t siz_y, size_t siz_z)
+      : size_y_(siz_y), size_z_(siz_z) {}
+
+    int operator()(kmrnext::DataStore *ds, const long& num)
+    {
+      size_t x = num / size_y_;
+      size_t y = num % size_y_;
+      kmrnext::Key key(3);
+      key.set_dim(0, x);
+      key.set_dim(1, y);
+      int val = 1;
+      kmrnext::Data data((void*)&val, sizeof(int));
+      for (size_t i = 0; i < size_z_; i++) {
+	key.set_dim(2, i);
+	ds->add(key, data);
+      }
+      return 0;
+    }
+  };
+
 
   class KMRDataStoreTest : public ::testing::Test {
   protected:
@@ -34,29 +62,29 @@ namespace {
       ds2_array_ = new size_t[2];
       ds2_array_[0] = 4;
       ds2_array_[1] = 4;
-      std::vector<int> ds2_vec;
+      std::vector<long> ds2_vec;
       for (size_t i = 0; i < ds2_array_[0]; i++) {
-	ds2_vec.push_back((int)i + 1);
+	ds2_vec.push_back(i);
       }
       ds2_owners_ = new int[4];
       init_owners(ds2_owners_, 4);
-      DataLoader1D ds2_loader1d(ds2_array_[1]);
+      DataLoader2D ds2_loader(ds2_array_[1]);
       ds2_ = new kmrnext::DataStore(2, gNext);
       ds2_->set(ds2_array_);
-      ds2_->load_array(ds2_vec, ds2_loader1d);
+      ds2_->load_integers(ds2_vec, ds2_loader);
 
       ds3_array_ = new size_t[3];
       ds3_array_[0] = 4;
       ds3_array_[1] = 4;
       ds3_array_[2] = 4;
-      std::vector<int> ds3_vec;
+      std::vector<long> ds3_vec;
       for (size_t i = 0; i < ds3_array_[0] * ds3_array_[1]; i++) {
-	ds3_vec.push_back(1);
+	ds3_vec.push_back(i);
       }
-      DataLoader1D ds3_loader1d(ds3_array_[2]);
+      DataLoader3D ds3_loader(ds3_array_[1], ds3_array_[2]);
       ds3_ = new kmrnext::DataStore(3, gNext);
       ds3_->set(ds3_array_);
-      ds3_->load_array(ds3_vec, ds3_loader1d);
+      ds3_->load_integers(ds3_vec, ds3_loader);
 
 
       size_t ary_k2_00[2] = {0,0};
@@ -136,6 +164,7 @@ namespace {
     kmrnext::Key *k3_113_;    // <1,1,3>
   };
 
+#if 0
   TEST_F(KMRDataStoreTest, Load_array) {
     // also tests ds.get()
     size_t ds_size[2] = {4,4};
@@ -478,33 +507,66 @@ namespace {
 	      ds3->get(*k3_000_).data()->owner());
     delete ds3;
   }
+#endif
 
-  TEST_F(KMRDataStoreTest, Set_physical_view) {
-    // By default, the physical view is NULL
-    EXPECT_EQ(NULL, ds3_->get_physical_view());
+  TEST_F(KMRDataStoreTest, Set_allocation_view) {
+    kmrnext::View ds3_0_dav(3);
+    bool flags3_0_dav[3] = {true, false, false};
+    ds3_0_dav.set(flags3_0_dav);
 
-    kmrnext::View v2(2);
-    bool flags2[2] = {true, true};
-    v2.set(flags2);
+    // If a DataStore is initialized without calling load_xxx(),
+    // the Allocation View is set <T, F, ...>, by default.
+    kmrnext::DataStore ds3_0(3, gNext);
+    {
+      ds3_0.set_dim(0, 2);
+      ds3_0.set_dim(1, 2);
+      ds3_0.set_dim(2, 2);
+      kmrnext::Key ds3_0_key(3);
+      int ds3_0_val = 1;
+      kmrnext::Data ds3_0_dat(&ds3_0_val, sizeof(int));
+      for (size_t i = 0; i < 2; i++) {
+	ds3_0_key.set_dim(0, i);
+	for (size_t j = 0; j < 2; j++) {
+	  ds3_0_key.set_dim(1, j);
+	  for (size_t k = 0; k < 2; k++) {
+	    ds3_0_key.set_dim(2, k);
+	    ds3_0.add(ds3_0_key, ds3_0_dat);
+	  }
+	}
+      }
+    }
+    EXPECT_EQ(ds3_0_dav, ds3_0.get_allocation_view());
+
     kmrnext::View v3_0(3);
     bool flags3_0[3] = {true, true, false};
     v3_0.set(flags3_0);
     kmrnext::View v3_1(3);
     bool flags3_1[3] = {false, true, true};
     v3_1.set(flags3_1);
+    kmrnext::View v3_2(3);
+    bool flags3_2[3] = {false, false, true};
+    v3_2.set(flags3_2);
+    kmrnext::View v2(2);
+    bool flags2[2] = {true, true};
+    v2.set(flags2);
 
-    // If the size of DataStore and View is not same, it throws runtime_error.
-    EXPECT_THROW({ds3_->set_physical_view(v2);}, std::runtime_error);
+    // If a DataStore is initialized by calling load_xxx(),
+    // the Allocation View is set according to the number of array items.
+    kmrnext::View ds3_dav = ds3_->get_allocation_view();
+    EXPECT_EQ(v3_0, ds3_dav);
 
     // If a view is set to the DataStore, the gotten View should be same.
-    ds3_->set_physical_view(v3_0);
-    kmrnext::View *v0 = ds3_->get_physical_view();
-    EXPECT_EQ(v3_0, *v0);
+    ds3_->set_allocation_view(v3_1);
+    kmrnext::View v0 = ds3_->get_allocation_view();
+    EXPECT_EQ(v3_1, v0);
 
     // If another view is set to the DataStore, the View should be replaced.
-    ds3_->set_physical_view(v3_1);
-    v0 = ds3_->get_physical_view();
-    EXPECT_EQ(v3_1, *v0);
+    ds3_->set_allocation_view(v3_2);
+    v0 = ds3_->get_allocation_view();
+    EXPECT_EQ(v3_2, v0);
+
+    // If the size of DataStore and View is not same, it throws runtime_error.
+    EXPECT_THROW({ds3_->set_allocation_view(v2);}, std::runtime_error);
   }
 
 }

@@ -396,11 +396,11 @@ namespace kmrnext {
     void collate(const View& view);
 
 #ifdef BACKEND_KMR
-    /// It sets the physical view of the DataStore.
-    void set_physical_view(const View& view);
+    /// It sets the allocation view of the DataStore.
+    void set_allocation_view(const View& view);
 
-    /// It returns the physical view of the DataStore.
-    View* get_physical_view();
+    /// It returns the allocation view of the DataStore.
+    View get_allocation_view();
 #endif
 
     /// It dumps data in the DataStore.
@@ -545,15 +545,12 @@ namespace kmrnext {
     // A KMRNext object that stores execution status
     KMRNext *kmrnext_;
 #ifdef BACKEND_KMR
-    /// Physical view of DataStore, that defines data distribution
-    View *physical_view_;
+    /// Allocation view of DataStore, that defines data distribution
+    View *allocation_view_;
 #endif
 
+    // This is a dummy DataStore that represents this object.
     static DataStore* self_;
-
-#ifdef BACKEND_KMR
-    static View* default_physical_view_;
-#endif
 
     // It sets size of each dimension.
     // It just sets pointer to data, not performs malloc and memcpy.

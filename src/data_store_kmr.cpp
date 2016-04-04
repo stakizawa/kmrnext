@@ -110,36 +110,15 @@ namespace {
 
 namespace kmrnext {
 
-  DataStore *DataStore::self_;
-  View *DataStore::default_physical_view_;
-
-  void DataStore::initialize() {
-    if (DataStore::self_ == NULL) {
-      DataStore::self_ = new DataStore(0);
-    }
-    if (DataStore::default_physical_view_ == NULL) {
-      DataStore::default_physical_view_ = new View(0);
-    }
-  }
-
-  void DataStore::finalize() {
-    if (DataStore::self_ != NULL) {
-      delete DataStore::self_;
-    }
-    if (DataStore::default_physical_view_ != NULL) {
-      delete DataStore::default_physical_view_;
-    }
-  }
-
   DataStore::DataStore(size_t siz)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
     data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(NULL), physical_view_(default_physical_view_) {}
+    kmrnext_(NULL), allocation_view_(NULL) {}
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
     data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(kn), physical_view_(default_physical_view_) {}
+    kmrnext_(kn), allocation_view_(NULL) {}
 
   DataStore::~DataStore() {
     if (data_allocated_) {
@@ -701,22 +680,28 @@ namespace kmrnext {
     parallel_ = false;
   }
 
-  void DataStore::set_physical_view(const View& view) {
+  void DataStore::set_allocation_view(const View& view) {
     check_view(view);
-    if (physical_view_ != default_physical_view_) {
-      delete physical_view_;
+    if (allocation_view_ == NULL) {
+      allocation_view_ = new View(view.size());
     }
-    physical_view_ = new View(view.size());
     for (size_t i = 0; i < view.size(); i++) {
-      physical_view_->set_dim(i, view.dim(i));
+      allocation_view_->set_dim(i, view.dim(i));
     }
   }
 
-  View* DataStore::get_physical_view() {
-    if (physical_view_ == default_physical_view_) {
-      return NULL;
+  View DataStore::get_allocation_view() {
+    if (allocation_view_ == NULL) {
+      allocation_view_ = new View(size_);
+      for (size_t i = 0; i < size_; i++) {
+	if (i == 0) {
+	  allocation_view_->set_dim(i, true);
+	} else {
+	  allocation_view_->set_dim(i, false);
+	}
+      }
     }
-    return physical_view_;
+    return *allocation_view_;
   }
 
   string DataStore::dump(DataPack::Dumper& dumper) {

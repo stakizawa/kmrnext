@@ -28,6 +28,20 @@ namespace {
 
 namespace kmrnext {
 
+  DataStore *DataStore::self_;
+
+  void DataStore::initialize() {
+    if (DataStore::self_ == NULL) {
+      DataStore::self_ = new DataStore(0);
+    }
+  }
+
+  void DataStore::finalize() {
+    if (DataStore::self_ != NULL) {
+      delete DataStore::self_;
+    }
+  }
+
   void DataStore::load_files(const vector<string>& files,
 			     Loader<string>& loader) {
     load_array(files, loader, kmrnext_, this, value_, size_);
@@ -121,8 +135,10 @@ namespace {
       ds0->add(key, dat);
     }
 #ifdef BACKEND_KMR
-    // TODO set physical_view to ds0
-    throw runtime_error("Not implemented yet.");
+    // Use Allocation View <T> so that each process loads an array element.
+    View pv_ds0(1);
+    pv_ds0.set_dim(0, true);
+    ds0->set_allocation_view(pv_ds0);
 #endif
 
     // Define a mapper for the loader
@@ -150,8 +166,28 @@ namespace {
     delete ds0;
 
 #ifdef BACKEND_KMR
-    // TODO set physical_view to this
-    throw runtime_error("Not implemented yet.");
+    View pv_ds(ds_dims_siz);
+    if (array.size() == 1) {
+      // Use Allocation View <T, F, ..> so that data will be distributed
+      // to nodes whose count is the top most dimension of the DataStore.
+      pv_ds.set_dim(0, true);
+      for (size_t i = 1; i < ds_dims_siz; i++) {
+	pv_ds.set_dim(i, false);
+      }
+    } else {
+      // Use Allocation View <T, .., T, F, ..> so that each node stores
+      // the contents of each array element.
+      bool vval = true;
+      size_t remain = array.size();
+      for (size_t i = 0; i < ds_dims_siz; i++) {
+	pv_ds.set_dim(i, vval);
+	remain /= ds->dim(i);
+	if (remain == 1) {
+	  vval = false;
+	}
+      }
+    }
+    ds->set_allocation_view(pv_ds);
 #endif
   }
 
