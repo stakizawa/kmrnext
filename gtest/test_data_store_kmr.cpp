@@ -124,6 +124,28 @@ namespace {
       }
     }
 
+    // Create a DataStore <3,3,3> having '1' for all data element
+    kmrnext::DataStore *create_ds3d() {
+      kmrnext::DataStore *ds3 = new kmrnext::DataStore(3, gNext);
+      ds3->set_dim(0, 3);
+      ds3->set_dim(1, 3);
+      ds3->set_dim(2, 3);
+      kmrnext::Key ds3_key(3);
+      int ds3_val = 1;
+      kmrnext::Data ds3_dat(&ds3_val, sizeof(int));
+      for (size_t i = 0; i < 3; i++) {
+	ds3_key.set_dim(0, i);
+	for (size_t j = 0; j < 3; j++) {
+	  ds3_key.set_dim(1, j);
+	  for (size_t k = 0; k < 3; k++) {
+	    ds3_key.set_dim(2, k);
+	    ds3->add(ds3_key, ds3_dat);
+	  }
+	}
+      }
+      return ds3;
+    }
+
     virtual ~KMRDataStoreTest() {
       delete[] ds2_array_;
       delete   ds2_;
@@ -567,6 +589,145 @@ namespace {
 
     // If the size of DataStore and View is not same, it throws runtime_error.
     EXPECT_THROW({ds3_->set_allocation_view(v2);}, std::runtime_error);
+  }
+
+  TEST_F(KMRDataStoreTest, Collate) {
+    kmrnext::Key key000(3);
+    size_t _k000[3] = {0, 0, 0};
+    key000.set(_k000);
+    kmrnext::Key key111(3);
+    size_t _k111[3] = {1, 1, 1};
+    key111.set(_k111);
+    kmrnext::Key key222(3);
+    size_t _k222[3] = {2, 2, 2};
+    key222.set(_k222);
+    kmrnext::Key key012(3);
+    size_t _k012[3] = {0, 1, 2};
+    key012.set(_k012);
+    kmrnext::Key key210(3);
+    size_t _k210[3] = {2, 1, 0};
+    key210.set(_k210);
+
+    kmrnext::DataStore *ds0 = create_ds3d();
+    // As the added data without calling map() reside on rank 0 only, and
+    // the default Allocation View is <T, F, F>, the first calling collate()
+    // makes change of data allocation.
+    // Check the allocation before collate()
+    EXPECT_EQ(0, ds0->get(key000).data()->owner());
+    EXPECT_EQ(0, ds0->get(key111).data()->owner());
+    EXPECT_EQ(0, ds0->get(key222).data()->owner());
+    ds0->collate();
+    // Check the allocation after collate()
+    if (nprocs >= 3) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(1, ds0->get(key111).data()->owner());
+      EXPECT_EQ(2, ds0->get(key222).data()->owner());
+    } else if (nprocs == 2) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(0, ds0->get(key111).data()->owner());
+      EXPECT_EQ(1, ds0->get(key222).data()->owner());
+    } else {  // nprocs == 1
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(0, ds0->get(key111).data()->owner());
+      EXPECT_EQ(0, ds0->get(key222).data()->owner());
+    }
+    EXPECT_EQ(1, *(int*)ds0->get(key000).data()->value());
+    EXPECT_EQ(1, *(int*)ds0->get(key111).data()->value());
+    EXPECT_EQ(1, *(int*)ds0->get(key222).data()->value());
+
+    // Without resetting the Allocation View, calling collate() again does
+    // not take any effect.
+    ds0->collate();
+    if (nprocs >= 3) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(1, ds0->get(key111).data()->owner());
+      EXPECT_EQ(2, ds0->get(key222).data()->owner());
+    } else if (nprocs == 2) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(0, ds0->get(key111).data()->owner());
+      EXPECT_EQ(1, ds0->get(key222).data()->owner());
+    } else {  // nprocs == 1
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(0, ds0->get(key111).data()->owner());
+      EXPECT_EQ(0, ds0->get(key222).data()->owner());
+    }
+
+    kmrnext::View aviewFTT(3);
+    bool _avFTT[3] = {false, true, true};
+    aviewFTT.set(_avFTT);
+
+    // By changing the Allocation View, calling collate() makes change of
+    // data allocation.
+    // The resultant viewed keys by applying this Allocation View is listed
+    // below and each of them has 3 data.
+    //
+    //        Keys  nprocs 1  2  3  4  5  6  7  8  9
+    //   <*, 0, 0>         0  0  0  0  0  0  0  0  0
+    //   <*, 0, 1>         0  0  0  0  0  0  0  0  1
+    //   <*, 0, 2>         0  0  0  0  1  1  1  1  2
+    //   <*, 1, 0>         0  0  1  1  1  1  1  2  3
+    //   <*, 1, 1>         0  0  1  1  2  2  2  3  4
+    //   <*, 1, 2>         0  1  1  2  2  2  3  4  5
+    //   <*, 2, 0>         0  1  2  2  3  3  4  5  6
+    //   <*, 2, 1>         0  1  2  3  3  4  5  6  7
+    //   <*, 2, 2>         0  1  2  3  4  5  6  7  8
+    ds0->set_allocation_view(aviewFTT);
+    ds0->collate();
+    if (nprocs >= 9) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(4, ds0->get(key111).data()->owner());
+      EXPECT_EQ(8, ds0->get(key222).data()->owner());
+      EXPECT_EQ(5, ds0->get(key012).data()->owner());
+      EXPECT_EQ(3, ds0->get(key210).data()->owner());
+    } else if (nprocs == 8) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(3, ds0->get(key111).data()->owner());
+      EXPECT_EQ(7, ds0->get(key222).data()->owner());
+      EXPECT_EQ(4, ds0->get(key012).data()->owner());
+      EXPECT_EQ(2, ds0->get(key210).data()->owner());
+    } else if (nprocs == 7) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(2, ds0->get(key111).data()->owner());
+      EXPECT_EQ(6, ds0->get(key222).data()->owner());
+      EXPECT_EQ(3, ds0->get(key012).data()->owner());
+      EXPECT_EQ(1, ds0->get(key210).data()->owner());
+    } else if (nprocs == 6) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(2, ds0->get(key111).data()->owner());
+      EXPECT_EQ(5, ds0->get(key222).data()->owner());
+      EXPECT_EQ(2, ds0->get(key012).data()->owner());
+      EXPECT_EQ(1, ds0->get(key210).data()->owner());
+    } else if (nprocs == 5) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(2, ds0->get(key111).data()->owner());
+      EXPECT_EQ(4, ds0->get(key222).data()->owner());
+      EXPECT_EQ(2, ds0->get(key012).data()->owner());
+      EXPECT_EQ(1, ds0->get(key210).data()->owner());
+    } else if (nprocs == 4) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(1, ds0->get(key111).data()->owner());
+      EXPECT_EQ(3, ds0->get(key222).data()->owner());
+      EXPECT_EQ(2, ds0->get(key012).data()->owner());
+      EXPECT_EQ(1, ds0->get(key210).data()->owner());
+    } else if (nprocs == 3) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(1, ds0->get(key111).data()->owner());
+      EXPECT_EQ(2, ds0->get(key222).data()->owner());
+      EXPECT_EQ(1, ds0->get(key012).data()->owner());
+      EXPECT_EQ(1, ds0->get(key210).data()->owner());
+    } else if (nprocs == 2) {
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(0, ds0->get(key111).data()->owner());
+      EXPECT_EQ(1, ds0->get(key222).data()->owner());
+      EXPECT_EQ(1, ds0->get(key012).data()->owner());
+      EXPECT_EQ(0, ds0->get(key210).data()->owner());
+    } else {  // nprocs == 1
+      EXPECT_EQ(0, ds0->get(key000).data()->owner());
+      EXPECT_EQ(0, ds0->get(key111).data()->owner());
+      EXPECT_EQ(0, ds0->get(key222).data()->owner());
+      EXPECT_EQ(0, ds0->get(key012).data()->owner());
+      EXPECT_EQ(0, ds0->get(key210).data()->owner());
+    }
   }
 
 }

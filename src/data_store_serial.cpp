@@ -236,6 +236,7 @@ namespace kmrnext {
     }
   }
 
+#if 0 // TODO delete
   void DataStore::map_single(Mapper& m, const View& view, DataStore* outds) {
     map(m, view, outds);
   }
@@ -243,6 +244,7 @@ namespace kmrnext {
   void DataStore::collate(const View& view) {
     // Do nothing
   }
+#endif
 
   string DataStore::dump(DataPack::Dumper& dumper) {
     class WrappedDumper : public Mapper {

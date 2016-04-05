@@ -40,23 +40,27 @@ namespace {
     bool map_local;
   } param_mapper_map;
 
+#if 0 // TODO delete
   /// Parameter for mapper_map_single
   typedef struct {
     vector< vector<DataPack> >& dpgroups;
     int key_index;
     vector< vector<DataPack> >& map_dpses;
   } param_mapper_map_single;
+#endif
 
   /// Parameter for mapper_collate
   typedef struct {
     DataStore *ds;
   } param_mapper_collate;
 
+#if 0
   /// Parameter for mapper_map_single_deserialize
   typedef struct {
     int key_index;
     vector< vector<DataPack> >& dpsgroup;
   } param_mapper_map_single_deserialize;
+#endif
 
   /// It copies a key-value to vector<DataPack>.
   ///
@@ -73,6 +77,7 @@ namespace {
   int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
 		 KMR_KVS *kvo, void *p, const long i);
 
+#if 0 // TODO delete
   /// It maps Datas in a DataStore using only one node.
   ///
   /// It is a KMR mapper function.  Key and value of the key-value should
@@ -87,6 +92,7 @@ namespace {
   int mapper_map_single_deserialize(const struct kmr_kv_box kv0,
 				    const KMR_KVS *kvi, KMR_KVS *kvo,
 				    void *p, const long i);
+#endif
 
   /// It deserializes a Data from a key-value and add the Data to
   /// the DataStore.
@@ -106,6 +112,9 @@ namespace {
 
   /// It deserializes a datapack from a byte array.
   DataPack deserialize_datapack(const char* buf, size_t buf_siz);
+
+  /// It calculates send target rank.
+  inline size_t calc_send_target(size_t index, size_t count, size_t nprocs);
 }
 
 namespace kmrnext {
@@ -383,6 +392,7 @@ namespace kmrnext {
     if (data_size_ == 0) {
       return;
     }
+    collate();
 
     bool is_local = true;
     size_t nkeys = 1;
@@ -473,8 +483,11 @@ namespace kmrnext {
 	data_[i].unshared();
       }
     }
+
+    // TODO set allocation view to output ds if input ds != output ds
   }
 
+#if 0 // TODO delete
   void DataStore::map_single(Mapper& m, const View& view, DataStore* outds) {
     check_map_args(view, outds);
     if (data_size_ == 0) {
@@ -679,6 +692,7 @@ namespace kmrnext {
     map_inplace_ = false;
     parallel_ = false;
   }
+#endif
 
   void DataStore::set_allocation_view(const View& view) {
     check_view(view);
@@ -864,8 +878,9 @@ namespace kmrnext {
   }
 
   size_t DataStore::key_to_viewed_index(const Key& key, const View& view) {
+    // Currently, it returns row-orderd index
+#if 0
     // It returns column-ordered index
-#if 1
     size_t idx = 0;
     for (int i = (int)size_-1; i >= 0; i--) {
       if (view.dim(i)) {
@@ -880,6 +895,7 @@ namespace kmrnext {
     }
     return idx;
 #else
+    // It returns row-ordered index
     size_t idx = 0;
     for (size_t i = 0; i < size_; i++) {
       if (view.dim(i)) {
@@ -930,6 +946,158 @@ namespace kmrnext {
   }
 #endif
 
+  void DataStore::collate() {
+    View aview = get_allocation_view();
+
+    // Count of viewed data
+    size_t ndata;
+    // Indices of viewed Keys whose related data should be reside
+    // in this process
+    size_t *indices;
+    // size of indices
+    size_t indices_cnt;
+
+    // Check if collate is necessary.
+    {
+      ndata = 1;
+      // Element count of each data
+      size_t each_cnt = 1;
+      for (size_t i = 0; i < size_; i++) {
+	if (aview.dim(i)) {
+	  ndata *= value_[i];
+	} else {
+	  each_cnt *= value_[i];
+	}
+      }
+
+      // Calculate indices of Data this process should hold
+      {
+	size_t avg_cnt = ndata / (size_t)kmrnext_->nprocs();
+	size_t rem_cnt = ndata % (size_t)kmrnext_->nprocs();
+	indices_cnt = (kmrnext_->rank() < (int)rem_cnt)? avg_cnt + 1 : avg_cnt;
+	indices = new size_t[indices_cnt];
+	size_t start = avg_cnt * (size_t)kmrnext_->rank()
+	  + ((kmrnext_->rank() < (int)rem_cnt)? kmrnext_->rank() : rem_cnt);
+	for (size_t i = 0; i < indices_cnt; i++) {
+	  indices[i] = start + i;
+	}
+      }
+
+      // It holds the DataPacks this process should hold
+      vector< vector<DataPack> > dpgroups(indices_cnt);
+      {
+	size_t range_start = indices[0];
+	size_t range_end   = indices[indices_cnt - 1];
+#ifdef _OPENMP
+        #pragma omp parallel for
+#endif
+	for (size_t i = 0; i < data_size_; i++) {
+	  if (data_[i].value() == NULL ||
+	      (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank())) {
+	    continue;
+	  }
+	  Key tmpkey = index_to_key(i);
+	  size_t viewed_idx = key_to_viewed_index(tmpkey, aview);
+	  if (range_start <= viewed_idx && viewed_idx <= range_end) {
+	    size_t idx = viewed_idx - range_start;
+	    vector<DataPack>& dps = dpgroups.at(idx);
+#ifdef _OPENMP
+            #pragma omp critical
+#endif
+	    dps.push_back(DataPack(tmpkey, &(data_[i])));
+	  }
+	}
+      }
+
+      int local_need_collate = 0;
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (size_t i = 0; i < dpgroups.size(); i++) {
+	vector<DataPack>& dps = dpgroups.at(i);
+	if (dps.size() != each_cnt) {
+	  local_need_collate = 1;
+	}
+      }
+      int need_collate;
+      MPI_Allreduce(&local_need_collate, &need_collate, 1, MPI_INT, MPI_MAX,
+		    kmrnext_->kmr()->comm);
+      if (need_collate == 0) {
+	// no need to collate
+	return;
+      }
+    }
+
+    // Collate from here
+
+    // Search data should be sent
+    vector< vector<DataPack> > dpgroups(ndata);
+    {
+      size_t range_start = indices[0];
+      size_t range_end   = indices[indices_cnt - 1];
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (size_t i = 0; i < data_size_; i++) {
+	if (data_[i].value() == NULL) {
+	  continue;
+	}
+	if (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank()) {
+	  data_[i].clear();
+	  continue;
+	}
+	data_[i].unshared();
+	Key tmpkey = index_to_key(i);
+	size_t viewed_idx = key_to_viewed_index(tmpkey, aview);
+	if (!(range_start <= viewed_idx && viewed_idx <= range_end)) {
+	  vector<DataPack>& dps = dpgroups.at(viewed_idx);
+#ifdef _OPENMP
+          #pragma omp critical
+#endif
+	  dps.push_back(DataPack(tmpkey, &(data_[i])));
+	}
+      }
+    }
+
+    KMR_KVS *kvs0 = kmr_create_kvs(kmrnext_->kmr(),
+				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < ndata; i++) {
+      vector<DataPack> &dps = dpgroups.at(i);
+      if (dps.size() > 0) {
+	for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
+	     itr++) {
+	  char *buf;
+	  size_t buf_siz;
+	  serialize_datapack(&(*itr), &buf, &buf_siz);
+	  struct kmr_kv_box kv;
+	  kv.klen = (int)sizeof(size_t);
+	  kv.vlen = (int)buf_siz;
+	  kv.k.i  = calc_send_target(i, ndata, (size_t)kmrnext_->nprocs());
+	  kv.v.p  = buf;
+	  kmr_add_kv(kvs0, kv);
+	  free(buf);
+	  (*itr).data()->clear();
+	}
+      }
+    }
+    kmr_add_kv_done(kvs0);
+
+    KMR_KVS *kvs1 = kmr_create_kvs(kmrnext_->kmr(),
+				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
+    struct kmr_option kmr_shflopt = kmr_noopt;
+    kmr_shflopt.key_as_rank = 1;
+    kmr_shuffle(kvs0, kvs1, kmr_shflopt);
+    parallel_ = true;
+    map_inplace_ = true;
+    param_mapper_collate p0 = { this };
+    kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
+    map_inplace_ = false;
+    parallel_ = false;
+  }
+
 }
 
 namespace {
@@ -971,6 +1139,7 @@ namespace {
     return MPI_SUCCESS;
   }
 
+#if 0 // TODO delete
   int mapper_map_single(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
 			KMR_KVS *kvo, void *p, const long i_) {
     param_mapper_map_single *param = (param_mapper_map_single *)p;
@@ -1026,6 +1195,7 @@ namespace {
     }
     return MPI_SUCCESS;
   }
+#endif
 
   int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m) {
     param_mapper_map *param = (param_mapper_map *)arg;
@@ -1122,6 +1292,26 @@ namespace {
     d->set_owner(*(int*)p);
 
     return DataPack(k, d);
+  }
+
+  inline size_t calc_send_target(size_t index, size_t count, size_t nprocs) {
+    size_t avg = count / nprocs;
+    size_t rem = count % nprocs;
+    size_t idx_max = 0;
+    size_t result;
+    size_t fset = false;
+    for (size_t i = 0; i < nprocs; i++) {
+      idx_max += (i < rem)? avg + 1 : avg;
+      if (index < idx_max) {
+	result = i;
+	fset = true;
+	break;
+      }
+    }
+    if (!fset) {
+      throw runtime_error("Logical error at calc_send_target().");
+    }
+    return result;
   }
 
 }

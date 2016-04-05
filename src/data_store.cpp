@@ -84,6 +84,7 @@ namespace kmrnext {
     }
   }
 
+#if 0 // TODO delete
   void DataStore::check_collate_args(const View& view) {
     if (size_ != view.size()) {
       throw runtime_error("Dimension size of the DataStore and "
@@ -93,6 +94,7 @@ namespace kmrnext {
       throw runtime_error("Data should be set to the DataStore.");
     }
   }
+#endif
 
 }
 

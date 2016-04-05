@@ -380,6 +380,7 @@ namespace kmrnext {
     /// data elements of this DataStore are updated in-place.
     void map(Mapper& m, const View& view, DataStore* outds=self_);
 
+#if 0 // TODO delete
     /// It maps each data.
     ///
     /// It maps on a single nodes.  Before running the mapper object, m,
@@ -394,6 +395,7 @@ namespace kmrnext {
     /// using the View.  Data elements are distributed among nodes by
     /// dimensions whose values are TURE in the View
     void collate(const View& view);
+#endif
 
 #ifdef BACKEND_KMR
     /// It sets the allocation view of the DataStore.
@@ -401,6 +403,13 @@ namespace kmrnext {
 
     /// It returns the allocation view of the DataStore.
     View get_allocation_view();
+
+    // It globally sorts data.
+    // It changes the arrangement of data elements in the DataStore among
+    // nodes using the Allocation View.  It is automatically called in
+    // DataStore.map() function, so that explicitly calling this function
+    // is not required.
+    void collate();
 #endif
 
     /// It dumps data in the DataStore.
@@ -466,7 +475,7 @@ namespace kmrnext {
     // A KMRNext object that stores execution status
     KMRNext *kmrnext_;
 #ifdef BACKEND_KMR
-    /// Allocation view of DataStore, that defines data distribution
+    /// Allocation View of DataStore, that defines data distribution
     View *allocation_view_;
 #endif
 
@@ -493,8 +502,10 @@ namespace kmrnext {
     // It checks the arguments of map().
     void check_map_args(const View& view, DataStore* outds);
 
+#if 0 // TODO delete
     // It checks the arguments of collate().
     void check_collate_args(const View& view);
+#endif
   };
 
 }
