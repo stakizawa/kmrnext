@@ -84,18 +84,6 @@ namespace kmrnext {
     }
   }
 
-#if 0 // TODO delete
-  void DataStore::check_collate_args(const View& view) {
-    if (size_ != view.size()) {
-      throw runtime_error("Dimension size of the DataStore and "
-			  "view should be same.");
-    }
-    if (data_size_ == 0) {
-      throw runtime_error("Data should be set to the DataStore.");
-    }
-  }
-#endif
-
 }
 
 #ifdef BACKEND_SERIAL

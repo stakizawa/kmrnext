@@ -4,20 +4,28 @@
 #include "kmrnext.hpp"
 #include "util.hpp"
 
-/// TODO update this document
-///
+
 /// The current implementation of KMR-based DataStore consumes huge amount
 /// of memory.  It uses just an array, dense matrix, to store Data, but
 /// actually it is sparse.  It should be modified.
 ///
 /// The basic storategy for parallelization
-/// add        : rank 0 process adds data locally in case of serial context
-///              each process adds data locally in case of parallel context
-/// get        : a process that has the data broadcasts it
-///              separate implementation in serial/parallel context?
-/// get<view>  : the data is allgathered between all processes
-/// map        : input data is scattered and output data is written locally
-/// load_files : files are block-assigned to processes and load them locally
+/// add        : Rank 0 process adds data locally in case of serial context.
+///              Each process adds data locally in case of parallel context
+///              (when using map() function).
+/// get        : A process that has the data broadcasts it.
+/// get<view>  : The data is allgathered between all processes.
+/// map        : Before applying the fanctor, the data elements are shuffled
+///              between nodes according to the specified allocation view.
+///              When applying the fanctor, the DataStore is split by the
+///              specified (task) view, which defines a unit of task, nodes
+///              that have the data elements which should be processed as a
+///              task are grouped, and then the functor runs on the nodes
+///              to process the task.
+/// load_xxx   : Array elements are added on rank 0 only, but they are
+///              scattered when the data in them are loaded.  So, if there
+///              are enough number of nodes (#nodes > #array element), the
+///              array elements can be simultaneously loaded.
 
 namespace {
   using namespace kmrnext;
@@ -40,27 +48,10 @@ namespace {
     bool map_local;
   } param_mapper_map;
 
-#if 0 // TODO delete
-  /// Parameter for mapper_map_single
-  typedef struct {
-    vector< vector<DataPack> >& dpgroups;
-    int key_index;
-    vector< vector<DataPack> >& map_dpses;
-  } param_mapper_map_single;
-#endif
-
   /// Parameter for mapper_collate
   typedef struct {
     DataStore *ds;
   } param_mapper_collate;
-
-#if 0
-  /// Parameter for mapper_map_single_deserialize
-  typedef struct {
-    int key_index;
-    vector< vector<DataPack> >& dpsgroup;
-  } param_mapper_map_single_deserialize;
-#endif
 
   /// It copies a key-value to vector<DataPack>.
   ///
@@ -76,23 +67,6 @@ namespace {
   /// be an integer that represents index of Key-Data vactor.
   int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
 		 KMR_KVS *kvo, void *p, const long i);
-
-#if 0 // TODO delete
-  /// It maps Datas in a DataStore using only one node.
-  ///
-  /// It is a KMR mapper function.  Key and value of the key-value should
-  /// be an integer that represents index of Key-Data vector.
-  int mapper_map_single(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-			KMR_KVS *kvo, void *p, const long i);
-
-  /// It deserialize a DataPack from a key-value.
-  ///
-  /// It is a KMR mapper function. The value of the key-value should be
-  /// a byte array that represents a DataPack.
-  int mapper_map_single_deserialize(const struct kmr_kv_box kv0,
-				    const KMR_KVS *kvi, KMR_KVS *kvo,
-				    void *p, const long i);
-#endif
 
   /// It deserializes a Data from a key-value and add the Data to
   /// the DataStore.
@@ -459,7 +433,8 @@ namespace kmrnext {
       _outds = this;
     }
     _outds->parallel_ = true;
-    MapEnvironment env = { kmrnext_->rank(), MPI_COMM_NULL };
+    MapEnvironment env = { kmrnext_->rank(), view, get_allocation_view(),
+			   MPI_COMM_NULL };
     param_mapper_map param = { m, this, _outds, view, env, dpgroups,
 			       is_local };
     if (is_local) {
@@ -483,216 +458,7 @@ namespace kmrnext {
 	data_[i].unshared();
       }
     }
-
-    // TODO set allocation view to output ds if input ds != output ds
   }
-
-#if 0 // TODO delete
-  void DataStore::map_single(Mapper& m, const View& view, DataStore* outds) {
-    check_map_args(view, outds);
-    if (data_size_ == 0) {
-      return;
-    }
-
-    int key_idx = -1;
-    for (int i = (int)size_ - 1; i >= 0; i--) {
-      if (view.dim(i)) {
-	key_idx = i;
-	break;
-      }
-    }
-
-    size_t ngrps = 1;
-    {
-      bool is_local = true;
-      for (int i = 0; i < (int)size_; i++) {
-	if (view.dim(i)) {
-	  if (i == key_idx) {
-	    break;
-	  }
-	  ngrps *= value_[i];
-	} else {
-	  is_local = false;
-	}
-      }
-      if (is_local) {
-	map(m, view, outds);
-	return;
-      }
-    }
-
-    View grpview = view;
-    if (key_idx != -1) {
-      grpview.set_dim(key_idx, false);
-    }
-
-    vector< vector<DataPack> > dpgroups(ngrps);
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (size_t i = 0; i < data_size_; i++) {
-      if (data_[i].value() == NULL ||
-    	  (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank())) {
-    	continue;
-      }
-      Key tmpkey = index_to_key(i);
-      size_t viewed_idx = key_to_viewed_index(tmpkey, grpview);
-      vector<DataPack>& dps = dpgroups.at(viewed_idx);
-#ifdef _OPENMP
-      #pragma omp critical
-#endif
-      dps.push_back(DataPack(tmpkey, &(data_[i])));
-    }
-
-    KMR_KVS *ikvs = kmr_create_kvs(kmrnext_->kmr(),
-				   KMR_KV_INTEGER, KMR_KV_INTEGER);
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (size_t i = 0; i < ngrps; i++) {
-      vector<DataPack> &dps = dpgroups.at(i);
-      if (dps.size() > 0) {
-	struct kmr_kv_box kv;
-	kv.klen = (int)sizeof(size_t);
-	kv.vlen = (int)sizeof(size_t);
-	kv.k.i  = i;
-	kv.v.i  = i;
-	kmr_add_kv(ikvs, kv);
-      }
-    }
-    kmr_add_kv_done(ikvs);
-
-    size_t nkeys = (key_idx >= 0)? dim(key_idx) : 1;
-    vector< vector<DataPack> > map_dpses(nkeys);
-    param_mapper_map_single param = { dpgroups, key_idx, map_dpses };
-    kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
-				kmrnext_->rank(), mapper_map_single);
-
-    DataStore *_outds = outds;
-    if (outds == self_ || outds == this) {
-      _outds = this;
-      map_inplace_ = true;
-#ifdef _OPENMP
-      #pragma omp parallel for
-#endif
-      for (size_t i = 0; i < data_size_; i++) {
-	data_[i].reset_share();
-      }
-    }
-    _outds->parallel_ = true;
-
-    MapEnvironment env = { kmrnext_->rank(), MPI_COMM_SELF };
-    for (size_t i = 0; i < nkeys; i++) {
-      vector<DataPack> map_dps = map_dpses.at(i);
-      if (map_dps.size() != 0) {
-	Key viewed_key =
-	  key_to_viewed_key(map_dps.at(0).key(), view);
-	m(this, _outds, viewed_key, map_dps, env);
-
-	for (vector<DataPack>::iterator itr = map_dps.begin();
-	     itr != map_dps.end(); itr++) {
-	  Data *d = (*itr).data();
-	  delete d;
-	}
-      }
-    }
-
-    _outds->parallel_ = false;
-    if (outds == self_ || outds == this) {
-      map_inplace_ = false;
-      // clear old data
-#ifdef _OPENMP
-      #pragma omp parallel for
-#endif
-      for (size_t i = 0; i < data_size_; i++) {
-	if (data_[i].owner() != kmrnext_->rank()) {
-	  data_[i].clear();
-	}
-      }
-    }
-  }
-
-  void DataStore::collate(const View& view) {
-    check_collate_args(view);
-
-    size_t nsegments = 1;
-    {
-      // Just for error checking.  The current implementation is very naive.
-      for (size_t i = 0; i < size_; i++) {
-	if (view.dim(i)) {
-	  nsegments *= value_[i];
-	}
-      }
-      if (nsegments != (size_t)kmrnext_->kmr()->nprocs) {
-	throw runtime_error("The number of processes should be equal to "
-			    "the multiple of dimension sizes whose view "
-			    "are set to be True.");
-      }
-    }
-
-    vector< vector<DataPack> > dpgroups(nsegments);
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (size_t i = 0; i < data_size_; i++) {
-      if (data_[i].value() == NULL) {
-	continue;
-      }
-      if (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank()) {
-	data_[i].clear();
-    	continue;
-      }
-      data_[i].unshared();
-      Key tmpkey = index_to_key(i);
-      size_t viewed_idx = key_to_viewed_index(tmpkey, view);
-      if (viewed_idx != (size_t)kmrnext_->rank()) {
-	vector<DataPack>& dps = dpgroups.at(viewed_idx);
-#ifdef _OPENMP
-        #pragma omp critical
-#endif
-	dps.push_back(DataPack(tmpkey, &(data_[i])));
-      }
-    }
-
-    KMR_KVS *kvs0 = kmr_create_kvs(kmrnext_->kmr(),
-				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (size_t i = 0; i < nsegments; i++) {
-      vector<DataPack> &dps = dpgroups.at(i);
-      if (dps.size() > 0) {
-	for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
-	     itr++) {
-	  char *buf;
-	  size_t buf_siz;
-	  serialize_datapack(&(*itr), &buf, &buf_siz);
-	  struct kmr_kv_box kv;
-	  kv.klen = (int)sizeof(size_t);
-	  kv.vlen = (int)buf_siz;
-	  kv.k.i  = i;
-	  kv.v.p  = buf;
-	  kmr_add_kv(kvs0, kv);
-	  free(buf);
-	  (*itr).data()->clear();
-	}
-      }
-    }
-    kmr_add_kv_done(kvs0);
-
-    KMR_KVS *kvs1 = kmr_create_kvs(kmrnext_->kmr(),
-				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
-    struct kmr_option kmr_shflopt = kmr_noopt;
-    kmr_shflopt.key_as_rank = 1;
-    kmr_shuffle(kvs0, kvs1, kmr_shflopt);
-    parallel_ = true;
-    map_inplace_ = true;
-    param_mapper_collate p0 = { this };
-    kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
-    map_inplace_ = false;
-    parallel_ = false;
-  }
-#endif
 
   void DataStore::set_allocation_view(const View& view) {
     check_view(view);
@@ -1138,64 +904,6 @@ namespace {
     }
     return MPI_SUCCESS;
   }
-
-#if 0 // TODO delete
-  int mapper_map_single(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-			KMR_KVS *kvo, void *p, const long i_) {
-    param_mapper_map_single *param = (param_mapper_map_single *)p;
-    size_t idx = kv0.k.i;
-    vector<DataPack>& dps = param->dpgroups.at(idx);
-    if (dps.size() == 0) {
-      return MPI_SUCCESS;
-    }
-
-    KMR_KVS *kvs0 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
-    for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
-	 itr++) {
-      char *buf;
-      size_t buf_siz;
-      serialize_datapack(&(*itr), &buf, &buf_siz);
-      struct kmr_kv_box kv;
-      kv.klen = (int)sizeof(size_t);
-      kv.vlen = (int)buf_siz;
-      if (param->key_index >= 0) {
-	kv.k.i  = (*itr).key().dim(param->key_index);
-      } else {
-	kv.k.i  = 0;
-      }
-      kv.v.p  = buf;
-      kmr_add_kv(kvs0, kv);
-      free(buf);
-    }
-    kmr_add_kv_done(kvs0);
-    KMR_KVS *kvs1 = kmr_create_kvs(kvi->c.mr, KMR_KV_INTEGER, KMR_KV_OPAQUE);
-    kmr_shuffle(kvs0, kvs1, kmr_noopt);
-    param_mapper_map_single_deserialize p0 = { param->key_index,
-					       param->map_dpses };
-    kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_map_single_deserialize);
-
-    return MPI_SUCCESS;
-  }
-
-  int mapper_map_single_deserialize(const struct kmr_kv_box kv0,
-				    const KMR_KVS *kvi, KMR_KVS *kvo,
-				    void *p, const long i) {
-    DataPack dp = deserialize_datapack(kv0.v.p, kv0.vlen);
-    param_mapper_map_single_deserialize *param =
-      (param_mapper_map_single_deserialize*)p;
-    size_t idx = (param->key_index >= 0)?
-      dp.key().dim(param->key_index) : 0;
-#ifdef _OPENMP
-    #pragma omp critical
-    // As a KMR map function is run in parallel by OpenMP, shared resources
-    // should be modified in critical regions.
-#endif
-    {
-      param->dpsgroup.at(idx).push_back(dp);
-    }
-    return MPI_SUCCESS;
-  }
-#endif
 
   int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m) {
     param_mapper_map *param = (param_mapper_map *)arg;

@@ -85,6 +85,7 @@ void print_line(string& str);
 void print_line(ostringstream& os);
 double gettime();
 double gettime(DataStore::MapEnvironment& env);
+int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs);
 
 //////////////////////////////////////////////////////////////////////////////
 // Main starts from here.
@@ -188,7 +189,9 @@ public:
 #elif defined BACKEND_KMR
     int nprocs_sim;
     MPI_Comm_size(env.mpi_comm, &nprocs_sim);
-    assert(nprocs_sim == nprocs);
+    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+					    nprocs_sim);
+    assert(nprocs_sim == nprocs_calc);
     size_t local_count = dps.size();
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
@@ -218,6 +221,12 @@ void run_simulation(DataStore* ds, Time& time)
 {
   PseudoSimulation mapper(time);
   time.sim_invoke = gettime();
+#ifdef BACKEND_KMR
+  View alc_view(kDimSpace);
+  bool alc_view_flag[3] = {true, true, false};
+  alc_view.set(alc_view_flag);
+  ds->set_allocation_view(alc_view);
+#endif
   View view(kDimSpace);
   bool view_flag[3] = {false, false, false};
   view.set(view_flag);
@@ -265,6 +274,9 @@ void run_viz(DataStore* ds, Time& time)
 {
   PseudoVisualization mapper(time);
   time.viz_invoke = gettime();
+#ifdef BACKEND_KMR
+  // As task runs on each point, any Allocation View is OK.
+#endif
   View view(kDimSpace);
   bool view_flag[3] = {true, true, true};
   view.set(view_flag);
@@ -299,4 +311,21 @@ double gettime(DataStore::MapEnvironment& env) {
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
   return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+}
+
+int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
+  int total_nprocs = 1;
+  int nprocs_calc = 1;
+  for (size_t i = 0; i < view.size(); i++) {
+    if (!view.dim(i) && alc_view.dim(i)) {
+      nprocs_calc *= (int)kSpaceSizes[i];
+    }
+    if (alc_view.dim(i)) {
+      total_nprocs *= (int)kSpaceSizes[i];
+    }
+  }
+  if (nprocs < total_nprocs) {
+    nprocs_calc = given_nprocs;
+  }
+  return nprocs_calc;
 }

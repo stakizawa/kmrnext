@@ -313,7 +313,14 @@ namespace kmrnext {
       /// In case of Serial backend driver, it is 0.
       /// In case of KMR backend driver, it is a MPI rank in MPI_COMM_WORLD.
       int rank;
+
+      /// View used to separate the DataStore
+      View view;
+
 #ifdef BACKEND_KMR
+      /// Allocation View that define the allocation of data in the DataStore
+      View allocation_view;
+
       /// MPI_Comm used for processes a Value between processes.
       MPI_Comm mpi_comm;
 #endif
@@ -354,15 +361,20 @@ namespace kmrnext {
 
     /// It gets a specified data from this DataStore.
     ///
-    /// If the data does not exist, it returns NULL data.(TODO comment)
+    /// Even if the data does not exist, it returns a DataPack object.
+    /// However, the Data of the DataPack is NULL.
     DataPack get(const Key& key);
 
     /// It gets data whose keys are same when the specified view is applied.
+    ///
+    /// Even if the data does not exist, it returns a DataPack object.
+    /// However, the Data of the DataPack is NULL.
     vector<DataPack>* get(const View& view, const Key& key);
 
     /// It removes a specified data from this DataStore.
     ///
-    /// If the data does not exist, it returns NULL data.(TODO comment)
+    /// Even if the data does not exist, it returns a DataPack object.
+    /// However, the Data of the DataPack is NULL.
     DataPack remove(const Key& key);
 
     /// It sets Data from DataStores.
@@ -379,23 +391,6 @@ namespace kmrnext {
     /// of the output DataStore, outds.  If the last parameter is omitted,
     /// data elements of this DataStore are updated in-place.
     void map(Mapper& m, const View& view, DataStore* outds=self_);
-
-#if 0 // TODO delete
-    /// It maps each data.
-    ///
-    /// It maps on a single nodes.  Before running the mapper object, m,
-    /// data that have the same key are gathered to a node and then the
-    /// mapper runs on the nodes as a serial program.
-    void map_single(Mapper& m, const View& view,
-		    DataStore* outds=self_);
-
-    /// It globally sorts data.
-    ///
-    /// It changes the arrangement of data elements in the DS among nodes
-    /// using the View.  Data elements are distributed among nodes by
-    /// dimensions whose values are TURE in the View
-    void collate(const View& view);
-#endif
 
 #ifdef BACKEND_KMR
     /// It sets the allocation view of the DataStore.
@@ -502,10 +497,6 @@ namespace kmrnext {
     // It checks the arguments of map().
     void check_map_args(const View& view, DataStore* outds);
 
-#if 0 // TODO delete
-    // It checks the arguments of collate().
-    void check_collate_args(const View& view);
-#endif
   };
 
 }

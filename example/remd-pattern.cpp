@@ -8,6 +8,7 @@ using namespace std;
 using namespace kmrnext;
 
 int rank = 0;
+int nprocs = 1;
 
 const size_t kNumIteration = 10;
 
@@ -84,6 +85,7 @@ void print_line(string& str);
 void print_line(ostringstream& os);
 double gettime();
 double gettime(DataStore::MapEnvironment& env);
+int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs);
 
 //////////////////////////////////////////////////////////////////////////////
 // Main starts from here.
@@ -94,6 +96,7 @@ main(int argc, char **argv)
   KMRNext *next = KMRNext::init(argc, argv);
 #ifdef BACKEND_KMR
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 #endif
 
   DataStore* ds0 = next->create_ds(kNumDimensions);
@@ -191,6 +194,11 @@ public:
 #ifdef BACKEND_SERIAL
     assert(dps.size() == (size_t)(kNumProc * kNumData));
 #elif defined BACKEND_KMR
+    int nprocs_sim;
+    MPI_Comm_size(env.mpi_comm, &nprocs_sim);
+    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+					    nprocs_sim);
+    assert(nprocs_sim == nprocs_calc);
     size_t local_count = dps.size();
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
@@ -220,6 +228,12 @@ void run_md(DataStore* ds, Time& time)
 {
   PseudoMD mapper(time);
   time.md_invoke = gettime();
+#ifdef BACKEND_KMR
+  View alc_view(kNumDimensions);
+  bool alc_view_flag[3] = {true, true, false};
+  alc_view.set(alc_view_flag);
+  ds->set_allocation_view(alc_view);
+#endif
   View view(kNumDimensions);
   bool view_flag[3] = {true, false, false};
   view.set(view_flag);
@@ -240,6 +254,11 @@ public:
 #ifdef BACKEND_SERIAL
       assert(dps.size() == (size_t)(kNumEnsemble * kNumData));
 #elif defined BACKEND_KMR
+    int nprocs_ex;
+    MPI_Comm_size(env.mpi_comm, &nprocs_ex);
+    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+					    nprocs_ex);
+    assert(nprocs_ex == nprocs_calc);
     size_t local_count = dps.size();
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
@@ -268,6 +287,12 @@ public:
 void run_ex(DataStore* ds, Time& time)
 {
   PseudoEX mapper(time);
+#ifdef BACKEND_KMR
+  View alc_view(kNumDimensions);
+  bool alc_view_flag[3] = {false, true, false};
+  alc_view.set(alc_view_flag);
+  ds->set_allocation_view(alc_view);
+#endif
   time.ex_invoke = gettime();
   View view(kNumDimensions);
   bool view_flag[3] = {false, true, false};
@@ -303,4 +328,21 @@ double gettime(DataStore::MapEnvironment& env) {
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
   return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+}
+
+int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
+  int total_nprocs = 1;
+  int nprocs_calc = 1;
+  for (size_t i = 0; i < view.size(); i++) {
+    if (!view.dim(i) && alc_view.dim(i)) {
+      nprocs_calc *= (int)kDataStoreSizes[i];
+    }
+    if (alc_view.dim(i)) {
+      total_nprocs *= (int)kDataStoreSizes[i];
+    }
+  }
+  if (nprocs < total_nprocs) {
+    nprocs_calc = given_nprocs;
+  }
+  return nprocs_calc;
 }

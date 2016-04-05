@@ -20,6 +20,10 @@ size_t matrix_size = 0;
 
 void load_data(DataStore* ds);
 void transpose(DataStore* ids, DataStore* ods);
+#ifdef BACKEND_KMR
+void transpose_reallocate_row(DataStore* ids, DataStore* ods);
+void transpose_reallocate_column(DataStore* ids, DataStore* ods);
+#endif
 void print_matrix(DataStore* ds);
 void print_line(string& str);
 void print_line(const char *str);
@@ -63,7 +67,29 @@ main(int argc, char **argv)
   print_line("Transpose twice.");
   print_matrix(ds2);
   delete ds1;
+#ifdef BACKEND_SERIAL
   delete ds2;
+#endif
+
+#ifdef BACKEND_KMR
+  DataStore* ds3 = next->create_ds(kDimMatrix);
+  ds3->set(msize);
+  DataStore* ds4 = next->create_ds(kDimMatrix);
+  ds4->set(msize);
+
+  // transpose ds2 with column-order reallocation and write outputs to ds3
+  transpose_reallocate_column(ds2, ds3);
+  print_line("Transpose three times.");
+  print_matrix(ds3);
+  delete ds2;
+
+  // transpose ds3 with row-order reallocation and write outputs to ds4
+  transpose_reallocate_row(ds3, ds4);
+  print_line("Transpose four times.");
+  print_matrix(ds4);
+  delete ds3;
+  delete ds4;
+#endif
 
   KMRNext::finalize();
   return 0;
@@ -128,6 +154,27 @@ void transpose(DataStore* ids, DataStore* ods)
   view.set(view_flag);
   ids->map(mapper, view, ods);
 }
+
+#ifdef BACKEND_KMR
+void transpose_reallocate_row(DataStore* ids, DataStore* ods)
+{
+  Transposer mapper;
+  View alcview(kDimMatrix);
+  bool alcview_flag[kDimMatrix] = {true, false};
+  alcview.set(alcview_flag);
+  ids->set_allocation_view(alcview);
+  transpose(ids, ods);
+}
+
+void transpose_reallocate_column(DataStore* ids, DataStore* ods)
+{
+  View alcview(kDimMatrix);
+  bool alcview_flag[kDimMatrix] = {false, true};
+  alcview.set(alcview_flag);
+  ids->set_allocation_view(alcview);
+  transpose(ids, ods);
+}
+#endif
 
 void print_matrix(DataStore* ds)
 {

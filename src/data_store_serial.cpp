@@ -222,8 +222,7 @@ namespace kmrnext {
       map_inplace_ = true;
       _outds = this;
     }
-    MapEnvironment env;
-    env.rank = 0;
+    MapEnvironment env = { 0, view };
     for (size_t i = 0; i < dpgroups.size(); i++) {
       vector<DataPack> &dps = dpgroups.at(i);
       if (dps.size() > 0) {
@@ -235,16 +234,6 @@ namespace kmrnext {
       map_inplace_ = false;
     }
   }
-
-#if 0 // TODO delete
-  void DataStore::map_single(Mapper& m, const View& view, DataStore* outds) {
-    map(m, view, outds);
-  }
-
-  void DataStore::collate(const View& view) {
-    // Do nothing
-  }
-#endif
 
   string DataStore::dump(DataPack::Dumper& dumper) {
     class WrappedDumper : public Mapper {

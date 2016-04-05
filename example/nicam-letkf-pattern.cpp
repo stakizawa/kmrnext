@@ -8,16 +8,12 @@ using namespace std;
 using namespace kmrnext;
 
 int rank = 0;
+int nprocs = 1;
 
 // If true, LETKF works on regions. If false, it works on each cell.
 //
-// When LETKF works on regions, LETKF is called by DataStore::map() to
-// use multiple nodes.
-// When LETKF works on cells, LETKF is called by DataStore::map_single()
-// to gather ensemble data on a node and then perform LETKF on the node.
-// In this case, the allowed number of nodes is
-//   kNumEnsemble x kNumRegion
-// because of the limitation of DataStore::collate().
+// When LETKF works on regions, LETKF uses multiple nodes.
+// When LETKF works on cells, LETKF uses single node.
 const bool kLETKFRegion = false;
 
 const size_t kNumIteration = 10;
@@ -73,9 +69,6 @@ struct Time {
   double letkf_invoke;
   double letkf_cleanup;
 
-  double collate_start;
-  double collate_finish;
-
   double loop() {
     return (loop_finish - loop_start) / 10E9;
   }
@@ -91,19 +84,16 @@ struct Time {
   double letkf_launch() {
     return (letkf_cleanup - letkf_invoke) / 10E9;
   }
-  double collate() {
-    return (collate_finish - collate_start) / 10E9;
-  }
 };
 
 void load_data(DataStore* ds);
 void run_nicam(DataStore* ds, Time& time);
 void run_letkf(DataStore* ds, Time& time);
-void collate_ds(DataStore* ds, Time& time);
 void print_line(string& str);
 void print_line(ostringstream& os);
 double gettime();
 double gettime(DataStore::MapEnvironment& env);
+int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs);
 
 //////////////////////////////////////////////////////////////////////////////
 // Main starts from here.
@@ -114,6 +104,7 @@ main(int argc, char **argv)
   KMRNext *next = KMRNext::init(argc, argv);
 #ifdef BACKEND_KMR
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 #endif
 
   DataStore* ds0 = next->create_ds(kDimEnsembleData);
@@ -146,9 +137,6 @@ main(int argc, char **argv)
     print_line(str2);
 #endif
 
-    // collate for parallel execution
-    collate_ds(ds0, time);
-
     time.loop_finish = gettime();
     ostringstream os1;
     os1 << "Iteration[" << i << "] ends in " << time.loop() << " sec." << endl;
@@ -156,9 +144,6 @@ main(int argc, char **argv)
     os1 << "    NICAM consumes " << time.nicam() << " sec." << endl;
     os1 << "  Invoking LETKF takes " << time.letkf_launch() << " sec." << endl;
     os1 << "    LETKF consumes " << time.letkf() << " sec." << endl;
-    if (!kLETKFRegion) {
-      os1 << "  Collate takes " << time.collate() << " sec." << endl;
-    }
     print_line(os1);
   }
   delete ds0;
@@ -217,6 +202,11 @@ public:
 #ifdef BACKEND_SERIAL
     assert(dps.size() == (size_t)(kNumRegion * kNumCell));
 #elif defined BACKEND_KMR
+    int nprocs_nicam;
+    MPI_Comm_size(env.mpi_comm, &nprocs_nicam);
+    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+					    nprocs_nicam);
+    assert(nprocs_nicam == nprocs_calc);
     size_t local_count = dps.size();
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
@@ -245,6 +235,12 @@ public:
 void run_nicam(DataStore* ds, Time& time)
 {
   PseudoNICAM mapper(time);
+#ifdef BACKEND_KMR
+  View alc_view(kDimEnsembleData);
+  bool alc_view_flag[3] = {true, true, false};
+  alc_view.set(alc_view_flag);
+  ds->set_allocation_view(alc_view);
+#endif
   time.nicam_invoke = gettime();
   View view(kDimEnsembleData);
   bool view_flag[3] = {true, false, false};
@@ -270,6 +266,11 @@ public:
       assert(dps.size() == (size_t)kNumEnsemble);
     }
 #elif defined BACKEND_KMR
+    int nprocs_letkf;
+    MPI_Comm_size(env.mpi_comm, &nprocs_letkf);
+    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+					    nprocs_letkf);
+    assert(nprocs_letkf == nprocs_calc);
     size_t local_count = dps.size();
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
@@ -305,27 +306,26 @@ void run_letkf(DataStore* ds, Time& time)
   time.letkf_invoke = gettime();
   View view(kDimEnsembleData);
   if (kLETKFRegion) {
+#ifdef BACKEND_KMR
+    View alc_view(kDimEnsembleData);
+    bool alc_view_flag[3] = {true, true, false};
+    alc_view.set(alc_view_flag);
+    ds->set_allocation_view(alc_view);
+#endif
     bool view_flag[3] = {false, true, false};
     view.set(view_flag);
-    ds->map(mapper, view);
   } else {
+#ifdef BACKEND_KMR
+    View alc_view(kDimEnsembleData);
+    bool alc_view_flag[3] = {false, true, true};
+    alc_view.set(alc_view_flag);
+    ds->set_allocation_view(alc_view);
+#endif
     bool view_flag[3] = {false, true, true};
     view.set(view_flag);
-    ds->map_single(mapper, view);
   }
+  ds->map(mapper, view);
   time.letkf_cleanup = gettime();
-}
-
-void collate_ds(DataStore* ds, Time& time)
-{
-  if (!kLETKFRegion) {
-    time.collate_start = gettime();
-    View view(kDimEnsembleData);
-    bool view_flag[3] = {true, true, false};
-    view.set(view_flag);
-    ds->collate(view);
-    time.collate_finish = gettime();
-  }
 }
 
 void print_line(string& str) {
@@ -355,4 +355,21 @@ double gettime(DataStore::MapEnvironment& env) {
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
   return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+}
+
+int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
+  int total_nprocs = 1;
+  int nprocs_calc = 1;
+  for (size_t i = 0; i < view.size(); i++) {
+    if (!view.dim(i) && alc_view.dim(i)) {
+      nprocs_calc *= (int)kEnsembleDataDimSizes[i];
+    }
+    if (alc_view.dim(i)) {
+      total_nprocs *= (int)kEnsembleDataDimSizes[i];
+    }
+  }
+  if (nprocs < total_nprocs) {
+    nprocs_calc = given_nprocs;
+  }
+  return nprocs_calc;
 }

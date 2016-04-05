@@ -186,22 +186,19 @@ namespace {
     kmrnext::Key *k3_113_;    // <1,1,3>
   };
 
-#if 0
-  TEST_F(KMRDataStoreTest, Load_array) {
-    // also tests ds.get()
+  TEST_F(KMRDataStoreTest, Load_integers) {
     size_t ds_size[2] = {4,4};
     int owners[4];
-    DataLoader1D loader1d(ds_size[1]);
+    DataLoader2D loader(ds_size[1]);
 
-    // Correctly load data by each process
-    std::vector<int> vec0;
+    std::vector<long> vec0;
     for (size_t i = 0; i < ds_size[0]; i++) {
-      vec0.push_back((int)i + 1);
+      vec0.push_back(i);
     }
     init_owners(owners, 4);
     kmrnext::DataStore ds0(2, gNext);
     ds0.set(ds_size);
-    ds0.load_array(vec0, loader1d);
+    ds0.load_integers(vec0, loader);
     EXPECT_EQ(1, *(int*)ds0.get(*k2_00_).data()->value());
     EXPECT_EQ(2, *(int*)ds0.get(*k2_11_).data()->value());
     EXPECT_EQ(3, *(int*)ds0.get(*k2_22_).data()->value());
@@ -235,7 +232,6 @@ namespace {
   TEST_F(KMRDataStoreTest, Split_to) {
   }
 #endif
-
 
   // A mapper class that just copies a data in the input DataStore to the
   // output DataStore.
@@ -349,187 +345,6 @@ namespace {
     EXPECT_EQ(ds2_owners_[2], ods1.get(k1_2).data()->owner());
     EXPECT_EQ(ds2_owners_[3], ods1.get(k1_3).data()->owner());
   }
-
-  // A mapper class that calculates sum of all data.  The resultant value
-  // is written to the coordinates where summed values are located.
-  class SummarizerSingle0 : public kmrnext::DataStore::Mapper {
-    int base_;
-  public:
-    SummarizerSingle0(int base) : base_((base + 1) * 1000) {}
-    int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
-		   kmrnext::Key& key, std::vector<kmrnext::DataPack>& dps,
-		   kmrnext::DataStore::MapEnvironment& env)
-    {
-      {
-	int nprocs;
-	MPI_Comm_size(env.mpi_comm, &nprocs);
-	assert(nprocs == 1);
-      }
-      int val = base_;
-      for (std::vector<kmrnext::DataPack>:: iterator itr = dps.begin();
-	   itr != dps.end(); itr++) {
-	val += *(int*)(*itr).data()->value();
-      }
-      kmrnext::Data d(&val, sizeof(int));
-
-      for (std::vector<kmrnext::DataPack>:: iterator itr = dps.begin();
-	   itr != dps.end(); itr++) {
-	kmrnext::Key k = (*itr).key();
-	outds->add(k, d);
-      }
-      return 0;
-    }
-  };
-
-  TEST_F(KMRDataStoreTest, Map_single) {
-    // The owners of data in the output DS whose coordinates are
-    // same by applying the View are same.
-    kmrnext::DataStore ods0(3, gNext);
-    ods0.set(ds3_array_);
-    SummarizerSingle0 mapper0(rank);
-    kmrnext::View v0(3);
-    bool flags0[3] = {true, false, true};
-    v0.set(flags0);
-    ds3_->map_single(mapper0, v0, &ods0);
-    EXPECT_EQ(ods0.get(*k3_000_).data()->owner(),
-	      ods0.get(*k3_030_).data()->owner());
-
-    kmrnext::DataStore ods1(3, gNext);
-    ods1.set(ds3_array_);
-    kmrnext::View v1(3);
-    bool flags1[3] = {false, true, false};
-    v1.set(flags1);
-    ds3_->map_single(mapper0, v1, &ods1);
-    EXPECT_EQ(ods1.get(*k3_010_).data()->owner(),
-	      ods1.get(*k3_113_).data()->owner());
-
-    // If all fields of a View is false, all data is gathered to a
-    // specific rank
-    kmrnext::DataStore ods2(3, gNext);
-    ods2.set(ds3_array_);
-    kmrnext::View v2(3);
-    bool flags2[3] = {false, false, false};
-    v2.set(flags2);
-    ds3_->map_single(mapper0, v2, &ods2);
-    EXPECT_EQ(ods2.get(*k3_000_).data()->owner(),
-	      ods2.get(*k3_030_).data()->owner());
-    EXPECT_EQ(ods2.get(*k3_010_).data()->owner(),
-	      ods2.get(*k3_113_).data()->owner());
-    EXPECT_EQ(ods2.get(*k3_000_).data()->owner(),
-	      ods2.get(*k3_010_).data()->owner());
-
-    // If all field of a View is true, DataStore::map() is called.
-    kmrnext::DataStore ods3(3, gNext);
-    ods3.set(ds3_array_);
-    kmrnext::View v3(3);
-    bool flags3[3] = {true, true, true};
-    v3.set(flags3);
-    ds3_->map_single(mapper0, v3, &ods3);
-    EXPECT_EQ(ds3_->get(*k3_000_).data()->owner(),
-	      ods3.get(*k3_000_).data()->owner());
-    EXPECT_EQ(ds3_->get(*k3_030_).data()->owner(),
-	      ods3.get(*k3_030_).data()->owner());
-    EXPECT_EQ(ds3_->get(*k3_113_).data()->owner(),
-	      ods3.get(*k3_113_).data()->owner());
-
-    // If the output DS is omitted, the results are writted to the input DS
-    kmrnext::DataStore *ds3 = ds3_->duplicate();
-    ds3->map_single(mapper0, v0);
-    EXPECT_EQ(*(int*)ods0.get(*k3_000_).data()->value(),
-	      *(int*)ds3->get(*k3_000_).data()->value());
-    EXPECT_EQ(*(int*)ods0.get(*k3_030_).data()->value(),
-	      *(int*)ds3->get(*k3_030_).data()->value());
-    EXPECT_EQ(ds3->get(*k3_000_).data()->owner(),
-	      ds3->get(*k3_030_).data()->owner());
-    delete ds3;
-
-    ds3 = ds3_->duplicate();
-    ds3->map_single(mapper0, v1);
-    EXPECT_EQ(*(int*)ods1.get(*k3_010_).data()->value(),
-    	      *(int*)ds3->get(*k3_010_).data()->value());
-    EXPECT_EQ(ds3->get(*k3_010_).data()->owner(),
-     	      ds3->get(*k3_113_).data()->owner());
-    delete ds3;
-
-    ds3 = ds3_->duplicate();
-    ds3->map_single(mapper0, v2);
-    EXPECT_EQ(*(int*)ods2.get(*k3_000_).data()->value(),
-    	      *(int*)ds3->get(*k3_000_).data()->value());
-    EXPECT_EQ(*(int*)ods2.get(*k3_113_).data()->value(),
-    	      *(int*)ds3->get(*k3_113_).data()->value());
-    EXPECT_EQ(ds3->get(*k3_000_).data()->owner(),
-    	      ds3->get(*k3_030_).data()->owner());
-    EXPECT_EQ(ds3->get(*k3_010_).data()->owner(),
-    	      ds3->get(*k3_113_).data()->owner());
-    delete ds3;
-  }
-
-  TEST_F(KMRDataStoreTest, Collate) {
-    if (nprocs < 4) {
-      EXPECT_TRUE(false) << "Test for DataStore.collate() is skipped "
-			 << "as there are not enough number of processes.  "
-			 << "Specify more than 4 processes.";
-      return;
-    }
-
-    // The same operation of the first test in Map_single.
-    kmrnext::DataStore ods0(3, gNext);
-    ods0.set(ds3_array_);
-    SummarizerSingle0 mapper0(rank);
-    kmrnext::View v0(3);
-    bool flags0[3] = {true, false, true};
-    v0.set(flags0);
-    ds3_->map_single(mapper0, v0, &ods0);
-    EXPECT_EQ(ods0.get(*k3_000_).data()->owner(),
-	      ods0.get(*k3_030_).data()->owner());
-
-    // 1. Data whose coorinate of the second dimension are same are
-    //    gathered to the same node.
-    kmrnext::View cv0(3);
-    bool cflags0[3] = {false, true, false};
-    cv0.set(cflags0);
-    ods0.collate(cv0);
-    EXPECT_EQ(ods0.get(*k3_010_).data()->owner(),
-	      ods0.get(*k3_113_).data()->owner());
-    EXPECT_NE(ods0.get(*k3_000_).data()->owner(),
-	      ods0.get(*k3_030_).data()->owner());
-
-    // 2. Data whose coorinate of the first dimension are same aregathered
-    //    gathered to the same node.
-    kmrnext::View cv1(3);
-    bool cflags1[3] = {true, false, false};
-    cv1.set(cflags1);
-    ods0.collate(cv1);
-    EXPECT_EQ(ods0.get(*k3_010_).data()->owner(),
-	      ods0.get(*k3_000_).data()->owner());
-
-    // The ame operation of the first test in Map_single, except that
-    // it performs in-place mapping.
-    kmrnext::DataStore *ds3 = ds3_->duplicate();
-    ds3->map_single(mapper0, v0);
-    EXPECT_EQ(*(int*)ods0.get(*k3_000_).data()->value(),
-	      *(int*)ds3->get(*k3_000_).data()->value());
-    EXPECT_EQ(*(int*)ods0.get(*k3_030_).data()->value(),
-	      *(int*)ds3->get(*k3_030_).data()->value());
-    EXPECT_EQ(ds3->get(*k3_000_).data()->owner(),
-	      ds3->get(*k3_030_).data()->owner());
-
-    // 3. Data whose coorinate of the second dimension are same are
-    //    gathered to the same node.
-    ds3->collate(cv0);
-    EXPECT_EQ(ds3->get(*k3_010_).data()->owner(),
-	      ds3->get(*k3_113_).data()->owner());
-    EXPECT_NE(ds3->get(*k3_000_).data()->owner(),
-	      ds3->get(*k3_030_).data()->owner());
-
-    // 4. Data whose coorinate of the first dimension are same aregathered
-    //    gathered to the same node.
-    ds3->collate(cv1);
-    EXPECT_EQ(ds3->get(*k3_010_).data()->owner(),
-	      ds3->get(*k3_000_).data()->owner());
-    delete ds3;
-  }
-#endif
 
   TEST_F(KMRDataStoreTest, Set_allocation_view) {
     kmrnext::View ds3_0_dav(3);
