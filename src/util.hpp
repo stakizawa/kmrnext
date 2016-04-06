@@ -10,12 +10,13 @@
 
 using namespace std;
 
-#if 0
-/// It returns current time in nano seconds.
-double gettime() {
+#ifdef BACKEND_KMR
+// It returns current time in nano seconds after synchronizing between
+// processes in the specified MPI communicator.
+double gettime(MPI_Comm comm) {
+  MPI_Barrier(comm);
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  cout << (double)ts.tv_sec << endl;
   return ((double)ts.tv_sec) * 10E9 + ((double)ts.tv_nsec);
 }
 #endif

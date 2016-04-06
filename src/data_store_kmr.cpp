@@ -716,8 +716,13 @@ namespace kmrnext {
 #endif
 
   void DataStore::collate() {
-    View aview = get_allocation_view();
+    double time_collate_start, time_collate_finish;
+    if (kmrnext_->profile()) {
+      time_collate_start = gettime(kmrnext_->kmr()->comm);
+    }
 
+    // Allocation View set to this DataStore
+    View aview = get_allocation_view();
     // Count of viewed data
     size_t ndata;
     // Indices of viewed Keys whose related data should be reside
@@ -796,6 +801,18 @@ namespace kmrnext {
       int need_collate;
       MPI_Allreduce(&local_need_collate, &need_collate, 1, MPI_INT, MPI_MAX,
 		    kmrnext_->kmr()->comm);
+      if (kmrnext_->profile()) {
+	if (kmrnext_->rank() == 0) {
+	  ostringstream os;
+	  if (need_collate == 0) {
+	    os << "No need to collate.";
+	  } else {
+	    os << "Perform collate.";
+	  }
+	  profile_out(kmrnext_, os.str());
+	}
+      }
+
       if (need_collate == 0) {
 	// no need to collate
 	collated_ = false;
@@ -879,6 +896,16 @@ namespace kmrnext {
 
     if (indices != NULL) {
       delete[] indices;
+    }
+
+    if (kmrnext_->profile()) {
+      time_collate_finish = gettime(kmrnext_->kmr()->comm);
+      if (kmrnext_->rank() == 0) {
+	ostringstream os;
+	os << "Time spent for collate: "
+	   << (time_collate_finish - time_collate_start) << " nano-sec";
+	profile_out(kmrnext_, os.str());
+      }
     }
   }
 
