@@ -17,6 +17,10 @@
 ///    - 6400: (6400, 100)
 /// Used views are <F,F>, <F,T>, <T,F> and <T,T>.
 ///
+/// The distribution pattern of data elements in the tested DataStore among
+/// nodes is that the DataStore is split by the first dimension.  That is,
+/// each node has 100 data elements.
+///
 /// In the DEBUG mode, the number of allowed processes are 2 and 4.  Sizes
 /// of DataStores are (2, 100) and (4, 100).
 #include <iostream>
@@ -41,7 +45,7 @@ const int    kNumIterations  = 10;
 
 void setup(int argc, int* rankp, int* nprocsp);
 void evaluate(KMRNext* next, int rank, int nprocs);
-
+void collate_ds(DataStore* ds);
 
 //////////////////////////////////////////////////////////////////////////////
 // Main starts from here.
@@ -117,14 +121,16 @@ public:
 
     long *value = new long[element_count_];
     for (size_t i = 0; i < element_count_; i++) {
-      value[i] = num;
+      value[i] = num + 1;
     }
     Data data((void*)value, sizeof(long) * element_count_);
     delete[] value;
 
     for (size_t i = 0; i < data_count; i++) {
       Key key = ds->index_to_key(i);
-      ds->add(key, data);
+      if (key.dim(0) == (size_t)num) {
+	ds->add(key, data);
+      }
     }
     return 0;
   }
@@ -182,14 +188,14 @@ evaluate(KMRNext* next, int rank, int nprocs)
 {
   vector<long> datalist;
   for (size_t i = 0; i < (size_t)nprocs; i++) {
-    datalist.push_back((long)(i+1));
+    datalist.push_back(i);
   }
   DataLoader loader(1);
 
   size_t dim_ary[2] = {(size_t)nprocs, 100};
   DataStore *ds0 = next->create_ds(2);
   ds0->set(dim_ary);
-  ds0->load_array(datalist, loader);
+  ds0->load_integers(datalist, loader);
 
   bool ary_ff[2] = {false, false};
   View vff(2);
@@ -206,41 +212,61 @@ evaluate(KMRNext* next, int rank, int nprocs)
 
   Timer timer_ff;
   DataStore *ds = ds0->duplicate();
+  collate_ds(ds);
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
     timer_ff.start();
     ds->map(mapper, vff);
     timer_ff.finish();
+#if DEBUG
+    ds->collate();
+    assert(ds->collated() == false);
+#endif
   }
   delete ds;
 
   Timer timer_ft;
   ds = ds0->duplicate();
+  collate_ds(ds);
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
     timer_ft.start();
     ds->map(mapper, vft);
     timer_ft.finish();
+#if DEBUG
+    ds->collate();
+    assert(ds->collated() == false);
+#endif
   }
   delete ds;
 
   Timer timer_tf;
   ds = ds0->duplicate();
+  collate_ds(ds);
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
     timer_tf.start();
     ds->map(mapper, vtf);
     timer_tf.finish();
+#if DEBUG
+    ds->collate();
+    assert(ds->collated() == false);
+#endif
   }
   delete ds;
 
   Timer timer_tt;
   ds = ds0->duplicate();;
+  collate_ds(ds);
   for (size_t i = 0; i < kNumIterations; i++) {
     PseudoMapper mapper(rank);
     timer_tt.start();
     ds->map(mapper, vtt);
     timer_tt.finish();
+#if DEBUG
+    ds->collate();
+    assert(ds->collated() == false);
+#endif
   }
   delete ds;
   delete ds0;
@@ -251,4 +277,14 @@ evaluate(KMRNext* next, int rank, int nprocs)
     cout << "TF," << timer_tf.str(false);
     cout << "TT," << timer_tt.str(false) << endl;
   }
+}
+
+void
+collate_ds(DataStore* ds)
+{
+  View alc_view(2);
+  alc_view.set_dim(0, true);
+  alc_view.set_dim(1, false);
+  ds->set_allocation_view(alc_view);
+  ds->collate();
 }

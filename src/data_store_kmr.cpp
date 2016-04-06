@@ -790,7 +790,10 @@ namespace kmrnext {
 		    kmrnext_->kmr()->comm);
       if (need_collate == 0) {
 	// no need to collate
+	collated_ = false;
 	return;
+      } else {
+	collated_ = true;
       }
     }
 
@@ -862,6 +865,10 @@ namespace kmrnext {
     kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
     map_inplace_ = false;
     parallel_ = false;
+  }
+
+  bool DataStore::collated() {
+    return collated_;
   }
 
 }

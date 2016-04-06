@@ -3,8 +3,7 @@
 ///
 /// It requires KMR backend.
 /// The number of MPI processes running this program should be
-/// "kNumEnsemble x kNumRegion" because of the limitation of
-/// DataStore::collate().
+/// "kNumEnsemble x kNumRegion".
 #include <iostream>
 #include <sstream>
 #include <cassert>
@@ -15,6 +14,7 @@ using namespace std;
 using namespace kmrnext;
 
 int rank = 0;
+int nprocs = 1;
 
 // If true, map works in-place.
 const bool kMapInplace = true;
@@ -22,8 +22,6 @@ const bool kMapInplace = true;
 const size_t kNumIteration = 10;
 
 const size_t kDimEnsembleData = 3;
-//const size_t kDimRegionData   = 2;
-const size_t kDimCellData     = 1;
 
 #if DEBUG
 const size_t kNumEnsemble  = 2;
@@ -46,21 +44,6 @@ const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
   {kNumEnsemble, kNumRegion, kNumCell};
 
 const bool kPrint = true;
-
-class DataPrinter : public DataPack::Dumper {
-public:
-  string operator()(DataPack& dp)
-  {
-    ostringstream os;
-    os << dp.key().to_string() << " : ";
-    int *data = (int*)dp.data()->value();
-    for (size_t i = 0; i < kElementCount; i++) {
-      os << data[i] << " ";
-    }
-    os << endl;
-    return os.str();
-  }
-};
 
 struct Time {
   double loop_start;
@@ -85,9 +68,6 @@ struct Time {
   double del0_finish;
   double del1_start;
   double del1_finish;
-
-  double collate_start;
-  double collate_finish;
 
   double loop() {
     return (loop_finish - loop_start) / 10E9;
@@ -116,19 +96,16 @@ struct Time {
   double del1() {
     return (del1_finish - del1_start) / 10E9;
   }
-  double collate() {
-    return (collate_finish - collate_start) / 10E9;
-  }
 };
 
 void load_data(DataStore* ds);
 void run_nicam(DataStore* inds, DataStore* outds, Time& time);
 void run_letkf(DataStore* inds, DataStore* outds, Time& time);
-void collate_ds(DataStore* ds, Time& time);
 void print_line(string& str);
 void print_line(ostringstream& os);
 double gettime();
 double gettime(DataStore::MapEnvironment& env);
+int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs);
 
 //////////////////////////////////////////////////////////////////////////////
 // Main starts from here.
@@ -139,7 +116,6 @@ main(int argc, char **argv)
   KMRNext *next = KMRNext::init(argc, argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   {
-    int nprocs;
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     if (nprocs != kNumEnsemble * kNumRegion) {
       if (rank == 0) {
@@ -154,7 +130,6 @@ main(int argc, char **argv)
   DataStore* ds0 = next->create_ds(kDimEnsembleData);
   ds0->set(kEnsembleDataDimSizes);
   load_data(ds0);
-  DataPrinter dp;
 
   DataStore* ds1;
   for (size_t i = 0; i < kNumIteration; i++) {
@@ -199,9 +174,6 @@ main(int argc, char **argv)
       time.del1_finish = gettime();
     }
 
-    // collate for parallel execution
-    collate_ds(ds0, time);
-
     time.loop_finish = gettime();
     ostringstream os1;
     os1 << "Iteration[" << i << "]," << time.loop() << endl;
@@ -213,7 +185,6 @@ main(int argc, char **argv)
     os1 << "Invoke LETKF," << time.letkf_launch() << endl;
     //os1 << "LETKF,"        << time.letkf() << endl;
     os1 << "Del LETKF In," << time.del1() << endl;
-    os1 << "Collate,"      << time.collate() << endl;
     print_line(os1);
   }
   delete ds0;
@@ -223,25 +194,29 @@ main(int argc, char **argv)
 }
 
 
-class DataLoader : public DataStore::Loader<int> {
+class DataLoader : public DataStore::Loader<long> {
 public:
-  int operator()(DataStore* ds, const int& num)
+  int operator()(DataStore* ds, const long& num)
   {
-    Key key(kDimCellData);
+    size_t x = num / kNumRegion;
+    size_t y = num % kNumRegion;
     int *data_val = new int[kElementCount];
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
     for (size_t i = 0; i < kElementCount; i++) {
-      data_val[i] = num;
+      data_val[i] = (int)y + 1;
     }
     Data data((void*)data_val, sizeof(int) * kElementCount);
 
+    Key key(kDimEnsembleData);
+    key.set_dim(0, x);
+    key.set_dim(1, y);
 #ifdef _OPENMP
     #pragma omp parallel for firstprivate(key)
 #endif
     for (size_t i = 0; i < kNumCell; i++) {
-      key.set_dim(0, i);
+      key.set_dim(2, i);
       ds->add(key, data);
     }
     delete[] data_val;
@@ -251,14 +226,14 @@ public:
 
 void load_data(DataStore* ds)
 {
-  vector<int> data_srcs;
+  vector<long> data_srcs;
   for (size_t i = 0; i < kNumEnsemble; i++) {
     for (size_t j = 0; j < kNumRegion; j++) {
-      data_srcs.push_back((int)(j+1));
+      data_srcs.push_back(i * kNumRegion + j);
     }
   }
   DataLoader dl;
-  ds->load_array(data_srcs, dl);
+  ds->load_integers(data_srcs, dl);
 }
 
 class PseudoNICAM : public DataStore::Mapper {
@@ -271,6 +246,11 @@ public:
 		 DataStore::MapEnvironment& env)
   {
 #if DEBUG
+    int nprocs_nicam;
+    MPI_Comm_size(env.mpi_comm, &nprocs_nicam);
+    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+					    nprocs_nicam);
+    assert(nprocs_nicam == nprocs_calc);
     size_t local_count = dps.size();
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
@@ -303,10 +283,17 @@ void run_nicam(DataStore* inds, DataStore* outds, Time& time)
 {
   PseudoNICAM mapper(time);
   time.nicam_invoke = gettime();
+
+  View alc_view(kDimEnsembleData);
+  bool alc_view_flag[3] = {true, true, false};
+  alc_view.set(alc_view_flag);
+  inds->set_allocation_view(alc_view);
+
   View view(kDimEnsembleData);
   bool view_flag[3] = {true, false, false};
   view.set(view_flag);
   inds->map(mapper, view, outds);
+
   time.nicam_cleanup = gettime();
 }
 
@@ -320,9 +307,12 @@ public:
 		 DataStore::MapEnvironment& env)
   {
 #if DEBUG
-    int nprocs;
-    MPI_Comm_size(env.mpi_comm, &nprocs);
-    assert(nprocs == 1);
+    int nprocs_letkf;
+    MPI_Comm_size(env.mpi_comm, &nprocs_letkf);
+    assert(nprocs_letkf == 1);
+    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+					    nprocs_letkf);
+    assert(nprocs_letkf == nprocs_calc);
     size_t local_count = dps.size();
     assert(local_count == (size_t)kNumEnsemble);
 #endif
@@ -352,21 +342,18 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time)
 {
   PseudoLETKF mapper(time);
   time.letkf_invoke = gettime();
+
+  View alc_view(kDimEnsembleData);
+  bool alc_view_flag[3] = {false, true, true};
+  alc_view.set(alc_view_flag);
+  inds->set_allocation_view(alc_view);
+
   View view(kDimEnsembleData);
   bool view_flag[3] = {false, true, true};
   view.set(view_flag);
-  inds->map_single(mapper, view, outds);
-  time.letkf_cleanup = gettime();
-}
+  inds->map(mapper, view, outds);
 
-void collate_ds(DataStore* ds, Time& time)
-{
-  time.collate_start = gettime();
-  View view(kDimEnsembleData);
-  bool view_flag[3] = {true, true, false};
-  view.set(view_flag);
-  ds->collate(view);
-  time.collate_finish = gettime();
+  time.letkf_cleanup = gettime();
 }
 
 void print_line(string& str) {
@@ -392,4 +379,21 @@ double gettime(DataStore::MapEnvironment& env) {
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
   return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+}
+
+int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
+  int total_nprocs = 1;
+  int nprocs_calc = 1;
+  for (size_t i = 0; i < view.size(); i++) {
+    if (!view.dim(i) && alc_view.dim(i)) {
+      nprocs_calc *= (int)kEnsembleDataDimSizes[i];
+    }
+    if (alc_view.dim(i)) {
+      total_nprocs *= (int)kEnsembleDataDimSizes[i];
+    }
+  }
+  if (nprocs < total_nprocs) {
+    nprocs_calc = given_nprocs;
+  }
+  return nprocs_calc;
 }

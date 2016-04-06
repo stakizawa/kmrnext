@@ -239,9 +239,6 @@ namespace kmrnext {
 
     /// It returns true if this Data is shared among processes.
     bool is_shared() { return shared_; }
-
-    /// It resets the share information.
-    void reset_share() { owner_ = -1; shared_ = false; }
 #endif
 
   private:
@@ -399,12 +396,16 @@ namespace kmrnext {
     /// It returns the allocation view of the DataStore.
     View get_allocation_view();
 
-    // It globally sorts data.
-    // It changes the arrangement of data elements in the DataStore among
-    // nodes using the Allocation View.  It is automatically called in
-    // DataStore.map() function, so that explicitly calling this function
-    // is not required.
+    /// It globally sorts data.
+    /// It changes the arrangement of data elements in the DataStore among
+    /// nodes using the Allocation View.  It is automatically called in
+    /// DataStore.map() function, so that explicitly calling this function
+    /// is not required.
     void collate();
+
+    /// It returns true if the last call of map() or collate() actually
+    /// performed collate.  Otherwise it returns false.
+    bool collated();
 #endif
 
     /// It dumps data in the DataStore.
@@ -470,8 +471,11 @@ namespace kmrnext {
     // A KMRNext object that stores execution status
     KMRNext *kmrnext_;
 #ifdef BACKEND_KMR
-    /// Allocation View of DataStore, that defines data distribution
+    // Allocation View of DataStore, that defines data distribution
     View *allocation_view_;
+    // Set to be true if the last call of map() or collate() actually
+    // performed collate.
+    bool collated_;
 #endif
 
     // This is a dummy DataStore that represents this object.
