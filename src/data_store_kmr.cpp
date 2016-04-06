@@ -104,6 +104,9 @@ namespace kmrnext {
     kmrnext_(kn), allocation_view_(NULL) {}
 
   DataStore::~DataStore() {
+    if (allocation_view_ != NULL) {
+      delete allocation_view_;
+    }
     if (data_allocated_) {
       delete[] data_;
     }
@@ -740,18 +743,23 @@ namespace kmrnext {
       {
 	size_t avg_cnt = ndata / (size_t)kmrnext_->nprocs();
 	size_t rem_cnt = ndata % (size_t)kmrnext_->nprocs();
-	indices_cnt = (kmrnext_->rank() < (int)rem_cnt)? avg_cnt + 1 : avg_cnt;
-	indices = new size_t[indices_cnt];
-	size_t start = avg_cnt * (size_t)kmrnext_->rank()
-	  + ((kmrnext_->rank() < (int)rem_cnt)? kmrnext_->rank() : rem_cnt);
-	for (size_t i = 0; i < indices_cnt; i++) {
-	  indices[i] = start + i;
+	indices_cnt =
+	  (kmrnext_->rank() < (int)rem_cnt)? avg_cnt + 1 : avg_cnt;
+	if (indices_cnt == 0) {
+	  indices = NULL;
+	} else {
+	  indices = new size_t[indices_cnt];
+	  size_t start = avg_cnt * (size_t)kmrnext_->rank()
+	    + ((kmrnext_->rank() < (int)rem_cnt)? kmrnext_->rank() : rem_cnt);
+	  for (size_t i = 0; i < indices_cnt; i++) {
+	    indices[i] = start + i;
+	  }
 	}
       }
 
       // It holds the DataPacks this process should hold
       vector< vector<DataPack> > dpgroups(indices_cnt);
-      {
+      if (indices_cnt != 0) {
 	size_t range_start = indices[0];
 	size_t range_end   = indices[indices_cnt - 1];
 #ifdef _OPENMP
@@ -791,6 +799,9 @@ namespace kmrnext {
       if (need_collate == 0) {
 	// no need to collate
 	collated_ = false;
+	if (indices != NULL) {
+	  delete[] indices;
+	}
 	return;
       } else {
 	collated_ = true;
@@ -802,8 +813,8 @@ namespace kmrnext {
     // Search data should be sent
     vector< vector<DataPack> > dpgroups(ndata);
     {
-      size_t range_start = indices[0];
-      size_t range_end   = indices[indices_cnt - 1];
+      size_t range_start = (indices_cnt > 0)? indices[0] : -1;
+      size_t range_end   = (indices_cnt > 0)? indices[indices_cnt - 1] : -1;
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
@@ -865,6 +876,10 @@ namespace kmrnext {
     kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
     map_inplace_ = false;
     parallel_ = false;
+
+    if (indices != NULL) {
+      delete[] indices;
+    }
   }
 
   bool DataStore::collated() {
