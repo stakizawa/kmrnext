@@ -647,7 +647,43 @@ namespace kmrnext {
   }
 
   size_t DataStore::key_to_viewed_index(const Key& key, const View& view) {
-    // Currently, it returns row-orderd index
+    // Currently, It returns column-ordered index
+#if 1
+    // It returns column-ordered index
+    size_t idx = 0;
+    for (int i = (int)size_-1; i >= 0; i--) {
+      if (view.dim(i)) {
+	size_t offset = 1;
+	for (int j = i-1; j >= 0; j--) {
+	  if (view.dim(j)) {
+	    offset *= value_[j];
+	  }
+	}
+	idx += key.dim(i) * offset;
+      }
+    }
+    return idx;
+#else
+    // It returns row-ordered index
+    size_t idx = 0;
+    for (size_t i = 0; i < size_; i++) {
+      if (view.dim(i)) {
+	size_t offset = 1;
+	for (size_t j = i+1; j < size_; j++) {
+	  if (view.dim(j)) {
+	    offset *= value_[j];
+	  }
+	}
+	idx += key.dim(i) * offset;
+      }
+    }
+    return idx;
+#endif
+  }
+
+  size_t DataStore::key_to_split_index(const Key& key, const View& view) {
+    // The implementation is the same as key_to_viewed_index(), except that
+    // it returns row-ordered index.
 #if 0
     // It returns column-ordered index
     size_t idx = 0;
@@ -776,7 +812,7 @@ namespace kmrnext {
 	    continue;
 	  }
 	  Key tmpkey = index_to_key(i);
-	  size_t viewed_idx = key_to_viewed_index(tmpkey, aview);
+	  size_t viewed_idx = key_to_split_index(tmpkey, aview);
 	  if (range_start <= viewed_idx && viewed_idx <= range_end) {
 	    size_t idx = viewed_idx - range_start;
 	    vector<DataPack>& dps = dpgroups.at(idx);
@@ -845,7 +881,7 @@ namespace kmrnext {
 	}
 	data_[i].unshared();
 	Key tmpkey = index_to_key(i);
-	size_t viewed_idx = (long)key_to_viewed_index(tmpkey, aview);
+	size_t viewed_idx = (long)key_to_split_index(tmpkey, aview);
 	if (indices_cnt > 0 &&
 	    !(range_start <= viewed_idx && viewed_idx <= range_end)) {
 	  vector<DataPack>& dps = dpgroups.at(viewed_idx);

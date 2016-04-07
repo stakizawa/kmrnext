@@ -501,6 +501,11 @@ namespace kmrnext {
     // It checks the arguments of map().
     void check_map_args(const View& view, DataStore* outds);
 
+#ifdef BACKEND_KMR
+    // It returns the index of Data calculated from the specified Key when
+    // the specified split is applied.
+    size_t key_to_split_index(const Key& key, const View& view);
+#endif
   };
 
 }
