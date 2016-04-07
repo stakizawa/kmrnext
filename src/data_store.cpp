@@ -197,7 +197,7 @@ namespace {
 
   void deserialize(char* buf, size_t buf_siz, long** val) {
     *val = new long;
-    **val = (long)*buf;
+    **val = *(long*)buf;
   }
 
 }

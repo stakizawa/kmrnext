@@ -86,7 +86,6 @@ namespace {
       ds3_->set(ds3_array_);
       ds3_->load_integers(ds3_vec, ds3_loader);
 
-
       size_t ary_k2_00[2] = {0,0};
       init_key(&k2_00_, 2, ary_k2_00);
       size_t ary_k2_11[2] = {1,1};
