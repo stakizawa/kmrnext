@@ -830,8 +830,8 @@ namespace kmrnext {
     // Search data should be sent
     vector< vector<DataPack> > dpgroups(ndata);
     {
-      long range_start = (indices_cnt > 0)? indices[0] : -1;
-      long range_end   = (indices_cnt > 0)? indices[indices_cnt - 1] : -1;
+      size_t range_start = (indices_cnt > 0)? indices[0] : 0;
+      size_t range_end   = (indices_cnt > 0)? indices[indices_cnt - 1] : 0;
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
@@ -845,8 +845,9 @@ namespace kmrnext {
 	}
 	data_[i].unshared();
 	Key tmpkey = index_to_key(i);
-	long viewed_idx = (long)key_to_viewed_index(tmpkey, aview);
-	if (!(range_start <= viewed_idx && viewed_idx <= range_end)) {
+	size_t viewed_idx = (long)key_to_viewed_index(tmpkey, aview);
+	if (indices_cnt > 0 &&
+	    !(range_start <= viewed_idx && viewed_idx <= range_end)) {
 	  vector<DataPack>& dps = dpgroups.at(viewed_idx);
 #ifdef _OPENMP
           #pragma omp critical
