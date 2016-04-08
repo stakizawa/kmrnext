@@ -531,12 +531,12 @@ eval_size(KMRNext* next, int rank, int nprocs)
 void
 collate_ds(DataStore* ds, View& view)
 {
-  View alc_view(view.size());
-  alc_view.set_dim(0, true);
-  for (size_t i = 1; i < alc_view.size(); i++) {
-    alc_view.set_dim(1, false);
+  View split(view.size());
+  split.set_dim(0, true);
+  for (size_t i = 1; i < split.size(); i++) {
+    split.set_dim(1, false);
   }
-  ds->set_allocation_view(alc_view);
+  ds->set_split(split);
   ds->collate();
 }
 

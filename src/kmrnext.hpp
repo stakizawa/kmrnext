@@ -315,8 +315,8 @@ namespace kmrnext {
       View view;
 
 #ifdef BACKEND_KMR
-      /// Allocation View that define the allocation of data in the DataStore
-      View allocation_view;
+      /// Split pattern that define the allocation of data in the DataStore
+      View split;
 
       /// MPI_Comm used for processes a Value between processes.
       MPI_Comm mpi_comm;
@@ -390,15 +390,15 @@ namespace kmrnext {
     void map(Mapper& m, const View& view, DataStore* outds=self_);
 
 #ifdef BACKEND_KMR
-    /// It sets the allocation view of the DataStore.
-    void set_allocation_view(const View& view);
+    /// It sets the split pattern of the DataStore.
+    void set_split(const View& split);
 
-    /// It returns the allocation view of the DataStore.
-    View get_allocation_view();
+    /// It returns the split pattern of the DataStore.
+    View get_split();
 
     /// It globally sorts data.
     /// It changes the arrangement of data elements in the DataStore among
-    /// nodes using the Allocation View.  It is automatically called in
+    /// nodes using the Split.  It is automatically called in
     /// DataStore.map() function, so that explicitly calling this function
     /// is not required.
     void collate();
@@ -471,8 +471,8 @@ namespace kmrnext {
     // A KMRNext object that stores execution status
     KMRNext *kmrnext_;
 #ifdef BACKEND_KMR
-    // Allocation View of DataStore, that defines data distribution
-    View *allocation_view_;
+    // Split pattern of the DataStore, that defines data distribution
+    View *split_;
     // Set to be true if the last call of map() or collate() actually
     // performed collate.
     bool collated_;
@@ -482,7 +482,7 @@ namespace kmrnext {
     static DataStore* self_;
 
     // It sets size of each dimension.
-    // It just sets pointer to data, not performs malloc and memcpy.
+    // It just sets pointer to data, not performs memory allocation and copy.
     void set(const size_t *val, Data *dat_ptr);
 
     // It returns the index of Data calculated from the specified Key.

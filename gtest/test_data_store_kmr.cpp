@@ -345,13 +345,13 @@ namespace {
     EXPECT_EQ(ds2_owners_[3], ods1.get(k1_3).data()->owner());
   }
 
-  TEST_F(KMRDataStoreTest, Set_allocation_view) {
+  TEST_F(KMRDataStoreTest, Set_split) {
     kmrnext::View ds3_0_dav(3);
     bool flags3_0_dav[3] = {true, false, false};
     ds3_0_dav.set(flags3_0_dav);
 
     // If a DataStore is initialized without calling load_xxx(),
-    // the Allocation View is set <T, F, ...>, by default.
+    // the Split is set <T, F, ...>, by default.
     kmrnext::DataStore ds3_0(3, gNext);
     {
       ds3_0.set_dim(0, 2);
@@ -371,7 +371,7 @@ namespace {
 	}
       }
     }
-    EXPECT_EQ(ds3_0_dav, ds3_0.get_allocation_view());
+    EXPECT_EQ(ds3_0_dav, ds3_0.get_split());
 
     kmrnext::View v3_0(3);
     bool flags3_0[3] = {true, true, false};
@@ -387,22 +387,22 @@ namespace {
     v2.set(flags2);
 
     // If a DataStore is initialized by calling load_xxx(),
-    // the Allocation View is set according to the number of array items.
-    kmrnext::View ds3_dav = ds3_->get_allocation_view();
+    // the Split is set according to the number of array items.
+    kmrnext::View ds3_dav = ds3_->get_split();
     EXPECT_EQ(v3_0, ds3_dav);
 
-    // If a view is set to the DataStore, the gotten View should be same.
-    ds3_->set_allocation_view(v3_1);
-    kmrnext::View v0 = ds3_->get_allocation_view();
+    // If a Split is set to the DataStore, the gotten Split should be same.
+    ds3_->set_split(v3_1);
+    kmrnext::View v0 = ds3_->get_split();
     EXPECT_EQ(v3_1, v0);
 
-    // If another view is set to the DataStore, the View should be replaced.
-    ds3_->set_allocation_view(v3_2);
-    v0 = ds3_->get_allocation_view();
+    // If another Split is set to the DataStore, the Split should be replaced.
+    ds3_->set_split(v3_2);
+    v0 = ds3_->get_split();
     EXPECT_EQ(v3_2, v0);
 
-    // If the size of DataStore and View is not same, it throws runtime_error.
-    EXPECT_THROW({ds3_->set_allocation_view(v2);}, std::runtime_error);
+    // If the size of DataStore and Split is not same, it throws runtime_error.
+    EXPECT_THROW({ds3_->set_split(v2);}, std::runtime_error);
   }
 
   TEST_F(KMRDataStoreTest, Collate) {
@@ -424,8 +424,8 @@ namespace {
 
     kmrnext::DataStore *ds0 = create_ds3d();
     // As the added data without calling map() reside on rank 0 only, and
-    // the default Allocation View is <T, F, F>, the first calling collate()
-    // makes change of data allocation.
+    // the default Split is <T, F, F>, the first calling collate() makes
+    // change of data allocation.
     // Check the allocation before collate()
     EXPECT_EQ(0, ds0->get(key000).data()->owner());
     EXPECT_EQ(0, ds0->get(key111).data()->owner());
@@ -449,7 +449,7 @@ namespace {
     EXPECT_EQ(1, *(int*)ds0->get(key111).data()->value());
     EXPECT_EQ(1, *(int*)ds0->get(key222).data()->value());
 
-    // Without resetting the Allocation View, calling collate() again does
+    // Without resetting the Split, calling collate() again does
     // not take any effect.
     ds0->collate();
     if (nprocs >= 3) {
@@ -470,10 +470,10 @@ namespace {
     bool _avFTT[3] = {false, true, true};
     aviewFTT.set(_avFTT);
 
-    // By changing the Allocation View, calling collate() makes change of
-    // data allocation.
-    // The resultant viewed keys by applying this Allocation View is listed
-    // below and each of them has 3 data.
+    // By changing the Split, calling collate() makes change of data
+    // allocation.
+    // The resultant viewed keys by applying this Split is listed below
+    // and each of them has 3 data.
     //
     //        Keys  nprocs 1  2  3  4  5  6  7  8  9
     //   <*, 0, 0>         0  0  0  0  0  0  0  0  0
@@ -485,7 +485,7 @@ namespace {
     //   <*, 2, 0>         0  1  2  2  3  3  4  5  6
     //   <*, 2, 1>         0  1  2  3  3  4  5  6  7
     //   <*, 2, 2>         0  1  2  3  4  5  6  7  8
-    ds0->set_allocation_view(aviewFTT);
+    ds0->set_split(aviewFTT);
     ds0->collate();
     if (nprocs >= 9) {
       EXPECT_EQ(0, ds0->get(key000).data()->owner());

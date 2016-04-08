@@ -159,19 +159,19 @@ void transpose(DataStore* ids, DataStore* ods)
 void transpose_reallocate_row(DataStore* ids, DataStore* ods)
 {
   Transposer mapper;
-  View alcview(kDimMatrix);
-  bool alcview_flag[kDimMatrix] = {true, false};
-  alcview.set(alcview_flag);
-  ids->set_allocation_view(alcview);
+  View split(kDimMatrix);
+  bool split_flag[kDimMatrix] = {true, false};
+  split.set(split_flag);
+  ids->set_split(split);
   transpose(ids, ods);
 }
 
 void transpose_reallocate_column(DataStore* ids, DataStore* ods)
 {
-  View alcview(kDimMatrix);
-  bool alcview_flag[kDimMatrix] = {false, true};
-  alcview.set(alcview_flag);
-  ids->set_allocation_view(alcview);
+  View split(kDimMatrix);
+  bool split_flag[kDimMatrix] = {false, true};
+  split.set(split_flag);
+  ids->set_split(split);
   transpose(ids, ods);
 }
 #endif

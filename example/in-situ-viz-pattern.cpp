@@ -189,7 +189,7 @@ public:
 #elif defined BACKEND_KMR
     int nprocs_sim;
     MPI_Comm_size(env.mpi_comm, &nprocs_sim);
-    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+    int nprocs_calc = calculate_task_nprocs(env.view, env.split,
 					    nprocs_sim);
     assert(nprocs_sim == nprocs_calc);
     size_t local_count = dps.size();
@@ -222,10 +222,10 @@ void run_simulation(DataStore* ds, Time& time)
   PseudoSimulation mapper(time);
   time.sim_invoke = gettime();
 #ifdef BACKEND_KMR
-  View alc_view(kDimSpace);
-  bool alc_view_flag[3] = {true, true, false};
-  alc_view.set(alc_view_flag);
-  ds->set_allocation_view(alc_view);
+  View split(kDimSpace);
+  bool split_flag[3] = {true, true, false};
+  split.set(split_flag);
+  ds->set_split(split);
 #endif
   View view(kDimSpace);
   bool view_flag[3] = {false, false, false};
@@ -275,7 +275,7 @@ void run_viz(DataStore* ds, Time& time)
   PseudoVisualization mapper(time);
   time.viz_invoke = gettime();
 #ifdef BACKEND_KMR
-  // As task runs on each point, any Allocation View is OK.
+  // As task runs on each point, any Split is OK.
 #endif
   View view(kDimSpace);
   bool view_flag[3] = {true, true, true};

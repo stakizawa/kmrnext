@@ -16,7 +16,7 @@
 /// get        : A process that has the data broadcasts it.
 /// get<view>  : The data is allgathered between all processes.
 /// map        : Before applying the fanctor, the data elements are shuffled
-///              between nodes according to the specified allocation view.
+///              between nodes according to the specified split pattern.
 ///              When applying the fanctor, the DataStore is split by the
 ///              specified (task) view, which defines a unit of task, nodes
 ///              that have the data elements which should be processed as a
@@ -24,7 +24,7 @@
 ///              to process the task.
 /// load_xxx   : Array elements are added on rank 0 only, but they are
 ///              scattered when the data in them are loaded.  So, if there
-///              are enough number of nodes (#nodes > #array element), the
+///              are enough number of nodes (#nodes > #array elements), the
 ///              array elements can be simultaneously loaded.
 
 namespace {
@@ -96,16 +96,16 @@ namespace kmrnext {
   DataStore::DataStore(size_t siz)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
     data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(NULL), allocation_view_(NULL) {}
+    kmrnext_(NULL), split_(NULL) {}
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
     data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(kn), allocation_view_(NULL) {}
+    kmrnext_(kn), split_(NULL) {}
 
   DataStore::~DataStore() {
-    if (allocation_view_ != NULL) {
-      delete allocation_view_;
+    if (split_ != NULL) {
+      delete split_;
     }
     if (data_allocated_) {
       delete[] data_;
@@ -436,7 +436,7 @@ namespace kmrnext {
       _outds = this;
     }
     _outds->parallel_ = true;
-    MapEnvironment env = { kmrnext_->rank(), view, get_allocation_view(),
+    MapEnvironment env = { kmrnext_->rank(), view, get_split(),
 			   MPI_COMM_NULL };
     param_mapper_map param = { m, this, _outds, view, env, dpgroups,
 			       is_local };
@@ -463,28 +463,28 @@ namespace kmrnext {
     }
   }
 
-  void DataStore::set_allocation_view(const View& view) {
+  void DataStore::set_split(const View& view) {
     check_view(view);
-    if (allocation_view_ == NULL) {
-      allocation_view_ = new View(view.size());
+    if (split_ == NULL) {
+      split_ = new View(view.size());
     }
     for (size_t i = 0; i < view.size(); i++) {
-      allocation_view_->set_dim(i, view.dim(i));
+      split_->set_dim(i, view.dim(i));
     }
   }
 
-  View DataStore::get_allocation_view() {
-    if (allocation_view_ == NULL) {
-      allocation_view_ = new View(size_);
+  View DataStore::get_split() {
+    if (split_ == NULL) {
+      split_ = new View(size_);
       for (size_t i = 0; i < size_; i++) {
 	if (i == 0) {
-	  allocation_view_->set_dim(i, true);
+	  split_->set_dim(i, true);
 	} else {
-	  allocation_view_->set_dim(i, false);
+	  split_->set_dim(i, false);
 	}
       }
     }
-    return *allocation_view_;
+    return *split_;
   }
 
   string DataStore::dump(DataPack::Dumper& dumper) {
@@ -757,8 +757,8 @@ namespace kmrnext {
       time_collate_start = gettime(kmrnext_->kmr()->comm);
     }
 
-    // Allocation View set to this DataStore
-    View aview = get_allocation_view();
+    // Split pattern set to this DataStore
+    View split = get_split();
     // Count of viewed data
     size_t ndata;
     // Indices of viewed Keys whose related data should be reside
@@ -773,7 +773,7 @@ namespace kmrnext {
       // Element count of each data
       size_t each_cnt = 1;
       for (size_t i = 0; i < size_; i++) {
-	if (aview.dim(i)) {
+	if (split.dim(i)) {
 	  ndata *= value_[i];
 	} else {
 	  each_cnt *= value_[i];
@@ -812,7 +812,7 @@ namespace kmrnext {
 	    continue;
 	  }
 	  Key tmpkey = index_to_key(i);
-	  size_t viewed_idx = key_to_split_index(tmpkey, aview);
+	  size_t viewed_idx = key_to_split_index(tmpkey, split);
 	  if (range_start <= viewed_idx && viewed_idx <= range_end) {
 	    size_t idx = viewed_idx - range_start;
 	    vector<DataPack>& dps = dpgroups.at(idx);
@@ -881,7 +881,7 @@ namespace kmrnext {
 	}
 	data_[i].unshared();
 	Key tmpkey = index_to_key(i);
-	size_t viewed_idx = (long)key_to_split_index(tmpkey, aview);
+	size_t viewed_idx = (long)key_to_split_index(tmpkey, split);
 	if (indices_cnt > 0 &&
 	    !(range_start <= viewed_idx && viewed_idx <= range_end)) {
 	  vector<DataPack>& dps = dpgroups.at(viewed_idx);

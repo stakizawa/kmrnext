@@ -125,10 +125,10 @@ namespace {
       ds0->add(key, dat);
     }
 #ifdef BACKEND_KMR
-    // Use Allocation View <T> so that each process loads an array element.
-    View pv_ds0(1);
-    pv_ds0.set_dim(0, true);
-    ds0->set_allocation_view(pv_ds0);
+    // Use Split <T> so that each process loads an array element.
+    View split_ds0(1);
+    split_ds0.set_dim(0, true);
+    ds0->set_split(split_ds0);
 #endif
 
     // Define a mapper for the loader
@@ -156,28 +156,28 @@ namespace {
     delete ds0;
 
 #ifdef BACKEND_KMR
-    View pv_ds(ds_dims_siz);
+    View split_ds(ds_dims_siz);
     if (array.size() == 1) {
-      // Use Allocation View <T, F, ..> so that data will be distributed
-      // to nodes whose count is the top most dimension of the DataStore.
-      pv_ds.set_dim(0, true);
+      // Use Split <T, F, ..> so that data will be distributed to nodes
+      // whose count is the top most dimension of the DataStore.
+      split_ds.set_dim(0, true);
       for (size_t i = 1; i < ds_dims_siz; i++) {
-	pv_ds.set_dim(i, false);
+	split_ds.set_dim(i, false);
       }
     } else {
-      // Use Allocation View <T, .., T, F, ..> so that each node stores
+      // Use Split <T, .., T, F, ..> so that each node stores
       // the contents of each array element.
       bool vval = true;
       size_t remain = array.size();
       for (size_t i = 0; i < ds_dims_siz; i++) {
-	pv_ds.set_dim(i, vval);
+	split_ds.set_dim(i, vval);
 	remain /= ds->dim(i);
 	if (remain == 1) {
 	  vval = false;
 	}
       }
     }
-    ds->set_allocation_view(pv_ds);
+    ds->set_split(split_ds);
 #endif
   }
 

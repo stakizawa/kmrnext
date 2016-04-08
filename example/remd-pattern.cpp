@@ -196,7 +196,7 @@ public:
 #elif defined BACKEND_KMR
     int nprocs_sim;
     MPI_Comm_size(env.mpi_comm, &nprocs_sim);
-    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+    int nprocs_calc = calculate_task_nprocs(env.view, env.split,
 					    nprocs_sim);
     assert(nprocs_sim == nprocs_calc);
     size_t local_count = dps.size();
@@ -229,10 +229,10 @@ void run_md(DataStore* ds, Time& time)
   PseudoMD mapper(time);
   time.md_invoke = gettime();
 #ifdef BACKEND_KMR
-  View alc_view(kNumDimensions);
-  bool alc_view_flag[3] = {true, true, false};
-  alc_view.set(alc_view_flag);
-  ds->set_allocation_view(alc_view);
+  View split(kNumDimensions);
+  bool split_flag[3] = {true, true, false};
+  split.set(split_flag);
+  ds->set_split(split);
 #endif
   View view(kNumDimensions);
   bool view_flag[3] = {true, false, false};
@@ -256,7 +256,7 @@ public:
 #elif defined BACKEND_KMR
     int nprocs_ex;
     MPI_Comm_size(env.mpi_comm, &nprocs_ex);
-    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+    int nprocs_calc = calculate_task_nprocs(env.view, env.split,
 					    nprocs_ex);
     assert(nprocs_ex == nprocs_calc);
     size_t local_count = dps.size();
@@ -288,10 +288,10 @@ void run_ex(DataStore* ds, Time& time)
 {
   PseudoEX mapper(time);
 #ifdef BACKEND_KMR
-  View alc_view(kNumDimensions);
-  bool alc_view_flag[3] = {false, true, false};
-  alc_view.set(alc_view_flag);
-  ds->set_allocation_view(alc_view);
+  View split(kNumDimensions);
+  bool split_flag[3] = {false, true, false};
+  split.set(split_flag);
+  ds->set_split(split);
 #endif
   time.ex_invoke = gettime();
   View view(kNumDimensions);

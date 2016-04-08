@@ -248,7 +248,7 @@ public:
 #if DEBUG
     int nprocs_nicam;
     MPI_Comm_size(env.mpi_comm, &nprocs_nicam);
-    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+    int nprocs_calc = calculate_task_nprocs(env.view, env.split,
 					    nprocs_nicam);
     assert(nprocs_nicam == nprocs_calc);
     size_t local_count = dps.size();
@@ -284,10 +284,10 @@ void run_nicam(DataStore* inds, DataStore* outds, Time& time)
   PseudoNICAM mapper(time);
   time.nicam_invoke = gettime();
 
-  View alc_view(kDimEnsembleData);
-  bool alc_view_flag[3] = {true, true, false};
-  alc_view.set(alc_view_flag);
-  inds->set_allocation_view(alc_view);
+  View split(kDimEnsembleData);
+  bool split_flag[3] = {true, true, false};
+  split.set(split_flag);
+  inds->set_split(split);
 
   View view(kDimEnsembleData);
   bool view_flag[3] = {true, false, false};
@@ -310,7 +310,7 @@ public:
     int nprocs_letkf;
     MPI_Comm_size(env.mpi_comm, &nprocs_letkf);
     assert(nprocs_letkf == 1);
-    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+    int nprocs_calc = calculate_task_nprocs(env.view, env.split,
 					    nprocs_letkf);
     assert(nprocs_letkf == nprocs_calc);
     size_t local_count = dps.size();
@@ -343,10 +343,10 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time)
   PseudoLETKF mapper(time);
   time.letkf_invoke = gettime();
 
-  View alc_view(kDimEnsembleData);
-  bool alc_view_flag[3] = {false, true, true};
-  alc_view.set(alc_view_flag);
-  inds->set_allocation_view(alc_view);
+  View split(kDimEnsembleData);
+  bool split_flag[3] = {false, true, true};
+  split.set(split_flag);
+  inds->set_split(split);
 
   View view(kDimEnsembleData);
   bool view_flag[3] = {false, true, true};

@@ -282,9 +282,9 @@ evaluate(KMRNext* next, int rank, int nprocs)
 void
 collate_ds(DataStore* ds)
 {
-  View alc_view(2);
-  alc_view.set_dim(0, true);
-  alc_view.set_dim(1, false);
-  ds->set_allocation_view(alc_view);
+  View split(2);
+  split.set_dim(0, true);
+  split.set_dim(1, false);
+  ds->set_split(split);
   ds->collate();
 }

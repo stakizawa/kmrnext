@@ -204,7 +204,7 @@ public:
 #elif defined BACKEND_KMR
     int nprocs_nicam;
     MPI_Comm_size(env.mpi_comm, &nprocs_nicam);
-    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+    int nprocs_calc = calculate_task_nprocs(env.view, env.split,
 					    nprocs_nicam);
     assert(nprocs_nicam == nprocs_calc);
     size_t local_count = dps.size();
@@ -236,10 +236,10 @@ void run_nicam(DataStore* ds, Time& time)
 {
   PseudoNICAM mapper(time);
 #ifdef BACKEND_KMR
-  View alc_view(kDimEnsembleData);
-  bool alc_view_flag[3] = {true, true, false};
-  alc_view.set(alc_view_flag);
-  ds->set_allocation_view(alc_view);
+  View split(kDimEnsembleData);
+  bool split_flag[3] = {true, true, false};
+  split.set(split_flag);
+  ds->set_split(split);
 #endif
   time.nicam_invoke = gettime();
   View view(kDimEnsembleData);
@@ -268,7 +268,7 @@ public:
 #elif defined BACKEND_KMR
     int nprocs_letkf;
     MPI_Comm_size(env.mpi_comm, &nprocs_letkf);
-    int nprocs_calc = calculate_task_nprocs(env.view, env.allocation_view,
+    int nprocs_calc = calculate_task_nprocs(env.view, env.split,
 					    nprocs_letkf);
     assert(nprocs_letkf == nprocs_calc);
     size_t local_count = dps.size();
@@ -307,19 +307,19 @@ void run_letkf(DataStore* ds, Time& time)
   View view(kDimEnsembleData);
   if (kLETKFRegion) {
 #ifdef BACKEND_KMR
-    View alc_view(kDimEnsembleData);
-    bool alc_view_flag[3] = {true, true, false};
-    alc_view.set(alc_view_flag);
-    ds->set_allocation_view(alc_view);
+    View split(kDimEnsembleData);
+    bool split_flag[3] = {true, true, false};
+    split.set(split_flag);
+    ds->set_split(split);
 #endif
     bool view_flag[3] = {false, true, false};
     view.set(view_flag);
   } else {
 #ifdef BACKEND_KMR
-    View alc_view(kDimEnsembleData);
-    bool alc_view_flag[3] = {false, true, true};
-    alc_view.set(alc_view_flag);
-    ds->set_allocation_view(alc_view);
+    View split(kDimEnsembleData);
+    bool split_flag[3] = {false, true, true};
+    split.set(split_flag);
+    ds->set_split(split);
 #endif
     bool view_flag[3] = {false, true, true};
     view.set(view_flag);
