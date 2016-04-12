@@ -370,14 +370,24 @@ namespace kmrnext {
       return;
     }
     collate();
+    View split = get_split();
 
-    bool is_local = true;
     size_t nkeys = 1;
-    for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i)) {
-	nkeys *= value_[i];
-      } else {
-	is_local = false;
+    bool is_local = true;
+    {
+      bool is_same_view = true;
+      for (size_t i = 0; i < size_; i++) {
+	if (view.dim(i)) {
+	  nkeys *= value_[i];
+	} else {
+	  is_local = false;
+	}
+	if (view.dim(i) != split.dim(i)) {
+	  is_same_view = false;
+	}
+      }
+      if (is_same_view) {
+	is_local = true;
       }
     }
 
@@ -436,7 +446,7 @@ namespace kmrnext {
       _outds = this;
     }
     _outds->parallel_ = true;
-    MapEnvironment env = { kmrnext_->rank(), view, get_split(),
+    MapEnvironment env = { kmrnext_->rank(), view, split,
 			   MPI_COMM_NULL };
     param_mapper_map param = { m, this, _outds, view, env, dpgroups,
 			       is_local };
