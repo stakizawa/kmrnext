@@ -451,7 +451,25 @@ namespace kmrnext {
     param_mapper_map param = { m, this, _outds, view, env, dpgroups,
 			       is_local };
     if (is_local) {
+      double timestamp[2];
+      long task_count;
+      kmr_local_element_count(ikvs, &task_count);
+      if (kmrnext_->profile()) {
+	timestamp[0] = gettime(kmrnext_->kmr()->comm);
+      }
+
       map_local(ikvs, NULL, (void*)&param, mapper_map);
+
+      if (kmrnext_->profile()) {
+	timestamp[1] = gettime(kmrnext_->kmr()->comm);
+	double total_time = (timestamp[1] - timestamp[0]) / 10E9;
+	ostringstream os;
+	os << "timing of map locally: total_exec="
+	   << fixed << total_time << " each_exec="
+	   << fixed << (total_time / (double)task_count) << "(sec), "
+	   << "count of task execution: " << task_count;
+	profile_out(kmrnext_, os.str());
+      }
     } else {
       kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
 				  kmrnext_->rank(), mapper_map);
