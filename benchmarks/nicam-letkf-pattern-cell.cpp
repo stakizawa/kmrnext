@@ -19,6 +19,9 @@ int nprocs = 1;
 // If true, map works in-place.
 const bool kMapInplace = true;
 
+// If true, set the best split
+const bool kSetSplit = true;
+
 const size_t kNumIteration = 10;
 
 const size_t kDimEnsembleData = 3;
@@ -284,10 +287,12 @@ void run_nicam(DataStore* inds, DataStore* outds, Time& time)
   PseudoNICAM mapper(time);
   time.nicam_invoke = gettime();
 
-  View split(kDimEnsembleData);
-  bool split_flag[3] = {true, true, false};
-  split.set(split_flag);
-  inds->set_split(split);
+  if (kSetSplit) {
+    View split(kDimEnsembleData);
+    bool split_flag[3] = {true, true, false};
+    split.set(split_flag);
+    inds->set_split(split);
+  }
 
   View view(kDimEnsembleData);
   bool view_flag[3] = {true, false, false};
@@ -343,10 +348,12 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time)
   PseudoLETKF mapper(time);
   time.letkf_invoke = gettime();
 
-  View split(kDimEnsembleData);
-  bool split_flag[3] = {false, true, true};
-  split.set(split_flag);
-  inds->set_split(split);
+  if (kSetSplit) {
+    View split(kDimEnsembleData);
+    bool split_flag[3] = {false, true, true};
+    split.set(split_flag);
+    inds->set_split(split);
+  }
 
   View view(kDimEnsembleData);
   bool view_flag[3] = {false, true, true};

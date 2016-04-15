@@ -18,8 +18,6 @@ int rank_offset = 1;
 const size_t kNumIteration = 10;
 
 const size_t kDimEnsembleData = 3;
-//const size_t kDimRegionData   = 2;
-//const size_t kDimCellData     = 1;
 
 #if DEBUG
 const size_t kNumEnsemble  = 2;
