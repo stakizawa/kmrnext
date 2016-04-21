@@ -15,6 +15,9 @@ using namespace std;
 int rank = 0;
 int rank_offset = 1;
 
+// If true, output in YAML format
+const bool kOutputYAML = true;
+
 const size_t kNumIteration = 10;
 
 const size_t kDimEnsembleData = 3;
@@ -236,6 +239,7 @@ main(int argc, char **argv)
   ds0->dump();
 #endif
 
+  double *loop_times = new double[kNumIteration];
   for (size_t i = 0; i < kNumIteration; i++) {
     Time time;
     time.loop_start = gettime();
@@ -267,19 +271,31 @@ main(int argc, char **argv)
 #endif
 
     time.loop_finish = gettime();
-    ostringstream os1;
-    os1 << "Iteration[" << i << "]," << time.loop() << endl;
-    os1 << "Alc NICAM In," << time.alc0() << endl;
-    os1 << "Invoke NICAM," << time.nicam_launch() << endl;
-    //os1 << "NICAM,"        << time.nicam() << endl;
-    os1 << "Del NICAM In," << time.del0() << endl;
-    os1 << "Alc LETKF In," << time.alc1() << endl;
-    os1 << "Invoke LETKF," << time.letkf_launch() << endl;
-    //os1 << "LETKF,"        << time.letkf() << endl;
-    os1 << "Del LETKF In," << time.del1() << endl;
-    print_line(os1);
+    loop_times[i] = time.loop();
+    if (!kOutputYAML) {
+      ostringstream os1;
+      os1 << "Iteration[" << i << "]," << time.loop() << endl;
+      os1 << "Alc NICAM In," << time.alc0() << endl;
+      os1 << "Invoke NICAM," << time.nicam_launch() << endl;
+      //os1 << "NICAM,"        << time.nicam() << endl;
+      os1 << "Del NICAM In," << time.del0() << endl;
+      os1 << "Alc LETKF In," << time.alc1() << endl;
+      os1 << "Invoke LETKF," << time.letkf_launch() << endl;
+      //os1 << "LETKF,"        << time.letkf() << endl;
+      os1 << "Del LETKF In," << time.del1() << endl;
+      print_line(os1);
+    }
   }
   delete ds0;
+
+  if (kOutputYAML) {
+    ostringstream os0;
+    for (size_t i = 0; i < kNumIteration; i++) {
+      os0 << "  - " << loop_times[i] << endl;
+    }
+    print_line(os0);
+  }
+  delete[] loop_times;
 
   MPI_Finalize();
   return 0;
