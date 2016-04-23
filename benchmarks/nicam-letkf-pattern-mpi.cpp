@@ -9,6 +9,7 @@
 #include <cassert>
 #include <ctime>
 #include <mpi.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -23,20 +24,24 @@ const size_t kNumIteration = 10;
 const size_t kDimEnsembleData = 3;
 
 #if DEBUG
-const size_t kNumEnsemble  = 2;
-const size_t kNumRegion    = 10;
-const size_t kNumCell      = 10;
-const size_t kElementCount = 2;
+const size_t kNumEnsemble     = 2;
+const size_t kNumRegion       = 10;
+const size_t kNumCell         = 10;
+const size_t kElementCount    = 2;
+const unsigned int kTimeNICAM = 0; // msec
+const unsigned int kTimeLETKF = 0; // msec
 #else
-const size_t kNumEnsemble  = 64;
-const size_t kNumRegion    = 40;
-const size_t kNumCell      = 1156;
-// const size_t kNumCell      = 4624;
-// const size_t kNumCell      = 18496;
-// const size_t kNumCell      = 73984;
+const size_t kNumEnsemble     = 64;
+const size_t kNumRegion       = 40;
+const size_t kNumCell         = 1156;
+// const size_t kNumCell         = 4624;
+// const size_t kNumCell         = 18496;
+// const size_t kNumCell         = 73984;
 
 // Assume that each grid point has 6160 bytes of data (6160 = 1540 * 4)
-const size_t kElementCount = 1540;
+const size_t kElementCount    = 1540;
+const unsigned int kTimeNICAM = 50000; // msec
+const unsigned int kTimeLETKF = 10;    // msec
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
@@ -319,6 +324,7 @@ void run_nicam(DataStore* inds, DataStore* outds, Time& time)
 #endif
 
   time.nicam_start = gettime(task_comm);
+  usleep(kTimeNICAM * 1000);
   int *buf;
   size_t buf_size;
   inds->read(&buf, &buf_size);
@@ -395,6 +401,8 @@ void letkf(int *in, int *out, size_t size, MPI_Comm comm) {
   delete[] recv_cnts;
   delete[] rdispls;
   delete[] rcvbuf;
+
+  usleep((each_count + ((letkf_rank < each_rem)? 1 : 0)) * kTimeLETKF * 1000);
 }
 
 void run_letkf(DataStore* inds, DataStore* outds, Time& time)

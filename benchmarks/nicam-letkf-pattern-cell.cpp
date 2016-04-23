@@ -8,6 +8,7 @@
 #include <sstream>
 #include <cassert>
 #include <ctime>
+#include <unistd.h>
 #include "kmrnext.hpp"
 
 using namespace std;
@@ -30,20 +31,24 @@ const size_t kNumIteration = 10;
 const size_t kDimEnsembleData = 3;
 
 #if DEBUG
-const size_t kNumEnsemble  = 2;
-const size_t kNumRegion    = 10;
-const size_t kNumCell      = 10;
-const size_t kElementCount = 2;
+const size_t kNumEnsemble     = 2;
+const size_t kNumRegion       = 10;
+const size_t kNumCell         = 10;
+const size_t kElementCount    = 2;
+const unsigned int kTimeNICAM = 0; // msec
+const unsigned int kTimeLETKF = 0; // msec
 #else
-const size_t kNumEnsemble  = 64;
-const size_t kNumRegion    = 40;
-const size_t kNumCell      = 1156;
-// const size_t kNumCell      = 4624;
-// const size_t kNumCell      = 18496;
-// const size_t kNumCell      = 73984;
+const size_t kNumEnsemble     = 64;
+const size_t kNumRegion       = 40;
+const size_t kNumCell         = 1156;
+// const size_t kNumCell         = 4624;
+// const size_t kNumCell         = 18496;
+// const size_t kNumCell         = 73984;
 
 // Assume that each lattice has 6160 bytes of data (6160 = 1540 * 4)
-const size_t kElementCount      = 1540;
+const size_t kElementCount    = 1540;
+const unsigned int kTimeNICAM = 50000; // msec
+const unsigned int kTimeLETKF = 10;    // msec
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
@@ -278,6 +283,7 @@ public:
 #endif
 
     time_.nicam_start = gettime(env);
+    usleep(kTimeNICAM * 1000);
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
@@ -339,6 +345,7 @@ public:
 #endif
 
     time_.letkf_start = gettime(env);
+    usleep(kTimeLETKF * 1000);
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
