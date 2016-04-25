@@ -14,7 +14,9 @@
 using namespace std;
 
 int rank = 0;
-int rank_offset = 1;
+
+// Offset to sender/receiver rank
+int rank_offset = 0;
 
 // If true, output in YAML format
 const bool kOutputYAML = true;
@@ -41,7 +43,7 @@ const size_t kNumCell         = 1156;
 // Assume that each grid point has 6160 bytes of data (6160 = 1540 * 4)
 const size_t kElementCount    = 1540;
 const unsigned int kTimeNICAM = 50000; // msec
-const unsigned int kTimeLETKF = 10;    // msec
+const unsigned int kTimeLETKF = 800;   // msec
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =

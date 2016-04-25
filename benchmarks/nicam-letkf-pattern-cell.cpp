@@ -48,7 +48,7 @@ const size_t kNumCell         = 1156;
 // Assume that each lattice has 6160 bytes of data (6160 = 1540 * 4)
 const size_t kElementCount    = 1540;
 const unsigned int kTimeNICAM = 50000; // msec
-const unsigned int kTimeLETKF = 10;    // msec
+const unsigned int kTimeLETKF = 800;   // msec
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
