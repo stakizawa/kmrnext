@@ -62,6 +62,43 @@ module kmrnextf
        implicit none
      end subroutine C_kmrnext_finalize
 
+     subroutine C_kmrnext_enable_profile(next) &
+          bind(c, name='KMRNEXT_enable_profile')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: next
+     end subroutine C_kmrnext_enable_profile
+
+     subroutine C_kmrnext_disable_profile(next) &
+          bind(c, name='KMRNEXT_disable_profile')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: next
+     end subroutine C_kmrnext_disable_profile
+
+     logical(c_bool) function C_kmrnext_profile(next) &
+          bind(c, name='KMRNEXT_profile')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: next
+     end function C_kmrnext_profile
+
+#ifdef BACKEND_KMR
+     integer(c_long) function C_kmrnext_nprocs(next) &
+          bind(c, name='KMRNEXT_nprocs')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: next
+     end function C_kmrnext_nprocs
+
+     integer(c_long) function C_kmrnext_rank(next) &
+          bind(c, name='KMRNEXT_rank')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: next
+     end function C_kmrnext_rank
+#endif
+
      type(c_ptr) function C_kmrnext_create_ds(next, size) &
           bind(c, name='KMRNEXT_create_ds')
        use iso_c_binding
@@ -120,6 +157,14 @@ module kmrnextf
        type(c_ptr), intent(in), value :: view
      end function C_kmrnext_ds_get_view
 
+     type(c_ptr) function C_kmrnext_ds_remove(ds, key) &
+          bind(c, name='KMRNEXT_ds_remove')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: ds
+       type(c_ptr), intent(in), value :: key
+     end function C_kmrnext_ds_remove
+
      subroutine C_kmrnext_ds_map(ids, ods, view, m, p) &
           bind(c, name='KMRNEXT_ds_map_ff')
        use iso_c_binding
@@ -152,6 +197,44 @@ module kmrnextf
        implicit none
        type(c_ptr), intent(in), value :: ds
      end function C_kmrnext_ds_string
+
+#ifdef BACKEND_KMR
+     subroutine C_kmrnext_ds_set_split(ds, split) &
+          bind(c, name='KMRNEXT_ds_set_split')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: ds
+       type(c_ptr), intent(in), value :: split
+     end subroutine C_kmrnext_ds_set_split
+
+     type(c_ptr) function C_kmrnext_ds_get_split(ds) &
+          bind(c, name='KMRNEXT_ds_get_split')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: ds
+     end function C_kmrnext_ds_get_split
+
+     subroutine C_kmrnext_ds_collate(ds) &
+          bind(c, name='KMRNEXT_ds_collate')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: ds
+     end subroutine C_kmrnext_ds_collate
+
+     logical(c_bool) function C_kmrnext_ds_collated(ds) &
+          bind(c, name='KMRNEXT_ds_collated')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: ds
+     end function C_kmrnext_ds_collated
+#endif
+
+     type(c_ptr) function C_kmrnext_ds_duplicate(ds) &
+          bind(c, name='KMRNEXT_ds_duplicate')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: ds
+     end function C_kmrnext_ds_duplicate
 
      type(c_ptr) function C_kmrnext_create_key(size) &
           bind(c, name='KMRNEXT_create_key')
@@ -304,6 +387,33 @@ contains
     zz = 0
   end function kmrnext_finalize
 
+  subroutine kmrnext_enable_profile(next)
+    type(c_ptr), intent(in), value :: next
+    call C_kmrnext_enable_profile(next)
+  end subroutine kmrnext_enable_profile
+
+  subroutine kmrnext_disable_profile(next)
+    type(c_ptr), intent(in), value :: next
+    call C_kmrnext_disable_profile(next)
+  end subroutine kmrnext_disable_profile
+
+  logical(c_bool) function kmrnext_profile(next) result(zz)
+    type(c_ptr), intent(in), value :: next
+    zz = C_kmrnext_profile(next)
+  end function kmrnext_profile
+
+#ifdef BACKEND_KMR
+  integer(c_long) function kmrnext_nprocs(next) result(zz)
+    type(c_ptr), intent(in), value :: next
+    zz = C_kmrnext_nprocs(next)
+  end function kmrnext_nprocs
+
+  integer(c_long) function kmrnext_rank(next) result(zz)
+    type(c_ptr), intent(in), value :: next
+    zz = C_kmrnext_rank(next)
+  end function kmrnext_rank
+#endif
+
   type(c_ptr) function kmrnext_create_ds(next, size) result(zz)
     type(c_ptr),       intent(in), value :: next
     integer(c_size_t), intent(in), value :: size
@@ -373,6 +483,12 @@ contains
     zz = C_kmrnext_ds_get_view(ds, key, view)
   end function kmrnext_ds_get_view
 
+  type(c_ptr) function kmrnext_ds_remove(ds, key) result(zz)
+    type(c_ptr), intent(in), value :: ds
+    type(c_ptr), intent(in), value :: key
+    zz = C_kmrnext_ds_remove(ds, key)
+  end function kmrnext_ds_remove
+
   integer function kmrnext_ds_map(ids, ods, view, m) result(zz)
     type(c_ptr), intent(in),  value    :: ids
     type(c_ptr), intent(in),  value    :: ods
@@ -409,6 +525,34 @@ contains
     len_str = C_strlen(c_str)
     call C_F_POINTER(c_str, ostring, [len_str])
   end subroutine kmrnext_ds_string
+
+#ifdef BACKEND_KMR
+  subroutine kmrnext_ds_set_split(ds, split)
+    type(c_ptr), intent(in), value :: ds
+    type(c_ptr), intent(in), value :: split
+    call C_kmrnext_ds_set_split(ds, split)
+  end subroutine kmrnext_ds_set_split
+
+  type(c_ptr) function kmrnext_ds_get_split(ds) result(zz)
+    type(c_ptr), intent(in), value :: ds
+    zz = C_kmrnext_ds_get_split(ds)
+  end function kmrnext_ds_get_split
+
+  subroutine kmrnext_ds_collate(ds)
+    type(c_ptr), intent(in), value :: ds
+    call C_kmrnext_ds_collate(ds)
+  end subroutine kmrnext_ds_collate
+
+  logical(c_bool) function kmrnext_ds_collated(ds) result(zz)
+    type(c_ptr), intent(in), value :: ds
+    zz = C_kmrnext_ds_collated(ds)
+  end function kmrnext_ds_collated
+#endif
+
+  type(c_ptr) function kmrnext_ds_duplicate(ds) result(zz)
+    type(c_ptr), intent(in), value :: ds
+    zz = C_kmrnext_ds_duplicate(ds)
+  end function kmrnext_ds_duplicate
 
   type(c_ptr) function kmrnext_create_key(size) result(zz)
     integer(c_size_t), intent(in), value :: size

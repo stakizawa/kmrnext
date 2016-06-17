@@ -19,6 +19,38 @@ void KMRNEXT_finalize()
   KMRNext::finalize();
 }
 
+void KMRNEXT_enable_profile(void *next)
+{
+  KMRNext *_next = (KMRNext*)next;
+  _next->enable_profile();
+}
+
+void KMRNEXT_disable_profile(void *next)
+{
+  KMRNext *_next = (KMRNext*)next;
+  _next->disable_profile();
+}
+
+bool KMRNEXT_profile(void *next)
+{
+  KMRNext *_next = (KMRNext*)next;
+  return _next->profile();
+}
+
+#ifdef BACKEND_KMR
+long KMRNEXT_nprocs(void *next)
+{
+  KMRNext *_next = (KMRNext*)next;
+  return (long)_next->nprocs();
+}
+
+long KMRNEXT_rank(void *next)
+{
+  KMRNext *_next = (KMRNext*)next;
+  return (long)_next->rank();
+}
+#endif
+
 void *KMRNEXT_create_ds(void *next, size_t siz)
 {
   KMRNext *_next = (KMRNext*)next;
@@ -97,6 +129,15 @@ datapacks KMRNEXT_ds_get_view(void *ds, void *key, void *view)
   return dps;
 }
 
+void *KMRNEXT_ds_remove(void *ds, void *key)
+{
+  DataStore *_ds = (DataStore*)ds;
+  Key *_key = (Key*)key;
+  DataPack dp = _ds->remove(*_key);
+  DataPack *_dp = new DataPack(dp.key(), dp.data());
+  return (void*)_dp;
+}
+
 void KMRNEXT_ds_map(void *ids, void *ods, void *view, kmrnext_mapfn_t m,
 		    void *p)
 {
@@ -160,6 +201,45 @@ char *KMRNEXT_ds_string(void *ds)
   DataStore *_ds = (DataStore*)ds;
   string str = _ds->to_string();
   return copy_string_to_cstr(str);
+}
+
+#ifdef BACKEND_KMR
+void KMRNEXT_ds_set_split(void *ds, void *split)
+{
+  DataStore *_ds = (DataStore*)ds;
+  View *_split = (View*)split;
+  _ds->set_split(*_split);
+}
+
+void *KMRNEXT_ds_get_split(void *ds)
+{
+  DataStore *_ds = (DataStore*)ds;
+  View split = _ds->get_split();
+  View *_split = new View(split.size());
+  for (size_t i = 0; i < split.size(); i++) {
+    _split->set_dim(i, split.dim(i));
+  }
+  return (void*)_split;
+}
+
+void KMRNEXT_ds_collate(void *ds)
+{
+  DataStore *_ds = (DataStore*)ds;
+  _ds->collate();
+}
+
+bool KMRNEXT_ds_collated(void *ds)
+{
+  DataStore *_ds = (DataStore*)ds;
+  return _ds->collated();
+}
+#endif
+
+void *KMRNEXT_ds_duplicate(void *ds)
+{
+  DataStore *_ds = (DataStore*)ds;
+  DataStore *_ds2 = _ds->duplicate();
+  return (void*)_ds2;
 }
 
 void *KMRNEXT_create_key(size_t siz)

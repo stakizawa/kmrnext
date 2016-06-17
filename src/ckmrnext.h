@@ -36,6 +36,15 @@ typedef char* (*kmrnext_dumpfn_t)(void *dp);
 void *KMRNEXT_init(int argc, char **argv);
 void KMRNEXT_finalize();
 
+void KMRNEXT_enable_profile(void *next);
+void KMRNEXT_disable_profile(void *next);
+bool KMRNEXT_profile(void *next);
+
+#ifdef BACKEND_KMR
+long KMRNEXT_nprocs(void *next);
+long KMRNEXT_rank(void *next);
+#endif
+
 void *KMRNEXT_create_ds(void *next, size_t siz);
 void KMRNEXT_free_ds(void *ds);
 void KMRNEXT_ds_set_size(void *ds, size_t *val);
@@ -44,11 +53,19 @@ void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
 void KMRNEXT_ds_add(void *ds, void *key, void *data);
 void *KMRNEXT_ds_get(void *ds, void *key);
 datapacks KMRNEXT_ds_get_view(void *ds, void *key, void *view);
+void *KMRNEXT_ds_remove(void *ds, void *key);
 void KMRNEXT_ds_map(void *ids, void *ods, void *view, kmrnext_mapfn_t m,
 		    void *p);
 long KMRNEXT_ds_count(void *ds);
 char *KMRNEXT_ds_dump(void *ds, kmrnext_dumpfn_t d);
 char *KMRNEXT_ds_string(void *ds);
+#ifdef BACKEND_KMR
+void KMRNEXT_ds_set_split(void *ds, void *split);
+void *KMRNEXT_ds_get_split(void *ds);
+void KMRNEXT_ds_collate(void *ds);
+bool KMRNEXT_ds_collated(void *ds);
+#endif
+void *KMRNEXT_ds_duplicate(void *ds);
 
 void *KMRNEXT_create_key(size_t siz);
 void KMRNEXT_free_key(void *key);
