@@ -48,7 +48,7 @@ namespace kmrnext {
     void disable_profile();
 
     /// It returns true if profiling option is set.
-    bool profile() { return profile_; };
+    bool profile() const { return profile_; };
 
     /// It creates a DataStore with the specified dimension size.
     ///
@@ -58,13 +58,13 @@ namespace kmrnext {
 
 #ifdef BACKEND_KMR
     /// It returns MPI processes.
-    int nprocs() { return nprocs_; }
+    int nprocs() const { return nprocs_; }
 
     /// It returns rank of this process.
-    int rank() { return rank_; }
+    int rank() const { return rank_; }
 
     /// It returns a KMR object.
-    KMR *kmr() { return mr_; };
+    KMR *kmr() const { return mr_; };
 #endif
 
   private:
@@ -101,7 +101,9 @@ namespace kmrnext {
     T value_[kMaxDimensionSize];
 
   public:
-    /// \param[in] siz the size of dimension
+    /// It creates a new dimensional data.
+    ///
+    /// \param[in] siz the numberof of dimensions
     /// \return        a new instance of Dimensional class
     /// \exception std::runtime_error
     ///                when siz exceeds the maximum dimension size
@@ -115,14 +117,24 @@ namespace kmrnext {
 
     virtual ~Dimensional() {};
 
+    /// It sets value of each dimension.
+    ///
+    /// \param[in] val an array that stores value of each dimension
     virtual void set(const T *val) {
       for (size_t i = 0; i < size_; i++) {
 	value_[i] = val[i];
       }
     }
 
+    /// It returns the number of dimensions.
     size_t size() const { return size_; }
 
+    /// It returns the value of the specified dimension.
+    ///
+    /// \param[in] idx index of the target dimension
+    /// \return        value of the dimension
+    /// \exception std::runtime_error
+    ///                when idx exceeds the maximum dimension size
     T dim(size_t idx) const {
       if (idx >= size_) {
 	ostringstream os;
@@ -132,6 +144,12 @@ namespace kmrnext {
       return value_[idx];
     }
 
+    /// It sets a value to the specified dimension.
+    ///
+    /// \param[in] idx index of the target dimension
+    /// \param[in] val value to be set
+    /// \exception std::runtime_error
+    ///                when idx exceeds the maximum dimension size
     void set_dim(size_t idx, T val) {
       if (idx >= size_) {
 	ostringstream os;
@@ -141,6 +159,7 @@ namespace kmrnext {
       value_[idx] = val;
     }
 
+    /// It returns a string representation of an instance of this class.
     string to_string() const {
       ostringstream os;
       os << '<';
@@ -194,26 +213,41 @@ namespace kmrnext {
   public:
     Data();
 
+    /// It creates a new Data.
+    ///
+    /// \param[in] val     value of data to be set
+    /// \param[in] val_siz size of value
     Data(void *val, const size_t val_siz);
 
     ~Data();
 
     /// It deeply copies the specified Data.
-    /// If the overwrite option is true, it removes the current data and
-    /// overwrites by the specified Data.
+    ///
+    /// \param[in] src       copied Data
+    /// \param[in] overwrite If the overwrite option is true, it removes
+    ///                      the current stored-data and overwrites itself
+    ///                      by the specified Data(src).
+    /// \exception std::runtime_error when copy failed
     void copy_deep(const Data& src, bool overwrite=false);
 
     /// It shallowly copies the specified Data.
+    ///
+    /// \param[in] src copied Data
+    /// \exception std::runtime_error when copy failed
     void copy_shallow(const Data& src);
 
-    /// It copies the specified buffer to this data.
+    /// It copies the specified buffer to this Data.
+    ///
+    /// \param[in] val     buffer to be copied
+    /// \param[in] val_siz size of the buffer
+    /// \exception std::runtime_error when copy failed
     void copy_buf(void *val, const size_t val_siz);
 
     /// It returns a pointer to the stored data.
-    void *value() { return value_; }
+    void *value() const { return value_; }
 
     /// It returns size of the stored data.
-    size_t size() { return value_size_; }
+    size_t size() const { return value_size_; }
 
     /// It clears the Data but does not delete it.
     void clear();
@@ -226,9 +260,11 @@ namespace kmrnext {
 
 #ifdef BACKEND_KMR
     /// It returns rank of owner process of this Data.
-    int owner() { return owner_; }
+    int owner() const { return owner_; }
 
     /// It sets owner of this Data.
+    ///
+    /// \param[in] rank the owner rank
     void set_owner(int rank) { owner_ = rank; }
 
     /// It sets that this Data is shared among processes.
@@ -238,7 +274,7 @@ namespace kmrnext {
     void unshared() { shared_ = false; }
 
     /// It returns true if this Data is shared among processes.
-    bool is_shared() { return shared_; }
+    bool is_shared() const { return shared_; }
 #endif
 
   private:
@@ -256,6 +292,10 @@ namespace kmrnext {
   ///////////////////////////////////////////////////////////////////////////
   class DataPack {
   public:
+    /// It creates a new DataPack.
+    ///
+    /// \param[in] k Key of the DataPack
+    /// \param[in] d Data of the DataPack
     DataPack(const Key k, Data *d) : key_(k), data_(d), delete_(false) {}
 
     ~DataPack() { if (delete_) { delete data_; } }
@@ -264,7 +304,7 @@ namespace kmrnext {
     Key& key() { return key_; }
 
     /// It returns the stored data.
-    Data *data() { return data_; }
+    Data *data() const { return data_; }
 
     /// If it is called, the Data will be deleted when this DataPack
     /// is deleted.
@@ -292,8 +332,15 @@ namespace kmrnext {
   ///////////////////////////////////////////////////////////////////////////
   class DataStore : public Dimensional<size_t> {
   public:
+    /// It creates a new DataStore.
+    ///
+    /// \param[in] size number of dimensions of this DataStore.
     explicit DataStore(size_t siz);
 
+    /// It creates a new DataStore.
+    ///
+    /// \param[in] size number of dimensions of this DataStore.
+    /// \param[in] kn   an instance of KMRNext context
     explicit DataStore(size_t siz, KMRNext *kn);
 
     virtual ~DataStore();
@@ -350,28 +397,45 @@ namespace kmrnext {
       virtual int operator()(DataStore *ds, const Type& param) = 0;
     };
 
-    /// It sets size of each dimension.
+    /// It sets value of each dimension.
+    ///
+    /// \param[in] val an array that stores value of each dimension
     virtual void set(const size_t *val);
 
     /// It adds a data to this DataStore.
+    ///
+    /// \param[in] key  Key in this DataStore where the Data is stored
+    /// \param[in] data Data to be added
+    /// \exception std::runtime_error when addition failed
     void add(const Key& key, const Data& data);
 
     /// It gets a specified data from this DataStore.
     ///
-    /// Even if the data does not exist, it returns a DataPack object.
-    /// However, the Data of the DataPack is NULL.
+    /// \param[in] key Index of Data to be gotten
+    /// \return    a DataPack object whose Key is key and value is the gotten
+    ///            Data.  Even if the data does not exist, it returns a
+    ///            DataPack object.  However, the Data of the DataPack is NULL.
+    /// \exception std::runtime_error when failed to get
     DataPack get(const Key& key);
 
     /// It gets data whose keys are same when the specified view is applied.
     ///
-    /// Even if the data does not exist, it returns a DataPack object.
-    /// However, the Data of the DataPack is NULL.
+    /// \param[in] view a user specified View of DataStore
+    /// \param[in] key  Index of Data to be gotten
+    /// \return    a vector of DataPack objects whose Keys are key and values
+    ///            are the gotten Data.  Even if the data does not exist,
+    ///            it returns a DataPack object.  However, the Data of the
+    ///            DataPack is NULL.
+    /// \exception std::runtime_error when failed to get
     vector<DataPack>* get(const View& view, const Key& key);
 
     /// It removes a specified data from this DataStore.
     ///
-    /// Even if the data does not exist, it returns a DataPack object.
-    /// However, the Data of the DataPack is NULL.
+    /// \param[in] key Index of Data to be removed
+    /// \return    a DataPack object whose Key is key and value is the removed
+    ///            Data.  Even if the data does not exist, it returns a
+    ///            DataPack object.  However, the Data of the DataPack is NULL.
+    /// \exception std::runtime_error when failed to get
     DataPack remove(const Key& key);
 
     /// It sets Data from DataStores.
@@ -397,6 +461,7 @@ namespace kmrnext {
     View get_split();
 
     /// It globally sorts data.
+    ///
     /// It changes the arrangement of data elements in the DataStore among
     /// nodes using the Split.  It is automatically called in
     /// DataStore.map() function, so that explicitly calling this function
@@ -448,11 +513,13 @@ namespace kmrnext {
     Key key_to_viewed_key(const Key& key, const View& view);
 
     /// It initializes the static fields.
+    ///
     /// It should be called before using DataStore class.  If you call
     /// KMRNext::init(), this method is also called.
     static void initialize();
 
     /// It finalizes the static fields.
+    ///
     /// It should be called if you no longer use DataStore class.
     /// If you call KMRNext::finalize(), this method is also called.
     static void finalize();
