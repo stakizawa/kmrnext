@@ -33,8 +33,6 @@ endif
 .PHONY: clean
 clean:
 	-rm -rf $(PROGS) *.o *.d
-	cd unpublished; make clean
 
 .PHONY: distclean
 distclean: clean
-	cd unpublished; make distclean
