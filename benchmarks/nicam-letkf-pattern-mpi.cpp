@@ -1,25 +1,63 @@
 /// \file
 /// Benchmark program for NICAM-LETKF data access pattern
 ///
-/// It does not use KMRNEXT but uses just MPI.
+/// It does not use KMRNEXT but uses MPI.
 /// The number of MPI processes running this program should be
 /// "kNumEnsemble x kNumRegion".
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <cassert>
 #include <ctime>
 #include <mpi.h>
 #include <unistd.h>
+#include <sys/stat.h>
+
+/// Notes for ICPADS evaluation
+///
+/// The configuration for Locality-aware case is as follows.
+///    kDataStoreIsFile = true
+///    kReadRotate      = false
+///    kRemoteAccess    = false
+/// And I use the rank directory.
+///
+/// The configuration for Locality-unaware case is as follows.
+///    kDataStoreIsFile = true
+///    kReadRotate      = true
+///    kRemoteAccess    = false
+/// And I use the shared directory.
 
 using namespace std;
 
+// If true, output in YAML format
+const bool kOutputYAML = true;
+
+// If true, the contents of DataStores are saved in files
+const bool kDataStoreIsFile = true;
+
+// If ture, read file is rorated
+const bool kReadRotate = true;
+
+// If true, reading/writing from/to DataStores performs remote access
+const bool kRemoteAccess = false;
+
+// Prefix of name of DataStore file
+const string kDataStoreFilePrefix = "nlpmpi_file";
+
+// MPI rank
 int rank = 0;
+
+// ID of DataStore
+size_t ds_id = 0;
+
+// Offset to read target rank
+int rotate_offset = 0;
+
+// Size of increment of rotate_offset
+const int kRotateOffsetIncrease = 2;
 
 // Offset to sender/receiver rank
 int rank_offset = 0;
-
-// If true, output in YAML format
-const bool kOutputYAML = true;
 
 const size_t kNumIteration = 10;
 
@@ -106,7 +144,10 @@ struct Time {
 
 class DataStore {
 public:
-  DataStore(size_t ndims) : ndims_(ndims), dim_sizes_(NULL), buf_(NULL) {}
+  DataStore(size_t ndims) : ndims_(ndims), dim_sizes_(NULL), buf_(NULL) {
+    id_ = ds_id;
+    ds_id += 1;
+  }
 
   ~DataStore() {
     if (dim_sizes_ != NULL) {
@@ -114,6 +155,9 @@ public:
     }
     if (buf_ != NULL) {
       delete[] buf_;
+    }
+    if (kDataStoreIsFile) {
+      delete_file();
     }
   }
 
@@ -138,9 +182,17 @@ public:
     for (size_t i = 0; i < buf_size_; i++) {
       buf_[i] = (int)prcid_ + 1;
     }
+
+    if (kDataStoreIsFile) {
+      write_to_file();
+    }
   }
 
   void dump() {
+    if (kDataStoreIsFile) {
+      read_from_file();
+    }
+
     assert(buf_ != NULL);
     for (int i = 0; i < nprocs_; i++) {
       if (rank == i) {
@@ -160,9 +212,18 @@ public:
     if (rank == 0) {
       cout << endl;
     }
+
+    if (kDataStoreIsFile) {
+      delete[] buf_;
+      buf_ = NULL;
+    }
   }
 
   void read(int **buf, size_t *buf_size) {
+    if (kDataStoreIsFile) {
+      read_from_file();
+    }
+
     assert(buf_ != NULL);
     int snd_rank = (rank + rank_offset + nprocs_) % nprocs_;
     int rcv_rank = (rank - rank_offset + nprocs_) % nprocs_;
@@ -177,6 +238,11 @@ public:
     MPI_Sendrecv(buf_, (int)snd_size, MPI_INT, snd_rank, 1001,
     		 *buf, (int)rcv_size, MPI_INT, rcv_rank, 1001,
     		 MPI_COMM_WORLD, &st);
+
+    if (kDataStoreIsFile) {
+      delete[] buf_;
+      buf_ = NULL;
+    }
   }
 
   void write(int *buf, size_t buf_size) {
@@ -194,12 +260,62 @@ public:
     MPI_Sendrecv(buf,  (int)snd_size, MPI_INT, snd_rank, 1001,
     		 buf_, (int)rcv_size, MPI_INT, rcv_rank, 1001,
     		 MPI_COMM_WORLD, &st);
+
+    if (kDataStoreIsFile) {
+      delete_file();
+      write_to_file();
+    }
   }
 
   size_t ensid() { return ensid_; }
   size_t prcid() { return prcid_; }
 
 private:
+  string filename(bool op_read=false) {
+    ostringstream os;
+    int offset = rank;
+    if (op_read && kReadRotate) {
+      rotate_offset += kRotateOffsetIncrease;
+      offset = (offset + rotate_offset) % nprocs_;
+    }
+    os << "./" << kDataStoreFilePrefix << "_" << id_ << "_" << offset;
+    return os.str();
+  }
+
+  void write_to_file() {
+    assert(buf_ != NULL);
+    string fname = filename();
+    ofstream fout;
+    fout.open(fname.c_str(), ios::out|ios::binary);
+    fout.write((char*)buf_, sizeof(int) * buf_size_);
+    assert(fout.fail() == false);
+    fout.flush();
+    fout.close();
+    delete[] buf_;
+    buf_ = NULL;
+  }
+
+  void read_from_file() {
+    assert(buf_ == NULL);
+    buf_ = new int[buf_size_];
+    string fname = filename(true);
+    ifstream fin;
+    fin.open(fname.c_str(), ios::in|ios::binary);
+    fin.read((char*)buf_, sizeof(int) * buf_size_);
+    assert(fin.fail() == false);
+    fin.close();
+  }
+
+  void delete_file() {
+    struct stat st;
+    string fname = filename();
+    int ret = stat(fname.c_str(), &st);
+    if (ret == 0) {
+      unlink(fname.c_str());
+    }
+  }
+
+  size_t id_;
   size_t ndims_;
   size_t *dim_sizes_;
   size_t ensid_;
@@ -236,7 +352,9 @@ main(int argc, char **argv)
       MPI_Barrier(MPI_COMM_WORLD);
       MPI_Abort(MPI_COMM_WORLD, 1);
     }
-    rank_offset = nprocs / 2;
+    if (kRemoteAccess) {
+      rank_offset = nprocs / 2;
+    }
   }
 
   DataStore *ds0 = new DataStore(kDimEnsembleData);
