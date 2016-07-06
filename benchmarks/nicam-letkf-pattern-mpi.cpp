@@ -16,16 +16,18 @@
 /// Notes for ICPADS evaluation
 ///
 /// The configuration for Locality-aware case is as follows.
-///    kDataStoreIsFile = true
-///    kReadRotate      = false
-///    kRemoteAccess    = false
-/// And I use the rank directory.
+///    kDataStoreIsFile  = true
+///    kReadRotate       = false
+///    kRemoteAccess     = false
+///    kDataStoreFileDir = "./"
 ///
 /// The configuration for Locality-unaware case is as follows.
-///    kDataStoreIsFile = true
-///    kReadRotate      = true
-///    kRemoteAccess    = false
-/// And I use the shared directory.
+///    kDataStoreIsFile  = true
+///    kReadRotate       = true
+///    kRemoteAccess     = false
+///    kDataStoreFileDir = "../"
+///
+/// I used the rank directory for both case.
 
 using namespace std;
 
@@ -36,10 +38,13 @@ const bool kOutputYAML = true;
 const bool kDataStoreIsFile = true;
 
 // If ture, read file is rorated
-const bool kReadRotate = true;
+const bool kReadRotate = false;
 
 // If true, reading/writing from/to DataStores performs remote access
 const bool kRemoteAccess = false;
+
+// Name of a directory where DataStore files are written
+const string kDataStoreFileDir = "./";
 
 // Prefix of name of DataStore file
 const string kDataStoreFilePrefix = "nlpmpi_file";
@@ -278,7 +283,8 @@ private:
       rotate_offset += kRotateOffsetIncrease;
       offset = (offset + rotate_offset) % nprocs_;
     }
-    os << "./" << kDataStoreFilePrefix << "_" << id_ << "_" << offset;
+    os << kDataStoreFileDir << kDataStoreFilePrefix << "_" << id_ << "_"
+       << offset;
     return os.str();
   }
 
