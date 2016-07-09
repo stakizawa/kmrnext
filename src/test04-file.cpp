@@ -67,7 +67,7 @@ public:
 int
 main(int argc, char **argv) {
   kmrnext::KMRNext *next = kmrnext::KMRNext::init(argc, argv);
-  next->set_io_mode(kmrnext::File);
+  next->set_io_mode(kmrnext::KMRNext::File);
 
 #ifdef BACKEND_KMR
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);

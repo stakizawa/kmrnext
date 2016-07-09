@@ -46,7 +46,7 @@ namespace kmrnext {
     }
   }
 
-  IOMode DataStore::io_mode() {
+  KMRNext::IOMode DataStore::io_mode() {
     if (kmrnext_ == NULL) {
       throw runtime_error("KMRNext instance should be set to a DataStore.");
     }

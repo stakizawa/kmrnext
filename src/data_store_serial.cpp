@@ -20,7 +20,7 @@ namespace kmrnext {
     if (data_allocated_) {
       delete[] data_;
     }
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       string fname = filename();
       delete_file(fname);
     }
@@ -52,19 +52,19 @@ namespace kmrnext {
     } else {
       d->set_value(data);
     }
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       data_updated_ = true;
     }
   }
 
   DataPack DataStore::get(const Key& key) {
     check_key_range(key);
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       load();
     }
     size_t idx = key_to_index(key);
     DataPack dp = DataPack(key, &(data_[idx]), true);
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       clear_cache();
     }
     return dp;
@@ -73,7 +73,7 @@ namespace kmrnext {
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
     check_view(view);
     check_key_range(key);
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       load();
     }
 
@@ -92,7 +92,7 @@ namespace kmrnext {
       }
     }
 
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       clear_cache();
     }
     return dps;
@@ -100,7 +100,7 @@ namespace kmrnext {
 
   DataPack DataStore::remove(const Key& key) {
     check_key_range(key);
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       load();
     }
 
@@ -108,7 +108,7 @@ namespace kmrnext {
     DataPack dp(key, &(data_[idx]), true);
     data_[idx].clear();
 
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       data_updated_ = true;
       clear_cache();
     }
@@ -161,19 +161,19 @@ namespace kmrnext {
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
       DataStore *src = dslist.at(i);
-      if (io_mode() == File) {
+      if (io_mode() == KMRNext::File) {
 	src->load();
       }
       for (size_t j = 0; j < src->data_size_; j++) {
 	data_[offset + j].set_value(src->data_[j]);
       }
-      if (io_mode() == File) {
+      if (io_mode() == KMRNext::File) {
 	src->clear_cache();
       }
       offset += src->data_size_;
     }
 
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       store();
     }
   }
@@ -202,7 +202,7 @@ namespace kmrnext {
       }
     }
 
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       load();
     }
 
@@ -218,13 +218,13 @@ namespace kmrnext {
       for (size_t j = 0; j < dst->data_size_; j++) {
 	dst->data_[j].set_value(data_[offset + j]);
       }
-      if (io_mode() == File) {
+      if (io_mode() == KMRNext::File) {
 	dst->store();
       }
       offset += dst->data_size_;
     }
 
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       clear_cache();
     }
   }
@@ -235,7 +235,7 @@ namespace kmrnext {
       return;
     }
 
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       bool ret = store(false);
       if (!ret) {
 	load();
@@ -290,7 +290,7 @@ namespace kmrnext {
       map_inplace_ = false;
     }
 
-    if (io_mode() == File) {
+    if (io_mode() == KMRNext::File) {
       _outds->store();
     }
   }

@@ -20,14 +20,6 @@ namespace kmrnext {
   /// Maximum dimension size of Key, View and DataStore
   const size_t kMaxDimensionSize = 8;
 
-  /// IO mode for storing data elements in DataStore
-  ///
-  /// The default IO mode is Memory.
-  enum IOMode {
-    Memory = 0,
-    File   = 1
-  };
-
   class Key;
   class View;
   class Data;
@@ -39,6 +31,14 @@ namespace kmrnext {
   ///////////////////////////////////////////////////////////////////////////
   class KMRNext {
   public:
+    /// IO mode for storing data elements in DataStore
+    ///
+    /// The default IO mode is Memory.
+    enum IOMode {
+      Memory = 0,
+      File   = 1
+    };
+
     /// It initializes the whole system.
     ///
     /// \param[in] argc the number of command line arguments
@@ -61,10 +61,10 @@ namespace kmrnext {
     /// It sets IO mode of DataSotre.
     ///
     /// \param[in] mode the IO mode
-    void set_io_mode(IOMode mode) { iomode_ = mode; };
+    void set_io_mode(KMRNext::IOMode mode) { iomode_ = mode; };
 
     /// It returns the current IO mode.
-    IOMode io_mode() const { return iomode_; };
+    KMRNext::IOMode io_mode() const { return iomode_; };
 
     /// It creates a DataStore with the specified dimension size.
     ///
@@ -462,7 +462,7 @@ namespace kmrnext {
     /// It returns the current IO mode of this DataStore.
     ///
     /// \return  current IO mode
-    IOMode io_mode();
+    KMRNext::IOMode io_mode();
 
     /// It sets value of each dimension.
     ///
