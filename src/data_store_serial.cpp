@@ -8,17 +8,21 @@ namespace kmrnext {
 
   DataStore::DataStore(size_t siz)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(NULL) {}
+    data_allocated_(false), data_updated_(false), map_inplace_(false),
+    parallel_(false), kmrnext_(NULL) {}
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(kn) {}
+    data_allocated_(false), data_updated_(false), map_inplace_(false),
+    parallel_(false), kmrnext_(kn) {}
 
   DataStore::~DataStore() {
     if (data_allocated_) {
       delete[] data_;
+    }
+    if (io_mode() == File) {
+      string fname = filename();
+      delete_file(fname);
     }
   }
 
@@ -44,46 +48,70 @@ namespace kmrnext {
     size_t idx = key_to_index(key);
     Data *d = &(data_[idx]);
     if (map_inplace_) {
-      d->copy_deep(data, true);
+      d->update_value(data);
     } else {
-      d->copy_deep(data);
+      d->set_value(data);
+    }
+    if (io_mode() == File) {
+      data_updated_ = true;
     }
   }
 
   DataPack DataStore::get(const Key& key) {
     check_key_range(key);
+    if (io_mode() == File) {
+      load();
+    }
     size_t idx = key_to_index(key);
-    return DataPack(key, &(data_[idx]));
+    DataPack dp = DataPack(key, &(data_[idx]), true);
+    if (io_mode() == File) {
+      clear_cache();
+    }
+    return dp;
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
     check_view(view);
     check_key_range(key);
+    if (io_mode() == File) {
+      load();
+    }
+
     vector<DataPack> *dps = new vector<DataPack>();
     for (size_t i = 0; i < data_size_; i++) {
       Key tmpkey = index_to_key(i);
-      bool store = true;
+      bool push = true;
       for (size_t j = 0; j < size_; j++) {
 	if (view.dim(j) && key.dim(j) != tmpkey.dim(j)) {
-	  store = false;
+	  push = false;
 	  break;
 	}
       }
-      if (store) {
-	dps->push_back(DataPack(tmpkey, &(data_[i])));
+      if (push) {
+	dps->push_back(DataPack(tmpkey, &(data_[i]), true));
       }
+    }
+
+    if (io_mode() == File) {
+      clear_cache();
     }
     return dps;
   }
 
   DataPack DataStore::remove(const Key& key) {
     check_key_range(key);
+    if (io_mode() == File) {
+      load();
+    }
+
     size_t idx = key_to_index(key);
-    Data *d = new Data();
-    d->copy_deep(data_[idx]);
+    DataPack dp(key, &(data_[idx]), true);
     data_[idx].clear();
-    DataPack dp(key, d);
-    dp.set_delete();
+
+    if (io_mode() == File) {
+      data_updated_ = true;
+      clear_cache();
+    }
     return dp;
   }
 
@@ -133,10 +161,20 @@ namespace kmrnext {
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
       DataStore *src = dslist.at(i);
+      if (io_mode() == File) {
+	src->load();
+      }
       for (size_t j = 0; j < src->data_size_; j++) {
-	data_[offset + j].copy_deep(src->data_[j]);
+	data_[offset + j].set_value(src->data_[j]);
+      }
+      if (io_mode() == File) {
+	src->clear_cache();
       }
       offset += src->data_size_;
+    }
+
+    if (io_mode() == File) {
+      store();
     }
   }
 
@@ -164,6 +202,10 @@ namespace kmrnext {
       }
     }
 
+    if (io_mode() == File) {
+      load();
+    }
+
     size_t split_dims[kMaxDimensionSize];
     for (size_t i = 1; i < size_; i++) {
       split_dims[i-1] = value_[i];
@@ -174,9 +216,16 @@ namespace kmrnext {
       DataStore *dst = dslist.at(i);
       dst->set(split_dims);
       for (size_t j = 0; j < dst->data_size_; j++) {
-	dst->data_[j].copy_deep(data_[offset + j]);
+	dst->data_[j].set_value(data_[offset + j]);
+      }
+      if (io_mode() == File) {
+	dst->store();
       }
       offset += dst->data_size_;
+    }
+
+    if (io_mode() == File) {
+      clear_cache();
     }
   }
 
@@ -184,6 +233,13 @@ namespace kmrnext {
     check_map_args(view, outds);
     if (data_size_ == 0) {
       return;
+    }
+
+    if (io_mode() == File) {
+      bool ret = store(false);
+      if (!ret) {
+	load();
+      }
     }
 
     size_t nkeys = 1;
@@ -232,6 +288,10 @@ namespace kmrnext {
     }
     if (outds == self_ || outds == this) {
       map_inplace_ = false;
+    }
+
+    if (io_mode() == File) {
+      _outds->store();
     }
   }
 
@@ -313,19 +373,6 @@ namespace kmrnext {
     return ds;
   }
 
-  void DataStore::set(const size_t *val, Data *dat_ptr) {
-    if (data_size_ != 0) {
-      throw runtime_error("DataStore is already initialized.");
-    }
-
-    data_size_ = 1;
-    for (size_t i = 0; i < size_; i++) {
-      value_[i] = val[i];
-      data_size_ *= val[i];
-    }
-    data_ = dat_ptr;
-  }
-
   size_t DataStore::key_to_index(const Key& key) {
     size_t idx = 0;
     for (size_t i = 0; i < size_; i++) {
@@ -401,5 +448,83 @@ namespace kmrnext {
     return viewed_key;
   }
 #endif
+
+  string DataStore::filename() {
+    ostringstream os;
+    os << "./" << this << ".dat";
+    return os.str();
+  }
+
+  bool DataStore::store(bool clear_data) {
+    string fname = filename();
+    if (file_exist(fname)) {
+      if (data_updated_) {
+	load();
+	delete_file(fname);
+      } else {
+	return false;
+      }
+    }
+
+    ofstream fout;
+    fout.open(fname.c_str(), ios::out|ios::binary);
+    size_t write_offset = 0;
+    size_t cur_buf_siz = kDefaultWriteBufferSize;
+    char *buf = (char*)calloc(cur_buf_siz, sizeof(char));
+
+    for (size_t i = 0; i < data_size_; i++) {
+      Data *d = &(data_[i]);
+      size_t d_siz = d->size();
+      if (d_siz == 0) {
+	continue;
+      }
+      void  *d_val = d->value();
+      size_t buf_siz = d_siz;
+      if (buf_siz > cur_buf_siz) {
+	cur_buf_siz = buf_siz;
+	buf = static_cast<char*>(realloc(buf, cur_buf_siz));
+      }
+      memcpy(buf, d_val, d_siz);
+      fout.write(buf, buf_siz);
+      d->written(write_offset, buf_siz, clear_data);
+      write_offset += buf_siz;
+    }
+    fout.flush();
+    fout.close();
+    data_updated_ = false;
+    return true;
+  }
+
+  bool DataStore::load() {
+    string fname = filename();
+    if (!file_exist(fname)) {
+      throw runtime_error("File is not found.");
+    }
+
+    size_t file_siz = file_size(fname);
+    if (file_siz == 0) {
+      return false;
+    }
+    char *buf = (char*)calloc(file_siz, sizeof(char));
+    ifstream fin;
+    fin.open(fname.c_str(), ios::in|ios::binary);
+    fin.read(buf, file_siz);
+    fin.close();
+
+    for (size_t i = 0; i < data_size_; i++) {
+      Data *d = &(data_[i]);
+      if (d->removed_in_memory() || d->updated_in_memory()) {
+	continue;
+      }
+      d->restore_from_file_buf(buf);
+    }
+    return true;
+  }
+
+  void DataStore::clear_cache() {
+    for (size_t i = 0; i < data_size_; i++) {
+      data_[i].clear_cache();
+    }
+  }
 
 }

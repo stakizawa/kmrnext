@@ -7,7 +7,7 @@ namespace kmrnext {
     if (kmrnext_ == NULL) {
       kmrnext_ = new KMRNext();
     }
-    DataStore::initialize();
+    DataStore::initialize(kmrnext_);
     return kmrnext_;
   }
 
@@ -18,7 +18,7 @@ namespace kmrnext {
     }
   }
 
-  KMRNext::KMRNext() : profile_(false) {}
+  KMRNext::KMRNext() : profile_(false), iomode_(Memory) {}
 
   KMRNext::~KMRNext() {}
 

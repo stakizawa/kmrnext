@@ -20,6 +20,14 @@ namespace kmrnext {
   /// Maximum dimension size of Key, View and DataStore
   const size_t kMaxDimensionSize = 8;
 
+  /// IO mode for storing data elements in DataStore
+  ///
+  /// The default IO mode is Memory.
+  enum IOMode {
+    Memory = 0,
+    File   = 1
+  };
+
   class Key;
   class View;
   class Data;
@@ -50,6 +58,14 @@ namespace kmrnext {
     /// It returns true if profiling option is set.
     bool profile() const { return profile_; };
 
+    /// It sets IO mode of DataSotre.
+    ///
+    /// \param[in] mode the IO mode
+    void set_io_mode(IOMode mode) { iomode_ = mode; };
+
+    /// It returns the current IO mode.
+    IOMode io_mode() const { return iomode_; };
+
     /// It creates a DataStore with the specified dimension size.
     ///
     /// \param[in] siz the dimension size of a new DataStore
@@ -70,6 +86,9 @@ namespace kmrnext {
   private:
     // True if profiling is on.
     bool profile_;
+
+    // IO mode of DataStore.
+    IOMode iomode_;
 
     static KMRNext *kmrnext_;
 
@@ -221,20 +240,17 @@ namespace kmrnext {
 
     ~Data();
 
-    /// It deeply copies the specified Data.
+    /// It sets a value to this Data.
     ///
-    /// \param[in] src       copied Data
-    /// \param[in] overwrite If the overwrite option is true, it removes
-    ///                      the current stored-data and overwrites itself
-    ///                      by the specified Data(src).
+    /// \param[in] src       cset Data
     /// \exception std::runtime_error when copy failed
-    void copy_deep(const Data& src, bool overwrite=false);
+    void set_value(const Data& src);
 
-    /// It shallowly copies the specified Data.
+    /// It updates this Data by the specified Data.
     ///
-    /// \param[in] src copied Data
+    /// \param[in] src       cset Data
     /// \exception std::runtime_error when copy failed
-    void copy_shallow(const Data& src);
+    void update_value(const Data& src);
 
     /// It copies the specified buffer to this Data.
     ///
@@ -251,6 +267,27 @@ namespace kmrnext {
 
     /// It clears the Data but does not delete it.
     void clear();
+
+    /// It restores the Data from file buffer.
+    ///
+    /// \param[in] buf  file buffer
+    void restore_from_file_buf(char *buf);
+
+    /// It is called when the Data is written to a file.
+    ///
+    /// \param[in] start_pos   file start position
+    /// \param[in] written_siz written size in bytes
+    /// \param[in] clear_data  if true, value of the Data is cleared.
+    void written(size_t start_pos, size_t written_siz, bool clear_data);
+
+    /// It returns true if the Data is updated in memory.
+    bool updated_in_memory();
+
+    /// It returns true if the Data is removed in memory.
+    bool removed_in_memory();
+
+    /// It clears memory cache of the Data.
+    void clear_cache();
 
     bool operator==(const Data& rhs) const;
 
@@ -278,13 +315,39 @@ namespace kmrnext {
 #endif
 
   private:
+    // The actual value of Data.
     void *value_;
+    // The actual size of value of Data.
     size_t value_size_;
+    // True, if value is allocated.
     bool value_allocated_;
+
+    // True, if Data is set a value.
+    bool data_set_;
+    // The offset of value of Data in a file.
+    size_t data_file_offset_;
+    // The size of value of Data in a file.
+    size_t data_file_size_;
+
 #ifdef BACKEND_KMR
     int owner_;
     bool shared_;
 #endif
+
+    // It deeply copies the specified Data.
+    //
+    // \param[in] src       copied Data
+    // \param[in] overwrite If the overwrite option is true, it removes
+    //                      the current stored-data and overwrites itself
+    //                      by the specified Data(src).
+    // \exception std::runtime_error when copy failed
+    void copy_deep(const Data& src, bool overwrite=false);
+
+    // It shallowly copies the specified Data.
+    //
+    // \param[in] src copied Data
+    // \exception std::runtime_error when copy failed
+    void copy_shallow(const Data& src);
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -294,21 +357,20 @@ namespace kmrnext {
   public:
     /// It creates a new DataPack.
     ///
-    /// \param[in] k Key of the DataPack
-    /// \param[in] d Data of the DataPack
-    DataPack(const Key k, Data *d) : key_(k), data_(d), delete_(false) {}
+    /// \param[in] k         Key of the DataPack
+    /// \param[in] d         Data of the DataPack
+    /// \param[in] allocate  if True, Data is internally allocated
+    DataPack(const Key k, Data *d, bool allocate=false);
 
-    ~DataPack() { if (delete_) { delete data_; } }
+    DataPack(const DataPack &obj);
+
+    ~DataPack() { if (allocated_) { delete data_; } }
 
     /// It returns the key.
     Key& key() { return key_; }
 
     /// It returns the stored data.
     Data *data() const { return data_; }
-
-    /// If it is called, the Data will be deleted when this DataPack
-    /// is deleted.
-    void set_delete() { delete_ = true; }
 
     /////////////////////////////////////////////////////////////////////////
     /// A virtual class used for dumping data in a DataStore
@@ -324,7 +386,7 @@ namespace kmrnext {
   private:
     Key key_;
     Data *data_;
-    bool delete_;
+    bool allocated_;
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -397,6 +459,11 @@ namespace kmrnext {
       virtual int operator()(DataStore *ds, const Type& param) = 0;
     };
 
+    /// It returns the current IO mode of this DataStore.
+    ///
+    /// \return  current IO mode
+    IOMode io_mode();
+
     /// It sets value of each dimension.
     ///
     /// \param[in] val an array that stores value of each dimension
@@ -413,8 +480,11 @@ namespace kmrnext {
     ///
     /// \param[in] key Index of Data to be gotten
     /// \return    a DataPack object whose Key is key and value is the gotten
-    ///            Data.  Even if the data does not exist, it returns a
-    ///            DataPack object.  However, the Data of the DataPack is NULL.
+    ///            Data.  As the gotten Data is a copy of Data in the
+    ///            DataStore, changing the value of the Data does not take
+    ///            any effect.
+    ///            Even if the data does not exist, it returns a DataPack
+    ///            object.  However, the Data of the DataPack is NULL.
     /// \exception std::runtime_error when failed to get
     DataPack get(const Key& key);
 
@@ -423,9 +493,11 @@ namespace kmrnext {
     /// \param[in] view a user specified View of DataStore
     /// \param[in] key  Index of Data to be gotten
     /// \return    a vector of DataPack objects whose Keys are key and values
-    ///            are the gotten Data.  Even if the data does not exist,
-    ///            it returns a DataPack object.  However, the Data of the
-    ///            DataPack is NULL.
+    ///            are the gotten Data.  As the gotten Data is a copy of Data
+    ///            in the DataStore, changing the value of the Data does not
+    ///            take any effect.
+    ///            Even if the data does not exist, it returns a DataPack
+    ///            object.  However, the Data of the DataPack is NULL.
     /// \exception std::runtime_error when failed to get
     vector<DataPack>* get(const View& view, const Key& key);
 
@@ -516,7 +588,7 @@ namespace kmrnext {
     ///
     /// It should be called before using DataStore class.  If you call
     /// KMRNext::init(), this method is also called.
-    static void initialize();
+    static void initialize(KMRNext* next);
 
     /// It finalizes the static fields.
     ///
@@ -531,6 +603,8 @@ namespace kmrnext {
     size_t data_size_;
     // True if the data_ is already allocated
     bool data_allocated_;
+    // True if the data in DataStore is updated
+    bool data_updated_;
     // True if the input and output DataStore of map function is same
     bool map_inplace_;
     // True if the DataStore should be processed in parallel
@@ -547,10 +621,6 @@ namespace kmrnext {
 
     // This is a dummy DataStore that represents this object.
     static DataStore* self_;
-
-    // It sets size of each dimension.
-    // It just sets pointer to data, not performs memory allocation and copy.
-    void set(const size_t *val, Data *dat_ptr);
 
     // It returns the index of Data calculated from the specified Key.
     size_t key_to_index(const Key& key);
@@ -573,6 +643,24 @@ namespace kmrnext {
     // the specified split is applied.
     size_t key_to_split_index(const Key& key, const View& view);
 #endif
+
+    // It returns name of file that stores data elements of the DataStore.
+    string filename();
+
+    // It writes data elements in the DataStore to a file.
+    //
+    // \param[in] clear_data   if true, it clears all Data in the DataStore
+    //                         after storing them in a file
+    // \return                 true if Data are stored in a file
+    bool store(bool clear_data=true);
+
+    // It reads data elements in a file and then loads to the DataStore.
+    //
+    // \return   true if Data are loaded from a file
+    bool load();
+
+    // It clears memory cache.
+    void clear_cache();
   };
 
 }

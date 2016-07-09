@@ -2,10 +2,14 @@
 #include "kmrnext.hpp"
 
 #include <iostream>
+#include <fstream>
+#include <cstring>
 
 namespace {
   using namespace std;
   using namespace kmrnext;
+
+  const size_t kDefaultWriteBufferSize = 1048576;
 
   template <typename T>
   void load_array(const vector<T>& array, DataStore::Loader<T>& loader,
@@ -30,9 +34,9 @@ namespace kmrnext {
 
   DataStore *DataStore::self_;
 
-  void DataStore::initialize() {
+  void DataStore::initialize(KMRNext* next) {
     if (DataStore::self_ == NULL) {
-      DataStore::self_ = new DataStore(0);
+      DataStore::self_ = new DataStore(0, next);
     }
   }
 
@@ -40,6 +44,13 @@ namespace kmrnext {
     if (DataStore::self_ != NULL) {
       delete DataStore::self_;
     }
+  }
+
+  IOMode DataStore::io_mode() {
+    if (kmrnext_ == NULL) {
+      throw runtime_error("KMRNext instance should be set to a DataStore.");
+    }
+    return kmrnext_->io_mode();
   }
 
   void DataStore::load_files(const vector<string>& files,

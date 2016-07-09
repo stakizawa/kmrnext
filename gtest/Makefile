@@ -10,7 +10,7 @@
 include ../config.make
 
 LIB      = ../src/libkmrnext.a
-TEST_OBJS = test_key.o test_data.o test_data_store.o
+TEST_OBJS = test_kmrnext.o test_key.o test_data.o test_data_store.o
 TEST_MAIN = test_all
 
 ifeq ($(SYSENV), GNULINUX)

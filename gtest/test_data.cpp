@@ -37,9 +37,9 @@ namespace {
     EXPECT_EQ(value_size_, d.size());
   }
 
-  TEST_F(DataTest, Copy_deep) {
-    kmrnext::Data d0(NULL, 0);
-    d0.copy_deep(*data_);
+  TEST_F(DataTest, Set_value) {
+    kmrnext::Data d0;
+    d0.set_value(*data_);
     // value is same
     EXPECT_EQ(*(int*)data_->value(), *(int*)d0.value());
     // address is not same
@@ -48,6 +48,6 @@ namespace {
 
     // If *value is already set, it throws a runtime_error.
     kmrnext::Data d1(&value_, value_size_);
-    EXPECT_THROW({d1.copy_deep(*data_);}, std::runtime_error);
+    EXPECT_THROW({d1.set_value(*data_);}, std::runtime_error);
   }
 }

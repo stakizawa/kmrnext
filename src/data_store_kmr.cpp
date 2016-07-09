@@ -635,19 +635,6 @@ namespace kmrnext {
     return ds;
   }
 
-  void DataStore::set(const size_t *val, Data *dat_ptr) {
-    if (data_size_ != 0) {
-      throw runtime_error("DataStore is already initialized.");
-    }
-
-    data_size_ = 1;
-    for (size_t i = 0; i < size_; i++) {
-      value_[i] = val[i];
-      data_size_ *= val[i];
-    }
-    data_ = dat_ptr;
-  }
-
   size_t DataStore::key_to_index(const Key& key) {
     size_t idx = 0;
     for (size_t i = 0; i < size_; i++) {

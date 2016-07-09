@@ -601,8 +601,14 @@ namespace {
     // Pointer to the duplicated DataStore is different
     EXPECT_NE(ds0_, ds0);
     // Pointers to data elements having the same coordinate are not same
-    void *v_ds0_ = ds0_->get(*key0_).data()->value();
-    void *v_ds0  = ds0 ->get(*key0_).data()->value();
+    kmrnext::DataPack dp0_ = ds0_->get(*key0_);
+    kmrnext::DataPack dp0  = ds0 ->get(*key0_);
+    void *v_ds0_ = dp0_.data()->value();
+    void *v_ds0  = dp0 .data()->value();
+    // The following codes do not work as I thought, why?
+    // Maybe, memory of v_ds0_ is freed when the second get() is called.
+    //   void *v_ds0_ = ds0_->get(*key0_).data()->value();
+    //   void *v_ds0  = ds0 ->get(*key0_).data()->value();
     EXPECT_NE(v_ds0_, v_ds0);
     // Values of data elements having the same coordinate are same
     EXPECT_EQ(*(long*)v_ds0_, *(long*)v_ds0);
