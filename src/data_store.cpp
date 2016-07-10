@@ -139,10 +139,10 @@ namespace kmrnext {
 
   bool DataStore::load() {
     string fname = filename();
-    if (!file_exist(fname)) {
+    if (data_cached_ && !file_exist(fname)) {
       throw runtime_error("File is not found.");
     }
-    if (data_cached_) {
+    if (data_cached_ || (!data_cached_ && !file_exist(fname))) {
       return false;
     }
 
