@@ -277,8 +277,7 @@ namespace kmrnext {
     ///
     /// \param[in] start_pos   file start position
     /// \param[in] written_siz written size in bytes
-    /// \param[in] clear_data  if true, value of the Data is cleared.
-    void written(size_t start_pos, size_t written_siz, bool clear_data);
+    void written(size_t start_pos, size_t written_siz);
 
     /// It returns true if the Data is updated in memory.
     bool updated_in_memory();
@@ -603,14 +602,16 @@ namespace kmrnext {
     size_t data_size_;
     // True if the data_ is already allocated
     bool data_allocated_;
-    // True if the data in DataStore is updated
-    bool data_updated_;
     // True if the input and output DataStore of map function is same
     bool map_inplace_;
     // True if the DataStore should be processed in parallel
     bool parallel_;
     // A KMRNext object that stores execution status
     KMRNext *kmrnext_;
+    // True if the data in DataStore is updated, but not written to a file
+    bool data_updated_;
+    // True if the Data in a file is cached in memory
+    bool data_cached_;
 #ifdef BACKEND_KMR
     // Split pattern of the DataStore, that defines data distribution
     View *split_;
@@ -649,10 +650,8 @@ namespace kmrnext {
 
     // It writes data elements in the DataStore to a file.
     //
-    // \param[in] clear_data   if true, it clears all Data in the DataStore
-    //                         after storing them in a file
-    // \return                 true if Data are stored in a file
-    bool store(bool clear_data=true);
+    // \return   true if Data are stored in a file
+    bool store();
 
     // It reads data elements in a file and then loads to the DataStore.
     //

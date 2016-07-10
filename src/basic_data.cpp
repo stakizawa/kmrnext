@@ -126,10 +126,7 @@ namespace kmrnext {
     copy_buf(buf + data_file_offset_, data_file_size_);
   }
 
-  void Data::written(size_t start_pos, size_t written_siz, bool clear_data) {
-    if (clear_data) {
-      clear();
-    }
+  void Data::written(size_t start_pos, size_t written_siz) {
     data_set_ = true;
     data_file_offset_ = start_pos;
     data_file_size_ = written_siz;

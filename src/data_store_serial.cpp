@@ -8,13 +8,13 @@ namespace kmrnext {
 
   DataStore::DataStore(size_t siz)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), data_updated_(false), map_inplace_(false),
-    parallel_(false), kmrnext_(NULL) {}
+    data_allocated_(false), map_inplace_(false), parallel_(false),
+    kmrnext_(NULL), data_updated_(false), data_cached_(false) {}
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), data_updated_(false), map_inplace_(false),
-    parallel_(false), kmrnext_(kn) {}
+    data_allocated_(false), map_inplace_(false), parallel_(false),
+    kmrnext_(kn), data_updated_(false), data_cached_(false) {}
 
   DataStore::~DataStore() {
     if (data_allocated_) {
@@ -175,6 +175,7 @@ namespace kmrnext {
 
     if (io_mode() == KMRNext::File) {
       store();
+      clear_cache();
     }
   }
 
@@ -220,6 +221,7 @@ namespace kmrnext {
       }
       if (io_mode() == KMRNext::File) {
 	dst->store();
+	dst->clear_cache();
       }
       offset += dst->data_size_;
     }
@@ -236,10 +238,8 @@ namespace kmrnext {
     }
 
     if (io_mode() == KMRNext::File) {
-      bool ret = store(false);
-      if (!ret) {
-	load();
-      }
+      store();
+      load();
     }
 
     size_t nkeys = 1;
@@ -292,6 +292,8 @@ namespace kmrnext {
 
     if (io_mode() == KMRNext::File) {
       _outds->store();
+      _outds->clear_cache();
+      clear_cache();
     }
   }
 
@@ -455,7 +457,7 @@ namespace kmrnext {
     return os.str();
   }
 
-  bool DataStore::store(bool clear_data) {
+  bool DataStore::store() {
     string fname = filename();
     if (file_exist(fname)) {
       if (data_updated_) {
@@ -486,7 +488,7 @@ namespace kmrnext {
       }
       memcpy(buf, d_val, d_siz);
       fout.write(buf, buf_siz);
-      d->written(write_offset, buf_siz, clear_data);
+      d->written(write_offset, buf_siz);
       write_offset += buf_siz;
     }
     fout.flush();
@@ -499,6 +501,9 @@ namespace kmrnext {
     string fname = filename();
     if (!file_exist(fname)) {
       throw runtime_error("File is not found.");
+    }
+    if (data_cached_) {
+      return false;
     }
 
     size_t file_siz = file_size(fname);
@@ -518,13 +523,18 @@ namespace kmrnext {
       }
       d->restore_from_file_buf(buf);
     }
+    data_cached_ = true;
     return true;
   }
 
   void DataStore::clear_cache() {
+    if (!data_cached_) {
+      return;
+    }
     for (size_t i = 0; i < data_size_; i++) {
       data_[i].clear_cache();
     }
+    data_cached_ = false;
   }
 
 }
