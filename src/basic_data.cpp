@@ -33,16 +33,10 @@ namespace kmrnext {
   }
 
   void Data::set_value(const Data& src) {
-    if (data_set_) {
-      throw runtime_error("Data is already set value.");
-    }
     copy_deep(src);
   }
 
   void Data::update_value(const Data& src) {
-    if (!data_set_) {
-      throw runtime_error("Data is not set value.");
-    }
     copy_deep(src, true);
   }
 
@@ -67,6 +61,8 @@ namespace kmrnext {
       if (src.value_ != NULL) {
 	value_ = static_cast<void*>(calloc(src.value_size_, sizeof(char)));
 	memcpy(value_, src.value_, src.value_size_);
+      } else {
+	return;
       }
     }
     value_size_ = src.value_size_;
@@ -119,7 +115,16 @@ namespace kmrnext {
 #endif
   }
 
-  void Data::restore_from_file_buf(char *buf) {
+  void Data::restore(char *buf) {
+    if (!data_set_) {
+      // Skip as Data is removed
+      return;
+    }
+    // assume that 'data_set_ == true'
+    if (value_allocated_) {
+      // Skip as Data is updated in memory
+      return;
+    }
     if (data_file_size_ == 0) {
       throw runtime_error("Data can not be found in the file.");
     }
@@ -130,22 +135,6 @@ namespace kmrnext {
     data_set_ = true;
     data_file_offset_ = start_pos;
     data_file_size_ = written_siz;
-  }
-
-  bool Data::updated_in_memory() {
-    if (data_set_ && value_allocated_) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  bool Data::removed_in_memory() {
-    if (!data_set_ && !value_allocated_) {
-      return true;
-    } else {
-      return false;
-    }
   }
 
   void Data::clear_cache() {

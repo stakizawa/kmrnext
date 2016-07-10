@@ -268,22 +268,16 @@ namespace kmrnext {
     /// It clears the Data but does not delete it.
     void clear();
 
-    /// It restores the Data from file buffer.
+    /// It restores the Data from a file buffer.
     ///
     /// \param[in] buf  file buffer
-    void restore_from_file_buf(char *buf);
+    void restore(char *buf);
 
     /// It is called when the Data is written to a file.
     ///
     /// \param[in] start_pos   file start position
     /// \param[in] written_siz written size in bytes
     void written(size_t start_pos, size_t written_siz);
-
-    /// It returns true if the Data is updated in memory.
-    bool updated_in_memory();
-
-    /// It returns true if the Data is removed in memory.
-    bool removed_in_memory();
 
     /// It clears memory cache of the Data.
     void clear_cache();

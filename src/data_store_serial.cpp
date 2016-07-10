@@ -517,11 +517,7 @@ namespace kmrnext {
     fin.close();
 
     for (size_t i = 0; i < data_size_; i++) {
-      Data *d = &(data_[i]);
-      if (d->removed_in_memory() || d->updated_in_memory()) {
-	continue;
-      }
-      d->restore_from_file_buf(buf);
+      data_[i].restore(buf);
     }
     data_cached_ = true;
     return true;
