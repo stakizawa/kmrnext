@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
+#include <cstdlib>
+#include "util.hpp"
 
 namespace {
   using namespace std;
@@ -93,6 +95,88 @@ namespace kmrnext {
       throw runtime_error("Dimension size of the input DataStore and "
 			  "view should be same.");
     }
+  }
+
+  bool DataStore::store() {
+    string fname = filename();
+    if (file_exist(fname)) {
+      if (data_updated_) {
+	load();
+	delete_file(fname);
+      } else {
+	return false;
+      }
+    }
+
+    ofstream fout;
+    fout.open(fname.c_str(), ios::out|ios::binary);
+    size_t write_offset = 0;
+    size_t cur_buf_siz = kDefaultWriteBufferSize;
+    char *buf = (char*)calloc(cur_buf_siz, sizeof(char));
+
+    for (size_t i = 0; i < data_size_; i++) {
+      Data *d = &(data_[i]);
+      size_t d_siz = d->size();
+      if (d_siz == 0) {
+	continue;
+      }
+      void  *d_val = d->value();
+      size_t buf_siz = d_siz;
+      if (buf_siz > cur_buf_siz) {
+	cur_buf_siz = buf_siz;
+	buf = static_cast<char*>(realloc(buf, cur_buf_siz));
+      }
+      memcpy(buf, d_val, d_siz);
+      fout.write(buf, buf_siz);
+      d->written(write_offset, buf_siz);
+      write_offset += buf_siz;
+    }
+    fout.flush();
+    fout.close();
+    data_updated_ = false;
+    return true;
+  }
+
+  bool DataStore::load() {
+    string fname = filename();
+    if (!file_exist(fname)) {
+      throw runtime_error("File is not found.");
+    }
+    if (data_cached_) {
+      return false;
+    }
+
+    size_t file_siz = file_size(fname);
+    if (file_siz == 0) {
+      return false;
+    }
+    char *buf = (char*)calloc(file_siz, sizeof(char));
+    ifstream fin;
+    fin.open(fname.c_str(), ios::in|ios::binary);
+    fin.read(buf, file_siz);
+    fin.close();
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < data_size_; i++) {
+      data_[i].restore(buf);
+    }
+    data_cached_ = true;
+    return true;
+  }
+
+  void DataStore::clear_cache() {
+    if (!data_cached_) {
+      return;
+    }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < data_size_; i++) {
+      data_[i].clear_cache();
+    }
+    data_cached_ = false;
   }
 
 }
