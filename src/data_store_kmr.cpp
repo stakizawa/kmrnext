@@ -96,12 +96,14 @@ namespace kmrnext {
   DataStore::DataStore(size_t siz)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
     data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(NULL), split_(NULL) {}
+    kmrnext_(NULL), data_updated_(false), data_cached_(false),
+    split_(NULL), collated_(false) {}
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
     data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(kn), split_(NULL) {}
+    kmrnext_(kn), data_updated_(false), data_cached_(false),
+    split_(NULL), collated_(false) {}
 
   DataStore::~DataStore() {
     if (split_ != NULL) {
@@ -109,6 +111,10 @@ namespace kmrnext {
     }
     if (data_allocated_) {
       delete[] data_;
+    }
+    if (io_mode() == KMRNext::File) {
+      string fname = filename();
+      delete_file(fname);
     }
   }
 
@@ -136,9 +142,9 @@ namespace kmrnext {
       Data *d = &(data_[idx]);
       try {
 	if (map_inplace_) {
-	  d->copy_deep(data, true);
+	  d->update_value(data);
 	} else {
-	  d->copy_deep(data);
+	  d->set_value(data);
 	}
       }
       catch (runtime_error& e) {
@@ -148,14 +154,21 @@ namespace kmrnext {
 	throw e;
       }
       d->set_owner(kmrnext_->rank());
+      if (io_mode() == KMRNext::File) {
+	data_updated_ = true;
+      }
     }
   }
 
   DataPack DataStore::get(const Key& key) {
     check_key_range(key);
+    if (io_mode() == KMRNext::File) {
+      load();
+    }
+
     size_t idx = key_to_index(key);
     if (data_[idx].is_shared()) {
-      return DataPack(key, &(data_[idx]));
+      return DataPack(key, &(data_[idx]), true);
     }
 
     KMR_KVS *snd = kmr_create_kvs(kmrnext_->kmr(),
@@ -193,19 +206,30 @@ namespace kmrnext {
 	memcpy(&owner, kv.v.p, sizeof(int));
 	Data rcvdat((void*)((char*)kv.v.p + sizeof(int)),
 		    kv.vlen - sizeof(int));
-	data_[idx].copy_deep(rcvdat);
+	data_[idx].set_value(rcvdat);
 	data_[idx].set_owner(owner);
+	if (io_mode() == KMRNext::File) {
+	  data_updated_ = true;
+	  store();
+	}
       }
       data_[idx].shared();
     }
     kmr_free_kvs(rcv);
 
-    return DataPack(key, &(data_[idx]));
+    DataPack dp = DataPack(key, &(data_[idx]), true);
+    if (io_mode() == KMRNext::File) {
+      clear_cache();
+    }
+    return dp;
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
     check_view(view);
     check_key_range(key);
+    if (io_mode() == KMRNext::File) {
+      load();
+    }
     vector<DataPack> *dps = new vector<DataPack>();
 
     KMR_KVS *snd = kmr_create_kvs(kmrnext_->kmr(),
@@ -233,7 +257,7 @@ namespace kmrnext {
 #ifdef _OPENMP
           #pragma omp critical
 #endif
-	  dps->push_back(DataPack(tmpkey, &(data_[i])));
+	  dps->push_back(DataPack(tmpkey, &(data_[i]), true));
 	  continue;
 	} else {
 	  // replicate the data
@@ -257,18 +281,21 @@ namespace kmrnext {
     param_mapper_get_view param = { this, data_, dps };
     kmr_map(rcv, NULL, (void*)&param, kmr_noopt, mapper_get_view);
 
+    if (io_mode() == KMRNext::File) {
+      data_updated_ = true; // Though sometimes not updated.
+      store();
+      clear_cache();
+    }
     return dps;
   }
 
   DataPack DataStore::remove(const Key& key) {
     DataPack dp0 = get(key);
-    Data *d = new Data();
-    d->copy_deep(*(dp0.data()));
     if (dp0.data()->value() != NULL) {
       size_t idx = key_to_index(key);
       data_[idx].clear();
     }
-    return DataPack(key, d);
+    return dp0;
   }
 
   void DataStore::set_from(const vector<DataStore*>& dslist) {
@@ -317,10 +344,21 @@ namespace kmrnext {
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
       DataStore *src = dslist.at(i);
+      if (io_mode() == KMRNext::File) {
+	src->load();
+      }
       for (size_t j = 0; j < src->data_size_; j++) {
-	data_[offset + j].copy_deep(src->data_[j]);
+	data_[offset + j].set_value(src->data_[j]);
+      }
+      if (io_mode() == KMRNext::File) {
+	src->clear_cache();
       }
       offset += src->data_size_;
+    }
+
+    if (io_mode() == KMRNext::File) {
+      store();
+      clear_cache();
     }
   }
 
@@ -348,6 +386,10 @@ namespace kmrnext {
       }
     }
 
+    if (io_mode() == KMRNext::File) {
+      load();
+    }
+
     size_t split_dims[kMaxDimensionSize];
     for (size_t i = 1; i < size_; i++) {
       split_dims[i-1] = value_[i];
@@ -358,9 +400,17 @@ namespace kmrnext {
       DataStore *dst = dslist.at(i);
       dst->set(split_dims);
       for (size_t j = 0; j < dst->data_size_; j++) {
-	dst->data_[j].copy_deep(data_[offset + j]);
+	dst->data_[j].set_value(data_[offset + j]);
+      }
+      if (io_mode() == KMRNext::File) {
+	dst->store();
+	dst->clear_cache();
       }
       offset += dst->data_size_;
+    }
+
+    if (io_mode() == KMRNext::File) {
+      clear_cache();
     }
   }
 
@@ -369,6 +419,12 @@ namespace kmrnext {
     if (data_size_ == 0) {
       return;
     }
+
+    if (io_mode() == KMRNext::File) {
+      store();
+      load();
+    }
+
     collate();
     View split = get_split();
 
@@ -488,6 +544,15 @@ namespace kmrnext {
 	}
 	data_[i].unshared();
       }
+      if (io_mode() == KMRNext::File) {
+	data_updated_ = true;
+      }
+    }
+
+    if (io_mode() == KMRNext::File) {
+      _outds->store();
+      _outds->clear_cache();
+      clear_cache();
     }
   }
 
@@ -767,6 +832,12 @@ namespace kmrnext {
 #endif
 
   void DataStore::collate() {
+    if (io_mode() == KMRNext::File) {
+      // It does not clear cache as callete() is usually called followed by
+      // map()
+      load();
+    }
+
     double time_collate_start, time_collate_finish;
     if (kmrnext_->profile()) {
       time_collate_start = gettime(kmrnext_->kmr()->comm);
@@ -959,10 +1030,105 @@ namespace kmrnext {
 	profile_out(kmrnext_, os.str());
       }
     }
+
+    if (io_mode() == KMRNext::File) {
+      // As data is exchanged between processes, the saved file is stale.
+      string fname = filename();
+      delete_file(fname);
+      store();
+    }
   }
 
   bool DataStore::collated() {
     return collated_;
+  }
+
+  string DataStore::filename() {
+    ostringstream os;
+    os << "./" << this << "_" << kmrnext_->rank() << ".dat";
+    return os.str();
+  }
+
+  bool DataStore::store() {
+    string fname = filename();
+    if (file_exist(fname)) {
+      if (data_updated_) {
+	load();
+	delete_file(fname);
+      } else {
+	return false;
+      }
+    }
+
+    ofstream fout;
+    fout.open(fname.c_str(), ios::out|ios::binary);
+    size_t write_offset = 0;
+    size_t cur_buf_siz = kDefaultWriteBufferSize;
+    char *buf = (char*)calloc(cur_buf_siz, sizeof(char));
+
+    for (size_t i = 0; i < data_size_; i++) {
+      Data *d = &(data_[i]);
+      size_t d_siz = d->size();
+      if (d_siz == 0) {
+	continue;
+      }
+      void  *d_val = d->value();
+      size_t buf_siz = d_siz;
+      if (buf_siz > cur_buf_siz) {
+	cur_buf_siz = buf_siz;
+	buf = static_cast<char*>(realloc(buf, cur_buf_siz));
+      }
+      memcpy(buf, d_val, d_siz);
+      fout.write(buf, buf_siz);
+      d->written(write_offset, buf_siz);
+      write_offset += buf_siz;
+    }
+    fout.flush();
+    fout.close();
+    data_updated_ = false;
+    return true;
+  }
+
+  bool DataStore::load() {
+    string fname = filename();
+    if (!file_exist(fname)) {
+      throw runtime_error("File is not found.");
+    }
+    if (data_cached_) {
+      return false;
+    }
+
+    size_t file_siz = file_size(fname);
+    if (file_siz == 0) {
+      return false;
+    }
+    char *buf = (char*)calloc(file_siz, sizeof(char));
+    ifstream fin;
+    fin.open(fname.c_str(), ios::in|ios::binary);
+    fin.read(buf, file_siz);
+    fin.close();
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < data_size_; i++) {
+      data_[i].restore(buf);
+    }
+    data_cached_ = true;
+    return true;
+  }
+
+  void DataStore::clear_cache() {
+    if (!data_cached_) {
+      return;
+    }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < data_size_; i++) {
+      data_[i].clear_cache();
+    }
+    data_cached_ = false;
   }
 
 }
@@ -977,7 +1143,7 @@ namespace {
       int owner;
       memcpy(&owner, kv0.v.p, sizeof(int));
       Data data((void*)((char*)kv0.v.p + sizeof(int)), kv0.vlen - sizeof(int));
-      param->data[idx].copy_deep(data);
+      param->data[idx].set_value(data);
       param->data[idx].set_owner(owner);
     }
     param->data[idx].shared();
@@ -986,7 +1152,7 @@ namespace {
     // As a KMR map function is run in parallel by OpenMP, shared resources
     // should be modified in critical regions.
 #endif
-    param->dps->push_back(DataPack(key, &(param->data[idx])));
+    param->dps->push_back(DataPack(key, &(param->data[idx]), true));
     return MPI_SUCCESS;
   }
 
@@ -1031,7 +1197,6 @@ namespace {
     {
       param->ds->add(dp.key(), *(dp.data()));
     }
-    delete dp.data();
     return MPI_SUCCESS;
   }
 
@@ -1100,7 +1265,7 @@ namespace {
     p += dat_siz;
     d->set_owner(*(int*)p);
 
-    return DataPack(k, d);
+    return DataPack(k, d, true);
   }
 
   inline size_t calc_send_target(size_t index, size_t count, size_t nprocs) {

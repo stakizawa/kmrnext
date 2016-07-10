@@ -22,7 +22,7 @@ namespace kmrnext {
       kmr_init();
       kmrnext_ = new KMRNext();
     }
-    DataStore::initialize();
+    DataStore::initialize(kmrnext_);
     return kmrnext_;
   }
 
@@ -41,6 +41,7 @@ namespace kmrnext {
     MPI_Comm_size(world_comm_, &nprocs_);
     MPI_Comm_rank(world_comm_, &rank_);
     profile_ = false;
+    iomode_ = KMRNext::Memory;
   }
 
   KMRNext::~KMRNext() {
