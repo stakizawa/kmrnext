@@ -38,13 +38,13 @@ const bool kOutputYAML = true;
 const bool kDataStoreIsFile = true;
 
 // If ture, read file is rorated
-const bool kReadRotate = false;
+const bool kReadRotate = true;
 
 // If true, reading/writing from/to DataStores performs remote access
 const bool kRemoteAccess = false;
 
 // Name of a directory where DataStore files are written
-const string kDataStoreFileDir = "./";
+const string kDataStoreFileDir = "../";
 
 // Prefix of name of DataStore file
 const string kDataStoreFilePrefix = "nlpmpi_file";
@@ -85,8 +85,8 @@ const size_t kNumCell         = 1156;
 
 // Assume that each grid point has 6160 bytes of data (6160 = 1540 * 4)
 const size_t kElementCount    = 1540;
-const unsigned int kTimeNICAM = 50000; // msec
-const unsigned int kTimeLETKF = 800;   // msec
+const unsigned int kTimeNICAM = 94000; // msec
+const unsigned int kTimeLETKF = 1000;   // msec
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
