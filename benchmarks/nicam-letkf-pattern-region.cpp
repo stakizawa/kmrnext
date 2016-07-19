@@ -47,8 +47,8 @@ const size_t kNumCell         = 1156;
 
 // Assume that each grid point has 6160 bytes of data (6160 = 1540 * 4)
 const size_t kElementCount    = 1540;
-const unsigned int kTimeNICAM = 50000; // msec
-const unsigned int kTimeLETKF = 800;   // msec
+const unsigned int kTimeNICAM = 94000; // msec
+const unsigned int kTimeLETKF = 1000;   // msec
 #endif
 
 const size_t kEnsembleDataDimSizes[kDimEnsembleData] =
@@ -125,6 +125,7 @@ int
 main(int argc, char **argv)
 {
   KMRNext *next = KMRNext::init(argc, argv);
+  next->set_io_mode(kmrnext::KMRNext::File);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   {
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
