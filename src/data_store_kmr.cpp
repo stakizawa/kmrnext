@@ -90,15 +90,15 @@ namespace kmrnext {
 
   DataStore::DataStore(size_t siz)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(NULL), data_updated_(false), data_cached_(false),
-    split_(NULL), collated_(false) {}
+    data_allocated_(false), map_inplace_(false), kmrnext_(NULL),
+    data_updated_(false), data_cached_(false),
+    parallel_(false), split_(NULL), collated_(false) {}
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(kn), data_updated_(false), data_cached_(false),
-    split_(NULL), collated_(false) {}
+    data_allocated_(false), map_inplace_(false), kmrnext_(kn),
+    data_updated_(false), data_cached_(false),
+    parallel_(false), split_(NULL), collated_(false) {}
 
   DataStore::~DataStore() {
     if (split_ != NULL) {
@@ -172,7 +172,7 @@ namespace kmrnext {
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
     if (data_[idx].value() != NULL) {
       size_t snd_siz = sizeof(int) + data_[idx].size();
-      char *snd_buf = (char*)malloc(sizeof(char) * snd_siz);
+      char *snd_buf = static_cast<char*>(malloc(sizeof(char) * snd_siz));
       int owner = kmrnext_->rank();
       memcpy(snd_buf, &owner, sizeof(int));
       memcpy(snd_buf + sizeof(int), data_[idx].value(), data_[idx].size());
@@ -199,7 +199,8 @@ namespace kmrnext {
 	// Copy data for future access.
 	int owner;
 	memcpy(&owner, kv.v.p, sizeof(int));
-	Data rcvdat((void*)((char*)kv.v.p + sizeof(int)),
+	Data rcvdat(static_cast<void*>((const_cast<char*>(kv.v.p) +
+					sizeof(int))),
 		    kv.vlen - sizeof(int));
 	data_[idx].set_value(rcvdat);
 	data_[idx].set_owner(owner);
@@ -257,13 +258,13 @@ namespace kmrnext {
 	} else {
 	  // replicate the data
 	  size_t snd_siz = sizeof(int) + data_[i].size();
-	  char *snd_buf = (char*)malloc(sizeof(char) * snd_siz);
+	  char *snd_buf = static_cast<char*>(malloc(sizeof(char) * snd_siz));
 	  int owner = kmrnext_->rank();
 	  memcpy(snd_buf, &owner, sizeof(int));
 	  memcpy(snd_buf + sizeof(int), data_[i].value(), data_[i].size());
 	  struct kmr_kv_box kv;
-	  kv.klen = (int)sizeof(size_t);
-	  kv.vlen = (int)snd_siz;
+	  kv.klen = static_cast<int>(sizeof(size_t));
+	  kv.vlen = static_cast<int>(snd_siz);
 	  kv.k.i  = i;
 	  kv.v.p  = snd_buf;
 	  kmr_add_kv(snd, kv);
@@ -482,8 +483,8 @@ namespace kmrnext {
       vector<DataPack> &dps = dpgroups.at(i);
       if (dps.size() > 0) {
 	struct kmr_kv_box kv;
-	kv.klen = (int)sizeof(size_t);
-	kv.vlen = (int)sizeof(size_t);
+	kv.klen = static_cast<int>(sizeof(size_t));
+	kv.vlen = static_cast<int>(sizeof(size_t));
 	kv.k.i  = i;
 	kv.v.i  = i;
 	kmr_add_kv(ikvs, kv);
@@ -517,13 +518,14 @@ namespace kmrnext {
 	ostringstream os;
 	os << "timing of map locally: total_exec="
 	   << fixed << total_time << " each_exec="
-	   << fixed << (total_time / (double)task_count) << "(sec), "
+	   << fixed << (total_time / static_cast<double>(task_count))
+	   << "(sec), "
 	   << "count of task execution: " << task_count;
 	profile_out(kmrnext_, os.str());
       }
     } else {
-      kmr_map_multiprocess_by_key(ikvs, NULL, (void*)&param, kmr_noopt,
-				  kmrnext_->rank(), mapper_map);
+      kmr_map_multiprocess_by_key(ikvs, NULL, static_cast<void*>(&param),
+				  kmr_noopt, kmrnext_->rank(), mapper_map);
     }
     _outds->parallel_ = false;
     if (outds == self_ || outds == this) {
@@ -592,21 +594,21 @@ namespace kmrnext {
 	  os << dumper_(*itr);
 	}
 	string dumped = os.str();
-	int local_len = (int)dumped.size();
-	char *local_cstr = (char*)dumped.c_str();
+	int local_len = static_cast<int>(dumped.size());
+	char *local_cstr = const_cast<char*>(dumped.c_str());
 	int nprocs;
 	MPI_Comm_size(env.mpi_comm, &nprocs);
-	int *local_lens = (int*)malloc(sizeof(int) * nprocs);
+	int *local_lens = static_cast<int*>(malloc(sizeof(int) * nprocs));
 	MPI_Allgather(&local_len, 1, MPI_INT, local_lens, 1, MPI_INT,
 		      env.mpi_comm);
 	int total_len = 0;
-	int *displs = (int*)malloc(sizeof(int) * nprocs);
+	int *displs = static_cast<int*>(malloc(sizeof(int) * nprocs));
 	for (int i = 0; i < nprocs; i++) {
 	  displs[i] = total_len;
 	  total_len += local_lens[i];
 	}
 	total_len += 1; // +1 for '\0'
-	char *total_cstr = (char*)malloc(sizeof(char) * total_len);
+	char *total_cstr = static_cast<char*>(malloc(sizeof(char) * total_len));
 	MPI_Allgatherv(local_cstr, local_len, MPI_CHAR,
 		       total_cstr, local_lens, displs, MPI_CHAR, env.mpi_comm);
 	total_cstr[total_len - 1] = '\0';
@@ -630,9 +632,9 @@ namespace kmrnext {
     MPI_Allreduce(&token, &master, 1, MPI_INT, MPI_MAX, kmrnext_->kmr()->comm);
     master = (master == -1)? 0 : master;
     // bcast string
-    int length = (int)dmpr.result_.size() + 1;
+    int length = static_cast<int>(dmpr.result_.size()) + 1;
     MPI_Bcast(&length, 1, MPI_INT, master, kmrnext_->kmr()->comm);
-    char *result_cstr = (char *)malloc(sizeof(char) * length);
+    char *result_cstr = static_cast<char*>(malloc(sizeof(char) * length));
     if (kmrnext_->rank() == master) {
       memcpy(result_cstr, dmpr.result_.c_str(), sizeof(char) * length);
     }
@@ -726,7 +728,7 @@ namespace kmrnext {
 #if 1
     // It returns column-ordered index
     size_t idx = 0;
-    for (int i = (int)size_-1; i >= 0; i--) {
+    for (int i = static_cast<int>(size_) - 1; i >= 0; i--) {
       if (view.dim(i)) {
 	size_t offset = 1;
 	for (int j = i-1; j >= 0; j--) {
@@ -762,7 +764,7 @@ namespace kmrnext {
 #if 0
     // It returns column-ordered index
     size_t idx = 0;
-    for (int i = (int)size_-1; i >= 0; i--) {
+    for (int i = static_cast<int>(size_) - 1; i >= 0; i--) {
       if (view.dim(i)) {
 	size_t offset = 1;
 	for (int j = i-1; j >= 0; j--) {
@@ -863,16 +865,18 @@ namespace kmrnext {
 
       // Calculate indices of Data this process should hold
       {
-	size_t avg_cnt = ndata / (size_t)kmrnext_->nprocs();
-	size_t rem_cnt = ndata % (size_t)kmrnext_->nprocs();
+	size_t avg_cnt = ndata / static_cast<size_t>(kmrnext_->nprocs());
+	size_t rem_cnt = ndata % static_cast<size_t>(kmrnext_->nprocs());
 	indices_cnt =
-	  (kmrnext_->rank() < (int)rem_cnt)? avg_cnt + 1 : avg_cnt;
+	  (kmrnext_->rank() < static_cast<int>(rem_cnt))?
+	  avg_cnt + 1 : avg_cnt;
 	if (indices_cnt == 0) {
 	  indices = NULL;
 	} else {
 	  indices = new size_t[indices_cnt];
-	  size_t start = avg_cnt * (size_t)kmrnext_->rank()
-	    + ((kmrnext_->rank() < (int)rem_cnt)? kmrnext_->rank() : rem_cnt);
+	  size_t start = avg_cnt * static_cast<size_t>(kmrnext_->rank())
+	    + ((kmrnext_->rank() < static_cast<int>(rem_cnt))?
+	       kmrnext_->rank() : rem_cnt);
 	  for (size_t i = 0; i < indices_cnt; i++) {
 	    indices[i] = start + i;
 	  }
@@ -962,7 +966,8 @@ namespace kmrnext {
 	}
 	data_[i].unshared();
 	Key tmpkey = index_to_key(i);
-	size_t viewed_idx = (long)key_to_split_index(tmpkey, split);
+	size_t viewed_idx =
+	  static_cast<long>(key_to_split_index(tmpkey, split));
 	if (indices_cnt > 0 &&
 	    !(range_start <= viewed_idx && viewed_idx <= range_end)) {
 	  vector<DataPack>& dps = dpgroups.at(viewed_idx);
@@ -988,9 +993,10 @@ namespace kmrnext {
 	  size_t buf_siz;
 	  serialize_datapack(&(*itr), &buf, &buf_siz);
 	  struct kmr_kv_box kv;
-	  kv.klen = (int)sizeof(size_t);
-	  kv.vlen = (int)buf_siz;
-	  kv.k.i  = calc_send_target(i, ndata, (size_t)kmrnext_->nprocs());
+	  kv.klen = static_cast<int>(sizeof(size_t));
+	  kv.vlen = static_cast<int>(buf_siz);
+	  kv.k.i  = calc_send_target(i, ndata,
+				     static_cast<size_t>(kmrnext_->nprocs()));
 	  kv.v.p  = buf;
 	  kmr_add_kv(kvs0, kv);
 	  free(buf);
@@ -1055,7 +1061,8 @@ namespace {
     if (param->data[idx].value() == NULL) {
       int owner;
       memcpy(&owner, kv0.v.p, sizeof(int));
-      Data data((void*)((char*)kv0.v.p + sizeof(int)), kv0.vlen - sizeof(int));
+      Data data(static_cast<void*>(const_cast<char*>(kv0.v.p) + sizeof(int)),
+		kv0.vlen - sizeof(int));
       param->data[idx].set_value(data);
       param->data[idx].set_owner(owner);
     }
@@ -1071,7 +1078,7 @@ namespace {
 
   int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
 		 KMR_KVS *kvo, void *p, const long i) {
-    param_mapper_map *param = (param_mapper_map *)p;
+    param_mapper_map *param = static_cast<param_mapper_map*>(p);
     size_t idx = kv0.k.i;
     vector<DataPack>& dps = param->dpgroups.at(idx);
     if (dps.size() != 0) {
@@ -1086,7 +1093,7 @@ namespace {
   }
 
   int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m) {
-    param_mapper_map *param = (param_mapper_map *)arg;
+    param_mapper_map *param = static_cast<param_mapper_map*>(arg);
     MPI_Comm self_comm;
     MPI_Comm_split(kvi->c.mr->comm, kvi->c.mr->rank, kvi->c.mr->rank,
 		   &self_comm);
@@ -1101,7 +1108,7 @@ namespace {
   int mapper_collate(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
 		     KMR_KVS *kvo, void *p, const long i) {
     DataPack dp = deserialize_datapack(kv0.v.p, kv0.vlen);
-    param_mapper_collate *param = (param_mapper_collate*)p;
+    param_mapper_collate *param = static_cast<param_mapper_collate*>(p);
 #ifdef _OPENMP
     #pragma omp critical
     // As a KMR map function is run in parallel by OpenMP, shared resources
@@ -1133,17 +1140,17 @@ namespace {
     *buf_siz += sizeof(int);               // 5. [data] owner
 
     // set data to buf
-    *buf = (char*)calloc(*buf_siz, sizeof(char));
+    *buf = static_cast<char*>(calloc(*buf_siz, sizeof(char)));
     // key
     char *p = *buf;
-    *(size_t*)p = k.size();
+    *reinterpret_cast<size_t*>(p) = k.size();
     p += sizeof(size_t);
     for (size_t i = 0; i < k.size(); i++) {
-      *(size_t*)p = k.dim(i);
+      *reinterpret_cast<size_t*>(p) = k.dim(i);
       p += sizeof(size_t);
     }
     // data
-    *(size_t*)p = d->size();
+    *reinterpret_cast<size_t*>(p) = d->size();
     p += sizeof(size_t);
     memcpy(p, d->value(), d->size());
     p += d->size();
@@ -1159,24 +1166,24 @@ namespace {
     // 5. [data] owner   : sizeof(int)
 
     // key
-    const char *p = buf;
-    size_t key_siz = *(size_t*)p;
+    char *p = const_cast<char*>(buf);
+    size_t key_siz = *reinterpret_cast<size_t*>(p);
     p += sizeof(size_t);
     size_t *key_ary = new size_t[key_siz];
     for (size_t i = 0; i < key_siz; i++) {
-      key_ary[i] = *(size_t*)p;
+      key_ary[i] = *reinterpret_cast<size_t*>(p);
       p += sizeof(size_t);
     }
     Key k(key_siz);
     k.set(key_ary);
     delete[] key_ary;
     // data
-    size_t dat_siz = *(size_t*)p;
+    size_t dat_siz = *reinterpret_cast<size_t*>(p);
     p += sizeof(size_t);
     Data *d = new Data();
-    d->copy_buf((void*)p, dat_siz);
+    d->copy_buf(static_cast<void*>(p), dat_siz);
     p += dat_siz;
-    d->set_owner(*(int*)p);
+    d->set_owner(*reinterpret_cast<int*>(p));
 
     return DataPack(k, d, true);
   }
