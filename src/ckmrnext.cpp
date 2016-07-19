@@ -82,9 +82,9 @@ void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
     kmrnext_loadfn_t fn_;
   public:
     WrappedLoader(kmrnext_loadfn_t fn) : fn_(fn) {}
-    int operator()(DataStore *ds, const string& file) {
+    int operator()(DataStore *_ds, const string& file) {
       const char *file_cstr = file.c_str();
-      return fn_((void*)ds, file_cstr);
+      return fn_((void*)_ds, file_cstr);
     }
   } loader(l);
   DataStore *_ds = (DataStore*)ds;
@@ -148,7 +148,7 @@ void KMRNEXT_ds_map(void *ids, void *ods, void *view, kmrnext_mapfn_t m,
     kmrnext_mapfn_t fn_;
     void *p_;
   public:
-    WrappedMapper(kmrnext_mapfn_t fn, void *p) : fn_(fn), p_(p) {}
+    WrappedMapper(kmrnext_mapfn_t fn, void *_p) : fn_(fn), p_(_p) {}
     int operator()(DataStore *inds, DataStore *outds, Key& key,
 		   vector<DataPack>& dpvec, DataStore::MapEnvironment& env) {
       datapacks dps;

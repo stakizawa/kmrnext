@@ -382,7 +382,7 @@ namespace {
 	long v = *(long *)dp.data()->value() + 1;
 	sum += v;
       }
-      long avg = sum / dps.size();
+      long avg = sum / static_cast<long>(dps.size());
       kmrnext::Data d(&avg, sizeof(long));
       outds->add(key, d);
       return 0;
@@ -434,11 +434,11 @@ namespace {
     int operator()(kmrnext::DataStore *ds, const long& num)
     {
       kmrnext::Key key(key_size_);
-      size_t k0 = num / ds->dim(1);
-      size_t k1 = num % ds->dim(1);
+      size_t k0 = static_cast<size_t>(num) / ds->dim(1);
+      size_t k1 = static_cast<size_t>(num) % ds->dim(1);
       key.set_dim(0, k0);
       key.set_dim(1, k1);
-      long val = k1 + 1;
+      long val = static_cast<long>(k1) + 1;
       kmrnext::Data data((void*)&val, sizeof(long));
       for (size_t i = 0; i < data_count_; i++) {
 	key.set_dim(2, i);
@@ -459,7 +459,7 @@ namespace {
     int operator()(kmrnext::DataStore *ds, const long& num)
     {
       kmrnext::Key key(key_size_);
-      key.set_dim(0, num);
+      key.set_dim(0, static_cast<size_t>(num));
       long val = num + 1;
       kmrnext::Data data((void*)&val, sizeof(long));
       for (size_t i = 0; i < data_count0_; i++) {
@@ -526,7 +526,7 @@ namespace {
     ds1.set(array_ds0_);
     std::vector<long> vec1;
     for (size_t i = 0; i < ds1.dim(0); i++) {
-      vec1.push_back(i);
+      vec1.push_back(static_cast<long>(i));
     }
     ds1.load_integers(vec1, loader2d);
     EXPECT_EQ(1, *(long*)ds1.get(*key0_).data()->value());
@@ -549,7 +549,7 @@ namespace {
     ds3.set(array_ds0_);
     std::vector<long> vec3;
     for (size_t i = 0; i < ds_size_error_; i++) {
-      vec3.push_back(i);
+      vec3.push_back(static_cast<long>(i));
     }
     EXPECT_THROW({ds3.load_integers(vec3, loader2d);}, std::runtime_error);
   }

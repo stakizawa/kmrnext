@@ -50,9 +50,9 @@ size_t file_size(string &filename) {
   ifstream fin;
   fin.open(filename.c_str(), ios::in|ios::binary);
   fin.seekg(0, ios::end);
-  size_t siz = fin.tellg();
+  streampos siz = fin.tellg();
   fin.close();
-  return siz;
+  return static_cast<size_t>(siz);
 }
 
 void delete_file(string &filename) {

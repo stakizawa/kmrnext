@@ -598,8 +598,6 @@ namespace kmrnext {
     bool data_allocated_;
     // True if the input and output DataStore of map function is same
     bool map_inplace_;
-    // True if the DataStore should be processed in parallel
-    bool parallel_;
     // A KMRNext object that stores execution status
     KMRNext *kmrnext_;
     // True if the data in DataStore is updated, but not written to a file
@@ -607,6 +605,8 @@ namespace kmrnext {
     // True if the Data in a file is cached in memory
     bool data_cached_;
 #ifdef BACKEND_KMR
+    // True if the DataStore should be processed in parallel
+    bool parallel_;
     // Split pattern of the DataStore, that defines data distribution
     View *split_;
     // Set to be true if the last call of map() or collate() actually

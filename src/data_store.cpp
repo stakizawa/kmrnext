@@ -112,7 +112,7 @@ namespace kmrnext {
     fout.open(fname.c_str(), ios::out|ios::binary);
     size_t write_offset = 0;
     size_t cur_buf_siz = kDefaultWriteBufferSize;
-    char *buf = (char*)calloc(cur_buf_siz, sizeof(char));
+    char *buf = static_cast<char*>(calloc(cur_buf_siz, sizeof(char)));
 
     for (size_t i = 0; i < data_size_; i++) {
       Data *d = &(data_[i]);
@@ -127,7 +127,7 @@ namespace kmrnext {
 	buf = static_cast<char*>(realloc(buf, cur_buf_siz));
       }
       memcpy(buf, d_val, d_siz);
-      fout.write(buf, buf_siz);
+      fout.write(buf, static_cast<streamsize>(buf_siz));
       d->written(write_offset, buf_siz);
       write_offset += buf_siz;
     }
@@ -150,10 +150,10 @@ namespace kmrnext {
     if (file_siz == 0) {
       return false;
     }
-    char *buf = (char*)calloc(file_siz, sizeof(char));
+    char *buf = static_cast<char*>(calloc(file_siz, sizeof(char)));
     ifstream fin;
     fin.open(fname.c_str(), ios::in|ios::binary);
-    fin.read(buf, file_siz);
+    fin.read(buf, static_cast<streamsize>(file_siz));
     fin.close();
 
 #ifdef _OPENMP
@@ -231,13 +231,13 @@ namespace {
     public:
       DataStore::Loader<T>& loader_;
 
-      WrappedLoader(DataStore::Loader<T>& loader) : loader_(loader) {}
+      WrappedLoader(DataStore::Loader<T>& ldr) : loader_(ldr) {}
       int operator()(DataStore *inds, DataStore *outds,
-		     Key& key, vector<DataPack>& dps,
+		     Key& k, vector<DataPack>& dps,
 		     DataStore::MapEnvironment& env)
       {
 	T *val;
-	deserialize((char*)dps.at(0).data()->value(),
+	deserialize(static_cast<char*>(dps.at(0).data()->value()),
 		    dps.at(0).data()->size(), &val);
 	loader_(outds, *val);
 	delete val;
@@ -277,7 +277,7 @@ namespace {
   }
 
   void serialize(const string& str, char** buf, size_t* buf_siz) {
-    *buf = (char*)str.c_str();
+    *buf = const_cast<char*>(str.c_str());
     *buf_siz = str.size() + 1; // +1 for '\0'
   }
 
@@ -286,13 +286,14 @@ namespace {
   }
 
   void serialize(const long& val, char** buf, size_t* buf_siz) {
-    *buf = (char*)&val;
+    long* v = const_cast<long*>(&val);
+    *buf = reinterpret_cast<char*>(v);
     *buf_siz = sizeof(long);
   }
 
   void deserialize(char* buf, size_t buf_siz, long** val) {
     *val = new long;
-    **val = *(long*)buf;
+    **val = *reinterpret_cast<long*>(buf);
   }
 
 }

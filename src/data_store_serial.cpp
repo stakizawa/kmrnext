@@ -4,13 +4,13 @@ namespace kmrnext {
 
   DataStore::DataStore(size_t siz)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(NULL), data_updated_(false), data_cached_(false) {}
+    data_allocated_(false), map_inplace_(false), kmrnext_(NULL),
+    data_updated_(false), data_cached_(false) {}
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
     : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), map_inplace_(false), parallel_(false),
-    kmrnext_(kn), data_updated_(false), data_cached_(false) {}
+    data_allocated_(false), map_inplace_(false), kmrnext_(kn),
+    data_updated_(false), data_cached_(false) {}
 
   DataStore::~DataStore() {
     if (data_allocated_) {
@@ -332,7 +332,7 @@ namespace kmrnext {
 		     Key& key, vector<DataPack>& dps,
 		     MapEnvironment& env)
       {
-	result_ = dps.size();
+	result_ = static_cast<long>(dps.size());
 	return 0;
       }
     } counter;
