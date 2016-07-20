@@ -307,7 +307,7 @@ program main
      call kmrnext_ds_string(ds1, str)
      write (*,*) '  DataStore: ', str
      write (*,*)
-     deallocate(str)
+     ! deallocate(str) This will be an error on K
   end if
 
   !------ Load data contents from a file
