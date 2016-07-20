@@ -185,7 +185,7 @@ public:
     #pragma omp parallel for
 #endif
     for (size_t i = 0; i < buf_size_; i++) {
-      buf_[i] = (int)prcid_ + 1;
+      buf_[i] = static_cast<int>(prcid_) + 1;
     }
 
     if (kDataStoreIsFile) {
@@ -240,8 +240,8 @@ public:
 		 MPI_COMM_WORLD, &st);
     *buf_size = rcv_size;
     *buf = new int[*buf_size];
-    MPI_Sendrecv(buf_, (int)snd_size, MPI_INT, snd_rank, 1001,
-    		 *buf, (int)rcv_size, MPI_INT, rcv_rank, 1001,
+    MPI_Sendrecv(buf_, static_cast<int>(snd_size), MPI_INT, snd_rank, 1001,
+    		 *buf, static_cast<int>(rcv_size), MPI_INT, rcv_rank, 1001,
     		 MPI_COMM_WORLD, &st);
 
     if (kDataStoreIsFile) {
@@ -262,8 +262,8 @@ public:
 		 MPI_COMM_WORLD, &st);
     buf_size_ = rcv_size;
     buf_ = new int[buf_size_];
-    MPI_Sendrecv(buf,  (int)snd_size, MPI_INT, snd_rank, 1001,
-    		 buf_, (int)rcv_size, MPI_INT, rcv_rank, 1001,
+    MPI_Sendrecv(buf,  static_cast<int>(snd_size), MPI_INT, snd_rank, 1001,
+    		 buf_, static_cast<int>(rcv_size), MPI_INT, rcv_rank, 1001,
     		 MPI_COMM_WORLD, &st);
 
     if (kDataStoreIsFile) {
@@ -293,7 +293,7 @@ private:
     string fname = filename();
     ofstream fout;
     fout.open(fname.c_str(), ios::out|ios::binary);
-    fout.write((char*)buf_, sizeof(int) * buf_size_);
+    fout.write(reinterpret_cast<char*>(buf_), sizeof(int) * buf_size_);
     assert(fout.fail() == false);
     fout.flush();
     fout.close();
@@ -307,7 +307,7 @@ private:
     string fname = filename(true);
     ifstream fin;
     fin.open(fname.c_str(), ios::in|ios::binary);
-    fin.read((char*)buf_, sizeof(int) * buf_size_);
+    fin.read(reinterpret_cast<char*>(buf_), sizeof(int) * buf_size_);
     assert(fin.fail() == false);
     fin.close();
   }
@@ -442,7 +442,8 @@ void run_nicam(DataStore* inds, DataStore* outds, Time& time)
   time.nicam_invoke = gettime();
 
   MPI_Comm task_comm;
-  MPI_Comm_split(MPI_COMM_WORLD, (int)inds->ensid(), rank, &task_comm);
+  MPI_Comm_split(MPI_COMM_WORLD, static_cast<int>(inds->ensid()),
+		 rank, &task_comm);
 #if DEBUG
   int nprocs_tc;
   MPI_Comm_size(task_comm, &nprocs_tc);
@@ -477,11 +478,11 @@ void letkf(int *in, int *out, size_t size, MPI_Comm comm) {
   // setup send counts
   int *send_cnts = new int[letkf_nprocs];
   int *sdispls   = new int[letkf_nprocs];
-  int each_count = (int)kNumCell / letkf_nprocs;
-  int each_rem   = (int)kNumCell % letkf_nprocs;
+  int each_count = static_cast<int>(kNumCell) / letkf_nprocs;
+  int each_rem   = static_cast<int>(kNumCell) % letkf_nprocs;
   for (int i = 0; i < letkf_nprocs; i++) {
     send_cnts[i] =
-      (each_count + ((i < each_rem)? 1 : 0)) * (int)kElementCount;
+      (each_count + ((i < each_rem)? 1 : 0)) * static_cast<int>(kElementCount);
     if (i == 0) {
       sdispls[i] = 0;
     } else {
@@ -496,7 +497,8 @@ void letkf(int *in, int *out, size_t size, MPI_Comm comm) {
   int rcvbuf_siz = 0;
   for (int i = 0; i < letkf_nprocs; i++) {
     recv_cnts[i] =
-      (each_count + ((letkf_rank < each_rem)? 1 : 0)) * (int)kElementCount;
+      (each_count + ((letkf_rank < each_rem)? 1 : 0)) *
+      static_cast<int>(kElementCount);
     rcvbuf_siz += recv_cnts[i];
     if (i == 0) {
       rdispls[i] = 0;
@@ -506,7 +508,7 @@ void letkf(int *in, int *out, size_t size, MPI_Comm comm) {
   }
   assert(rcvbuf_siz ==
 	 (each_count + ((letkf_rank < each_rem)? 1 : 0)) *
-	 (int)(kNumEnsemble * kElementCount));
+	 static_cast<int>(kNumEnsemble * kElementCount));
   int *rcvbuf = new int[rcvbuf_siz];
   MPI_Alltoallv(in,     send_cnts, sdispls, MPI_INT,
 		rcvbuf, recv_cnts, rdispls, MPI_INT, comm);
@@ -515,7 +517,7 @@ void letkf(int *in, int *out, size_t size, MPI_Comm comm) {
 #ifdef _OPENMP
   #pragma omp parallel for
 #endif
-  for (size_t i = 0; i < (size_t)rcvbuf_siz; i++) {
+  for (size_t i = 0; i < static_cast<size_t>(rcvbuf_siz); i++) {
     rcvbuf[i] -= 1;
   }
 
@@ -536,7 +538,8 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time)
   time.letkf_invoke = gettime();
 
   MPI_Comm task_comm;
-  MPI_Comm_split(MPI_COMM_WORLD, (int)inds->prcid(), rank, &task_comm);
+  MPI_Comm_split(MPI_COMM_WORLD, static_cast<int>(inds->prcid()),
+		 rank, &task_comm);
 #if DEBUG
   int nprocs_tc;
   MPI_Comm_size(task_comm, &nprocs_tc);
@@ -577,5 +580,6 @@ double gettime(MPI_Comm comm) {
   MPI_Barrier(comm);
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+  return (static_cast<double>(ts.tv_sec) * 10E9 +
+	  static_cast<double>(ts.tv_nsec));
 }

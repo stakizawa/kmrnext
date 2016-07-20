@@ -230,9 +230,9 @@ public:
     #pragma omp parallel for
 #endif
     for (size_t i = 0; i < kElementCount; i++) {
-      data_val[i] = (int)y + 1;
+      data_val[i] = static_cast<int>(y) + 1;
     }
-    Data data((void*)data_val, sizeof(int) * kElementCount);
+    Data data(static_cast<void*>(data_val), sizeof(int) * kElementCount);
 
     Key key(kDimEnsembleData);
     key.set_dim(0, x);
@@ -280,7 +280,7 @@ public:
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
-    assert(total_count == (size_t)(kNumRegion * kNumCell));
+    assert(total_count == static_cast<size_t>(kNumRegion * kNumCell));
 #endif
 
     time_.nicam_start = gettime(env);
@@ -288,7 +288,7 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
-      int *data_old = (int*)itr->data()->value();
+      int *data_old = static_cast<int*>(itr->data()->value());
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
@@ -343,7 +343,7 @@ public:
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
-    assert(total_count == (size_t)(kNumEnsemble * kNumCell));
+    assert(total_count == static_cast<size_t>(kNumEnsemble * kNumCell));
 #endif
     time_.letkf_start = gettime(env);
 
@@ -356,11 +356,12 @@ public:
     // setup send counts
     int *send_cnts = new int[letkf_nprocs];
     int *sdispls   = new int[letkf_nprocs];
-    int each_count = (int)kNumCell / letkf_nprocs;
-    int each_rem   = (int)kNumCell % letkf_nprocs;
+    int each_count = static_cast<int>(kNumCell) / letkf_nprocs;
+    int each_rem   = static_cast<int>(kNumCell) % letkf_nprocs;
     for (int i = 0; i < letkf_nprocs; i++) {
       send_cnts[i] =
-	(each_count + ((i < each_rem)? 1 : 0)) * (int)kElementCount;
+	(each_count + ((i < each_rem)? 1 : 0)) *
+	static_cast<int>(kElementCount);
       if (i == 0) {
 	sdispls[i] = 0;
       } else {
@@ -368,14 +369,14 @@ public:
       }
     }
     assert(sdispls[letkf_nprocs-1] + send_cnts[letkf_nprocs-1] ==
-	   (int)(kNumCell * kElementCount));
+	   static_cast<int>(kNumCell * kElementCount));
     // setup send buf
-    int sndcnt  = (int)(dps.size() * kElementCount);
+    int sndcnt  = static_cast<int>(dps.size() * kElementCount);
     int *sndbuf = new int[sndcnt];
     size_t sndbuf_idx = 0;
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
-      int *data = (int*)itr->data()->value();
+      int *data = static_cast<int*>(itr->data()->value());
       size_t dsize = itr->data()->size();
       memcpy(sndbuf + sndbuf_idx, data, dsize);
       sndbuf_idx += (dsize / sizeof(int));
@@ -386,7 +387,8 @@ public:
     int rcvbuf_siz = 0;
     for (int i = 0; i < letkf_nprocs; i++) {
       recv_cnts[i] =
-	(each_count + ((letkf_rank < each_rem)? 1 : 0)) * (int)kElementCount;
+	(each_count + ((letkf_rank < each_rem)? 1 : 0)) *
+	static_cast<int>(kElementCount);
       rcvbuf_siz += recv_cnts[i];
       if (i == 0) {
 	rdispls[i] = 0;
@@ -396,7 +398,7 @@ public:
     }
     assert(rcvbuf_siz ==
 	   (each_count + ((letkf_rank < each_rem)? 1 : 0)) *
-	   (int)(kNumEnsemble * kElementCount));
+	   static_cast<int>(kNumEnsemble * kElementCount));
     int *rcvbuf = new int[rcvbuf_siz];
     MPI_Alltoallv(sndbuf, send_cnts, sdispls, MPI_INT,
 		  rcvbuf, recv_cnts, rdispls, MPI_INT, env.mpi_comm);
@@ -406,7 +408,7 @@ public:
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < (size_t)rcvbuf_siz; i++) {
+    for (size_t i = 0; i < static_cast<size_t>(rcvbuf_siz); i++) {
       rcvbuf[i] -= 1;
     }
 
@@ -472,14 +474,16 @@ double gettime() {
   MPI_Barrier(MPI_COMM_WORLD);
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+  return (static_cast<double>(ts.tv_sec) * 10E9 +
+	  static_cast<double>(ts.tv_nsec));
 }
 
 double gettime(DataStore::MapEnvironment& env) {
   MPI_Barrier(env.mpi_comm);
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+  return (static_cast<double>(ts.tv_sec) * 10E9 +
+	  static_cast<double>(ts.tv_nsec));
 }
 
 int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
@@ -487,10 +491,10 @@ int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
   int nprocs_calc = 1;
   for (size_t i = 0; i < view.size(); i++) {
     if (!view.dim(i) && alc_view.dim(i)) {
-      nprocs_calc *= (int)kEnsembleDataDimSizes[i];
+      nprocs_calc *= static_cast<int>(kEnsembleDataDimSizes[i]);
     }
     if (alc_view.dim(i)) {
-      total_nprocs *= (int)kEnsembleDataDimSizes[i];
+      total_nprocs *= static_cast<int>(kEnsembleDataDimSizes[i]);
     }
   }
   if (nprocs < total_nprocs) {

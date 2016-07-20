@@ -1154,7 +1154,7 @@ namespace {
     p += sizeof(size_t);
     memcpy(p, d->value(), d->size());
     p += d->size();
-    *(int*)p = d->owner();
+    *reinterpret_cast<int*>(p) = d->owner();
   }
 
   DataPack deserialize_datapack(const char* buf, size_t buf_siz) {

@@ -24,22 +24,22 @@ const size_t kDim1 = 1;
 const size_t kDim1_0 = 4;
 
 
-void load_data(kmrnext::DataStore *ds);
+void load_data(kmrnext::DataStore* ds);
 void print_line(string str);
-void print_ds_count(kmrnext::DataStore *ds, string padding="    ");
-void print_ds_contents(kmrnext::DataStore *ds, string padding="    ");
-void print_datapack(kmrnext::DataPack &dp, string padding="    ");
-void print_datapacks(vector<kmrnext::DataPack> *dpvec, string padding="    ");
+void print_ds_count(kmrnext::DataStore* ds, string padding="    ");
+void print_ds_contents(kmrnext::DataStore* ds, string padding="    ");
+void print_datapack(kmrnext::DataPack& dp, string padding="    ");
+void print_datapacks(vector<kmrnext::DataPack>* dpvec, string padding="    ");
 
 class Summarizer : public kmrnext::DataStore::Mapper {
 public:
-  int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
+  int operator()(kmrnext::DataStore* inds, kmrnext::DataStore* outds,
 		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps,
 		 kmrnext::DataStore::MapEnvironment& env) {
     long sum = 0;
     for (size_t i = 0; i < dps.size(); i++) {
       kmrnext::DataPack& dp = dps.at(i);
-      long v = *(long *)dp.data()->value();
+      long v = *static_cast<long*>(dp.data()->value());
       sum += v;
     }
     kmrnext::Data d(&sum, sizeof(long));
@@ -50,7 +50,7 @@ public:
 
 class OneSetter : public kmrnext::DataStore::Mapper {
 public:
-  int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
+  int operator()(kmrnext::DataStore* inds, kmrnext::DataStore* outds,
 		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps,
 		 kmrnext::DataStore::MapEnvironment& env) {
     long val = 1;
@@ -274,12 +274,12 @@ main(int argc, char **argv) {
 
 class IntLoader2 : public kmrnext::DataStore::Loader<long> {
 public:
-  int operator()(kmrnext::DataStore *ds, const long& i) {
+  int operator()(kmrnext::DataStore* ds, const long& i) {
     kmrnext::Key key(kDim2);
     key.set_dim(0, i);
     for (size_t j = 0; j < kDim2_1; j++) {
       key.set_dim(1, j);
-      long val = (long)(i * kDim2_1 + j);
+      long val = static_cast<long>(i * kDim2_1 + j);
       kmrnext::Data d(&val, sizeof(long));
       ds->add(key, d);
     }
@@ -287,7 +287,7 @@ public:
   }
 };
 
-void load_data(kmrnext::DataStore *ds) {
+void load_data(kmrnext::DataStore* ds) {
   vector<long> ints;
   ints.push_back(0);
   ints.push_back(1);
@@ -302,7 +302,7 @@ void print_line(string str) {
   cout << str << endl;
 }
 
-void print_ds_count(kmrnext::DataStore *ds, string padding) {
+void print_ds_count(kmrnext::DataStore* ds, string padding) {
   long count = ds->count();
   ostringstream os;
   os << padding << "Count: " << count;
@@ -314,12 +314,12 @@ public:
   string operator()(kmrnext::DataPack& dp) {
     ostringstream os;
     os << dp.key().to_string() << " : "
-       << *(long*)dp.data()->value() << endl;
+       << *static_cast<long*>(dp.data()->value()) << endl;
     return os.str();
   }
 };
 
-void print_ds_contents(kmrnext::DataStore *ds, string padding) {
+void print_ds_contents(kmrnext::DataStore* ds, string padding) {
   DPPrinter printer;
   string ds_str = ds->dump(printer);
   if (rank != 0) return;
@@ -330,20 +330,21 @@ void print_ds_contents(kmrnext::DataStore *ds, string padding) {
   }
 }
 
-void print_datapack(kmrnext::DataPack &dp, string padding) {
+void print_datapack(kmrnext::DataPack& dp, string padding) {
   if (rank != 0) return;
   kmrnext::Key key = dp.key();
-  kmrnext::Data *data = dp.data();
-  cout << padding << key.to_string() << " : " << *(long*)data->value() << endl;
+  kmrnext::Data* data = dp.data();
+  cout << padding << key.to_string() << " : "
+       << *static_cast<long*>(data->value()) << endl;
 }
 
-void print_datapacks(vector<kmrnext::DataPack> *dpvec, string padding) {
+void print_datapacks(vector<kmrnext::DataPack>* dpvec, string padding) {
   if (rank != 0) return;
   for (vector<kmrnext::DataPack>::iterator itr = dpvec->begin();
        itr != dpvec->end(); itr++) {
     kmrnext::Key key = itr->key();
     kmrnext::Data *data = itr->data();
     cout << padding << key.to_string() << " : "
-	 << *(long*)data->value() << endl;
+	 << *static_cast<long*>(data->value()) << endl;
   }
 }

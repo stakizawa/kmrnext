@@ -81,7 +81,8 @@ class Timer {
     MPI_Barrier(MPI_COMM_WORLD);
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
-    return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+    return (static_cast<double>(ts.tv_sec) * 10E9 +
+	    static_cast<double>(ts.tv_nsec));
   }
 
 public:
@@ -111,7 +112,7 @@ public:
       time_sum += time;
       os << time << ",";
     }
-    os << (time_sum / (double)starts.size()) << endl;
+    os << (time_sum / static_cast<double>(starts.size())) << endl;
     return os.str();
   }
 };
@@ -133,10 +134,10 @@ public:
     for (size_t i = 0; i < element_count_; i++) {
       value[i] = num + 1;
     }
-    Data data((void*)value, sizeof(long) * element_count_);
+    Data data(static_cast<void*>(value), sizeof(long) * element_count_);
     for (size_t i = 0; i < data_count; i++) {
       Key key = ds->index_to_key(i);
-      if (key.dim(0) == (size_t)num) {
+      if (key.dim(0) == static_cast<size_t>(num)) {
 	ds->add(key, data);
       }
     }
@@ -164,10 +165,10 @@ public:
     for (size_t i = 0; i < data_siz; i++) {
       value[i] = num + 1;
     }
-    Data data((void*)value, bytes_);
+    Data data(static_cast<void*>(value), bytes_);
     for (size_t i = 0; i < data_count; i++) {
       Key key = ds->index_to_key(i);
-      if (key.dim(0) == (size_t)num) {
+      if (key.dim(0) == static_cast<size_t>(num)) {
 	ds->add(key, data);
       }
     }

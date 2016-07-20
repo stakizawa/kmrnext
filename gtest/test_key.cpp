@@ -70,7 +70,7 @@ namespace {
     kmrnext::Key k(key_size_);
     k.set(array_key0_);
     k.set_dim(0, 100);
-    EXPECT_EQ((size_t)100, k.dim(0));
+    EXPECT_EQ(100, k.dim(0));
     EXPECT_EQ(array_key0_[1], k.dim(1));
     EXPECT_EQ(array_key0_[2], k.dim(2));
     EXPECT_THROW({k.set_dim(3, 0);}, std::runtime_error);

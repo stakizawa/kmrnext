@@ -26,9 +26,9 @@ const string kFile1 = "file1";
 const string kFile2 = "file2";
 const string kFile3 = "file3";
 
-void load_file(kmrnext::DataStore *ds, const string& file);
+void load_file(kmrnext::DataStore* ds, const string& file);
 void print_line(string str);
-void print_data_store(kmrnext::DataStore *ds, string name, string padding,
+void print_data_store(kmrnext::DataStore* ds, string name, string padding,
 		      int count);
 
 
@@ -152,7 +152,7 @@ main(int argc, char **argv)
 
 class DataLoader : public kmrnext::DataStore::Loader<string> {
 public:
-  int operator()(kmrnext::DataStore *ds, const string& file)
+  int operator()(kmrnext::DataStore* ds, const string& file)
   {
     kmrnext::Key key(kDimCell);
     for (size_t i = 0; i < kDimCell0; i++) {
@@ -179,7 +179,7 @@ public:
   }
 };
 
-void load_file(kmrnext::DataStore *ds, const string& file)
+void load_file(kmrnext::DataStore* ds, const string& file)
 {
   vector<string> files;
   files.push_back(file);
@@ -200,12 +200,12 @@ public:
   string operator()(kmrnext::DataPack& dp) {
     ostringstream os;
     os << padding_ << dp.key().to_string() << " : "
-       << *(long*)dp.data()->value() << endl;
+       << *static_cast<long*>(dp.data()->value()) << endl;
     return os.str();
   }
 };
 
-void print_data_store(kmrnext::DataStore *ds, string name, string padding,
+void print_data_store(kmrnext::DataStore* ds, string name, string padding,
 		      int count) {
   long ds_count = ds->count();
   DPPrinter printer(padding + padding);

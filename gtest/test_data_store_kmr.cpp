@@ -18,8 +18,8 @@ namespace {
     {
       kmrnext::Key key(2);
       key.set_dim(0, num);
-      int val = (int)num + 1;
-      kmrnext::Data data((void*)&val, sizeof(int));
+      int val = static_cast<int>(num) + 1;
+      kmrnext::Data data(static_cast<void*>(&val), sizeof(int));
       for (size_t i = 0; i < size_; i++) {
 	key.set_dim(1, i);
 	ds->add(key, data);
@@ -43,7 +43,7 @@ namespace {
       key.set_dim(0, x);
       key.set_dim(1, y);
       int val = 1;
-      kmrnext::Data data((void*)&val, sizeof(int));
+      kmrnext::Data data(static_cast<void*>(&val), sizeof(int));
       for (size_t i = 0; i < size_z_; i++) {
 	key.set_dim(2, i);
 	ds->add(key, data);
@@ -111,12 +111,12 @@ namespace {
     }
 
     void init_owners(int *owners, size_t size) {
-      int quotient = (int)(size / (size_t)nprocs);
-      int remain   = (int)(size % (size_t)nprocs);
+      int quotient = static_cast<int>(size / static_cast<size_t>(nprocs));
+      int remain   = static_cast<int>(size % static_cast<size_t>(nprocs));
       for (int i = 0; i < nprocs; i++) {
 	int start = i * quotient + ((i < remain)? i : remain);
 	int end = start + quotient + ((i < remain)? 1 : 0);
-	if ((size_t)start >= size) { break; }
+	if (static_cast<size_t>(start) >= size) { break; }
 	for (int j = start; j < end; j++) {
 	  owners[j] = i;
 	}
@@ -198,10 +198,10 @@ namespace {
     kmrnext::DataStore ds0(2, gNext);
     ds0.set(ds_size);
     ds0.load_integers(vec0, loader);
-    EXPECT_EQ(1, *(int*)ds0.get(*k2_00_).data()->value());
-    EXPECT_EQ(2, *(int*)ds0.get(*k2_11_).data()->value());
-    EXPECT_EQ(3, *(int*)ds0.get(*k2_22_).data()->value());
-    EXPECT_EQ(4, *(int*)ds0.get(*k2_33_).data()->value());
+    EXPECT_EQ(1, *static_cast<int*>(ds0.get(*k2_00_).data()->value()));
+    EXPECT_EQ(2, *static_cast<int*>(ds0.get(*k2_11_).data()->value()));
+    EXPECT_EQ(3, *static_cast<int*>(ds0.get(*k2_22_).data()->value()));
+    EXPECT_EQ(4, *static_cast<int*>(ds0.get(*k2_33_).data()->value()));
     EXPECT_EQ(owners[0], ds0.get(*k2_00_).data()->owner());
     EXPECT_EQ(owners[1], ds0.get(*k2_11_).data()->owner());
     EXPECT_EQ(owners[2], ds0.get(*k2_22_).data()->owner());
@@ -214,7 +214,7 @@ namespace {
     bool flags0[2] = {true, false};
     v0.set(flags0);
     std::vector<kmrnext::DataPack> *vec0 = ds2_->get(v0, *k2_00_);
-    EXPECT_EQ(4, (int)vec0->size());
+    EXPECT_EQ(4, static_cast<int>(vec0->size()));
     for (std::vector<kmrnext::DataPack>:: iterator itr = vec0->begin();
 	 itr != vec0->end(); itr++) {
       EXPECT_EQ(ds2_owners_[0], (*itr).data()->owner());
@@ -248,9 +248,6 @@ namespace {
       }
       kmrnext::DataPack& dp = dps.at(0);
       outds->add(key, *dp.data());
-      // int val = *(int*)(dp.data()->value());
-      // kmrnext::Data d(&val, sizeof(int));
-      // outds->add(key, d);
       return 0;
     }
   };
@@ -282,11 +279,11 @@ namespace {
       int master = masters_[key.dim(0)];
       int val = 0;
       if (dps.size() == 1) {
-	val = *(int*)(dps.at(0).data()->value());
+	val = *static_cast<int*>(dps.at(0).data()->value());
       } else {
 	for (std::vector<kmrnext::DataPack>:: iterator itr = dps.begin();
 	     itr != dps.end(); itr++) {
-	  val += *(int*)(*itr).data()->value();
+	  val += *static_cast<int*>((*itr).data()->value());
 	}
       }
       int res;
@@ -308,10 +305,10 @@ namespace {
     bool flags0[2] = {true, true};
     v0.set(flags0);
     ds2_->map(mapper0, v0, &ods0);
-    EXPECT_EQ(1, *(int*)ods0.get(*k2_00_).data()->value());
-    EXPECT_EQ(2, *(int*)ods0.get(*k2_11_).data()->value());
-    EXPECT_EQ(3, *(int*)ods0.get(*k2_22_).data()->value());
-    EXPECT_EQ(4, *(int*)ods0.get(*k2_33_).data()->value());
+    EXPECT_EQ(1, *static_cast<int*>(ods0.get(*k2_00_).data()->value()));
+    EXPECT_EQ(2, *static_cast<int*>(ods0.get(*k2_11_).data()->value()));
+    EXPECT_EQ(3, *static_cast<int*>(ods0.get(*k2_22_).data()->value()));
+    EXPECT_EQ(4, *static_cast<int*>(ods0.get(*k2_33_).data()->value()));
     EXPECT_EQ(ds2_owners_[0], ods0.get(*k2_00_).data()->owner());
     EXPECT_EQ(ds2_owners_[1], ods0.get(*k2_11_).data()->owner());
     EXPECT_EQ(ds2_owners_[2], ods0.get(*k2_22_).data()->owner());
@@ -335,10 +332,10 @@ namespace {
     k1_1.set(ary_k1_1);
     k1_2.set(ary_k1_2);
     k1_3.set(ary_k1_3);
-    EXPECT_EQ(10, *(int*)ods1.get(k1_0).data()->value());
-    EXPECT_EQ(10, *(int*)ods1.get(k1_1).data()->value());
-    EXPECT_EQ(10, *(int*)ods1.get(k1_2).data()->value());
-    EXPECT_EQ(10, *(int*)ods1.get(k1_3).data()->value());
+    EXPECT_EQ(10, *static_cast<int*>(ods1.get(k1_0).data()->value()));
+    EXPECT_EQ(10, *static_cast<int*>(ods1.get(k1_1).data()->value()));
+    EXPECT_EQ(10, *static_cast<int*>(ods1.get(k1_2).data()->value()));
+    EXPECT_EQ(10, *static_cast<int*>(ods1.get(k1_3).data()->value()));
     EXPECT_EQ(ds2_owners_[0], ods1.get(k1_0).data()->owner());
     EXPECT_EQ(ds2_owners_[1], ods1.get(k1_1).data()->owner());
     EXPECT_EQ(ds2_owners_[2], ods1.get(k1_2).data()->owner());
@@ -445,9 +442,9 @@ namespace {
       EXPECT_EQ(0, ds0->get(key111).data()->owner());
       EXPECT_EQ(0, ds0->get(key222).data()->owner());
     }
-    EXPECT_EQ(1, *(int*)ds0->get(key000).data()->value());
-    EXPECT_EQ(1, *(int*)ds0->get(key111).data()->value());
-    EXPECT_EQ(1, *(int*)ds0->get(key222).data()->value());
+    EXPECT_EQ(1, *static_cast<int*>(ds0->get(key000).data()->value()));
+    EXPECT_EQ(1, *static_cast<int*>(ds0->get(key111).data()->value()));
+    EXPECT_EQ(1, *static_cast<int*>(ds0->get(key222).data()->value()));
 
     // Without resetting the Split, calling collate() again does
     // not take any effect.

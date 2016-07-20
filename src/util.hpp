@@ -20,7 +20,8 @@ double gettime(MPI_Comm comm) {
   MPI_Barrier(comm);
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return ((double)ts.tv_sec) * 10E9 + ((double)ts.tv_nsec);
+  return (static_cast<double>(ts.tv_sec) * 10E9 +
+	  static_cast<double>(ts.tv_nsec));
 }
 #endif
 

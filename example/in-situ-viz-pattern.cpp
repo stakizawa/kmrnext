@@ -37,7 +37,7 @@ public:
   {
     ostringstream os;
     os << dp.key().to_string() << " : ";
-    int *data = (int*)dp.data()->value();
+    int *data = static_cast<int*>(dp.data()->value());
     for (size_t i = 0; i < kDataCount; i++) {
       os << data[i] << " ";
     }
@@ -146,9 +146,9 @@ public:
     size_t y = num % kY;
     int *data_val = new int[kDataCount];
     for (size_t i = 0; i < kDataCount; i++) {
-      data_val[i] = (int)y + 1;
+      data_val[i] = static_cast<int>(y) + 1;
     }
-    Data data((void*)data_val, sizeof(int) * kDataCount);
+    Data data(static_cast<void*>(data_val), sizeof(int) * kDataCount);
 
     Key key(kDimSpace);
     key.set_dim(0, x);
@@ -185,7 +185,7 @@ public:
   {
 #if DEBUG
 #ifdef BACKEND_SERIAL
-    assert(dps.size() == (size_t)(kX * kY * kZ));
+    assert(dps.size() == static_cast<size_t>(kX * kY * kZ));
 #elif defined BACKEND_KMR
     int nprocs_sim;
     MPI_Comm_size(env.mpi_comm, &nprocs_sim);
@@ -196,7 +196,7 @@ public:
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
-    assert(total_count == (size_t)(kX * kY * kZ));
+    assert(total_count == static_cast<size_t>(kX * kY * kZ));
 #endif
 #endif
 
@@ -204,7 +204,7 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kDataCount];
-      int *data_old = (int*)itr->data()->value();
+      int *data_old = static_cast<int*>(itr->data()->value());
       for (size_t i = 0; i < kDataCount; i++) {
 	data_new[i] = data_old[i] + 1;
       }
@@ -258,7 +258,7 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kDataCount];
-      int *data_old = (int*)itr->data()->value();
+      int *data_old = static_cast<int*>(itr->data()->value());
       for (size_t i = 0; i < kDataCount; i++) {
 	data_new[i] = data_old[i] - 1;
       }
@@ -301,7 +301,8 @@ double gettime() {
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+  return (static_cast<double>(ts.tv_sec) * 10E9 +
+	  static_cast<double>(ts.tv_nsec));
 }
 
 double gettime(DataStore::MapEnvironment& env) {
@@ -310,7 +311,8 @@ double gettime(DataStore::MapEnvironment& env) {
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+  return (static_cast<double>(ts.tv_sec) * 10E9 +
+	  static_cast<double>(ts.tv_nsec));
 }
 
 int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
@@ -318,10 +320,10 @@ int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
   int nprocs_calc = 1;
   for (size_t i = 0; i < view.size(); i++) {
     if (!view.dim(i) && alc_view.dim(i)) {
-      nprocs_calc *= (int)kSpaceSizes[i];
+      nprocs_calc *= static_cast<int>(kSpaceSizes[i]);
     }
     if (alc_view.dim(i)) {
-      total_nprocs *= (int)kSpaceSizes[i];
+      total_nprocs *= static_cast<int>(kSpaceSizes[i]);
     }
   }
   if (nprocs < total_nprocs) {

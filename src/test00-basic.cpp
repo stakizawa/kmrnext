@@ -19,9 +19,9 @@ const size_t kDimension2 = 2;
 const size_t kDim2_0 = 10;
 const size_t kDim2_1 = 10;
 
-void load_data(kmrnext::DataStore *ds);
+void load_data(kmrnext::DataStore* ds);
 void print_line(string str);
-void print_data_store(kmrnext::DataStore *ds, string padding, int count);
+void print_data_store(kmrnext::DataStore* ds, string padding, int count);
 void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp);
 void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
 			   kmrnext::Key& k, int count);
@@ -29,13 +29,13 @@ void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
 // A mapper class that calculates sum of data.
 class Summarizer : public kmrnext::DataStore::Mapper {
 public:
-  int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
+  int operator()(kmrnext::DataStore* inds, kmrnext::DataStore* outds,
 		 kmrnext::Key& key, vector<kmrnext::DataPack>& dps,
 		 kmrnext::DataStore::MapEnvironment& env) {
     long sum = 0;
     for (size_t i = 0; i < dps.size(); i++) {
       kmrnext::DataPack& dp = dps.at(i);
-      long v = *(long *)dp.data()->value();
+      long v = *static_cast<long*>(dp.data()->value());
       sum += v;
     }
     kmrnext::Data d(&sum, sizeof(long));
@@ -158,14 +158,14 @@ main(int argc, char **argv) {
 
 class IntLoader : public kmrnext::DataStore::Loader<long> {
 public:
-  int operator()(kmrnext::DataStore *ds, const long& i) {
+  int operator()(kmrnext::DataStore* ds, const long& i) {
     kmrnext::Key key(kDimension3);
     key.set_dim(0, i);
     for (size_t j = 0; j < kDim3_1; j++) {
       key.set_dim(1, j);
       for (size_t k = 0; k < kDim3_2; k++) {
 	key.set_dim(2, k);
-	long val = (long)(i*j*k);
+	long val = static_cast<long>(i*j*k);
 	kmrnext::Data d(&val, sizeof(long));
 	ds->add(key, d);
       }
@@ -174,7 +174,7 @@ public:
   }
 };
 
-void load_data(kmrnext::DataStore *ds) {
+void load_data(kmrnext::DataStore* ds) {
   vector<long> ints;
   ints.push_back(0);
   ints.push_back(1);
@@ -201,12 +201,12 @@ public:
   string operator()(kmrnext::DataPack& dp) {
     ostringstream os;
     os << "  " << dp.key().to_string() << " : "
-       << *(long*)dp.data()->value() << endl;
+       << *static_cast<long*>(dp.data()->value()) << endl;
     return os.str();
   }
 };
 
-void print_data_store(kmrnext::DataStore *ds, string padding, int count) {
+void print_data_store(kmrnext::DataStore* ds, string padding, int count) {
   long ds_count = ds->count();
   DPPrinter printer;
   string ds_str = ds->dump(printer);
@@ -234,7 +234,7 @@ void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp) {
   if (rank != 0) return;
   cout << "  Query key: " << key.to_string()
        << "    Result: " << dp.key().to_string() << ": "
-       << *(long *)dp.data()->value()
+       << *static_cast<long*>(dp.data()->value())
        << " (Size:" << dp.data()->size() << ")" << endl;
 }
 
@@ -258,7 +258,7 @@ void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
     }
     cnt += 1;
     cout << "    " << itr->key().to_string() << " : "
-  	 << *(long *)itr->data()->value() << endl;
+  	 << *static_cast<long*>(itr->data()->value()) << endl;
   }
   cout << endl;
 }

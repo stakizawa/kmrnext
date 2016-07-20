@@ -41,7 +41,8 @@ namespace {
     kmrnext::Data d0;
     d0.set_value(*data_);
     // value is same
-    EXPECT_EQ(*(int*)data_->value(), *(int*)d0.value());
+    EXPECT_EQ(*static_cast<int*>(data_->value()),
+	      *static_cast<int*>(d0.value()));
     // address is not same
     EXPECT_NE(data_->value(), d0.value());
     EXPECT_EQ(data_->size(), d0.size());

@@ -37,7 +37,7 @@ public:
   {
     ostringstream os;
     os << dp.key().to_string() << " : ";
-    double *data = (double*)dp.data()->value();
+    double *data = static_cast<double*>(dp.data()->value());
     for (size_t i = 0; i < kElementCount; i++) {
       os << data[i] << " ";
     }
@@ -153,9 +153,9 @@ public:
     size_t y = num % kNumProc;
     double *data_val = new double[kElementCount];
     for (size_t i = 0; i < kElementCount; i++) {
-      data_val[i] = (double)(y + 1);
+      data_val[i] = static_cast<double>(y + 1);
     }
-    Data data((void*)data_val, sizeof(double) * kElementCount);
+    Data data(static_cast<void*>(data_val), sizeof(double) * kElementCount);
 
     Key key(kNumDimensions);
     key.set_dim(0, x);
@@ -174,7 +174,7 @@ void load_data(DataStore* ds)
   vector<long> data_srcs;
   for (size_t i = 0; i < kNumEnsemble; i++) {
     for (size_t j = 0; j < kNumProc; j++) {
-      data_srcs.push_back((int)(i * kNumProc + j));
+      data_srcs.push_back(static_cast<int>(i * kNumProc + j));
     }
   }
   DataLoader dl;
@@ -192,7 +192,7 @@ public:
   {
 #if DEBUG
 #ifdef BACKEND_SERIAL
-    assert(dps.size() == (size_t)(kNumProc * kNumData));
+    assert(dps.size() == static_cast<size_t>(kNumProc * kNumData));
 #elif defined BACKEND_KMR
     int nprocs_sim;
     MPI_Comm_size(env.mpi_comm, &nprocs_sim);
@@ -203,7 +203,7 @@ public:
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
-    assert(total_count == (size_t)(kNumProc * kNumData));
+    assert(total_count == static_cast<size_t>(kNumProc * kNumData));
 #endif
 #endif
 
@@ -211,7 +211,7 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       double *data_new = new double[kElementCount];
-      double *data_old = (double*)itr->data()->value();
+      double *data_old = static_cast<double*>(itr->data()->value());
       for (size_t i = 0; i < kElementCount; i++) {
 	data_new[i] = data_old[i] + 1;
       }
@@ -252,7 +252,7 @@ public:
   {
 #if DEBUG
 #ifdef BACKEND_SERIAL
-      assert(dps.size() == (size_t)(kNumEnsemble * kNumData));
+      assert(dps.size() == static_cast<size_t>(kNumEnsemble * kNumData));
 #elif defined BACKEND_KMR
     int nprocs_ex;
     MPI_Comm_size(env.mpi_comm, &nprocs_ex);
@@ -263,7 +263,7 @@ public:
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
-      assert(total_count == (size_t)(kNumEnsemble * kNumData));
+      assert(total_count == static_cast<size_t>(kNumEnsemble * kNumData));
 #endif
 #endif
 
@@ -271,7 +271,7 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       double *data_new = new double[kElementCount];
-      double *data_old = (double*)itr->data()->value();
+      double *data_old = static_cast<double*>(itr->data()->value());
       for (size_t i = 0; i < kElementCount; i++) {
 	data_new[i] = data_old[i] - 1;
       }
@@ -318,7 +318,8 @@ double gettime() {
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+  return (static_cast<double>(ts.tv_sec) * 10E9 +
+	  static_cast<double>(ts.tv_nsec));
 }
 
 double gettime(DataStore::MapEnvironment& env) {
@@ -327,7 +328,8 @@ double gettime(DataStore::MapEnvironment& env) {
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+  return (static_cast<double>(ts.tv_sec) * 10E9 +
+	  static_cast<double>(ts.tv_nsec));
 }
 
 int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
@@ -335,10 +337,10 @@ int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
   int nprocs_calc = 1;
   for (size_t i = 0; i < view.size(); i++) {
     if (!view.dim(i) && alc_view.dim(i)) {
-      nprocs_calc *= (int)kDataStoreSizes[i];
+      nprocs_calc *= static_cast<int>(kDataStoreSizes[i]);
     }
     if (alc_view.dim(i)) {
-      total_nprocs *= (int)kDataStoreSizes[i];
+      total_nprocs *= static_cast<int>(kDataStoreSizes[i]);
     }
   }
   if (nprocs < total_nprocs) {

@@ -40,7 +40,7 @@ main(int argc, char **argv)
 #endif
 #ifdef BACKEND_KMR
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, (int*)&matrix_size);
+  MPI_Comm_size(MPI_COMM_WORLD, static_cast<int*>(&matrix_size));
 #endif
 
   DataStore* ds0 = next->create_ds(kDimMatrix);
@@ -101,7 +101,7 @@ public:
   int operator()(DataStore* ds, const long& num)
   {
     int val = (int)num + 1;
-    Data data((void*)&val, sizeof(int));
+    Data data(static_cast<void*>(&val), sizeof(int));
 
     Key key(kDimMatrix);
     key.set_dim(0, num);
@@ -117,7 +117,7 @@ void load_data(DataStore* ds)
 {
   vector<long> dlist;
   for (size_t i = 0; i < matrix_size; i++) {
-    dlist.push_back((int)i);
+    dlist.push_back(static_cast<int>(i));
   }
   DataLoader dl;
   ds->load_integers(dlist, dl);
@@ -188,9 +188,9 @@ void print_matrix(DataStore* ds)
       DataPack dp = ds->get(key);
       Data *data = dp.data();
 #ifdef BACKEND_SERIAL
-      os << *(int*)data->value() << " ";
+      os << *static_cast<int*>(data->value()) << " ";
 #elif defined BACKEND_KMR
-      os << *(int*)data->value() << "(" << data->owner() << ") ";
+      os << *static_cast<int*>(data->value()) << "(" << data->owner() << ") ";
 #endif
     }
     os << endl;

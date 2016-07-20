@@ -45,7 +45,7 @@ public:
   {
     ostringstream os;
     os << dp.key().to_string() << " : ";
-    int *data = (int*)dp.data()->value();
+    int *data = static_cast<int*>(dp.data()->value());
     for (size_t i = 0; i < kElementCount; i++) {
       os << data[i] << " ";
     }
@@ -161,9 +161,9 @@ public:
     size_t y = num % kNumRegion;
     int *data_val = new int[kElementCount];
     for (size_t i = 0; i < kElementCount; i++) {
-      data_val[i] = (int)y + 1;
+      data_val[i] = static_cast<int>(y) + 1;
     }
-    Data data((void*)data_val, sizeof(int) * kElementCount);
+    Data data(static_cast<void*>(data_val), sizeof(int) * kElementCount);
 
     Key key(kDimEnsembleData);
     key.set_dim(0, x);
@@ -200,7 +200,7 @@ public:
   {
 #if DEBUG
 #ifdef BACKEND_SERIAL
-    assert(dps.size() == (size_t)(kNumRegion * kNumCell));
+    assert(dps.size() == static_cast<size_t>(kNumRegion * kNumCell));
 #elif defined BACKEND_KMR
     int nprocs_nicam;
     MPI_Comm_size(env.mpi_comm, &nprocs_nicam);
@@ -211,7 +211,7 @@ public:
     size_t total_count;
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
-    assert(total_count == (size_t)(kNumRegion * kNumCell));
+    assert(total_count == static_cast<size_t>(kNumRegion * kNumCell));
 #endif
 #endif
 
@@ -219,7 +219,7 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
-      int *data_old = (int*)itr->data()->value();
+      int *data_old = static_cast<int*>(itr->data()->value());
       for (size_t i = 0; i < kElementCount; i++) {
 	data_new[i] = data_old[i] + 1;
       }
@@ -261,9 +261,9 @@ public:
 #if DEBUG
 #ifdef BACKEND_SERIAL
     if (kLETKFRegion) {
-      assert(dps.size() == (size_t)(kNumEnsemble * kNumCell));
+      assert(dps.size() == static_cast<size_t>(kNumEnsemble * kNumCell));
     } else {
-      assert(dps.size() == (size_t)kNumEnsemble);
+      assert(dps.size() == static_cast<size_t>(kNumEnsemble));
     }
 #elif defined BACKEND_KMR
     int nprocs_letkf;
@@ -276,9 +276,9 @@ public:
     MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM,
 		  env.mpi_comm);
     if (kLETKFRegion) {
-      assert(total_count == (size_t)(kNumEnsemble * kNumCell));
+      assert(total_count == static_cast<size_t>(kNumEnsemble * kNumCell));
     } else {
-      assert(total_count == (size_t)kNumEnsemble);
+      assert(total_count == static_cast<size_t>(kNumEnsemble));
     }
 #endif
 #endif
@@ -287,7 +287,7 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       int *data_new = new int[kElementCount];
-      int *data_old = (int*)itr->data()->value();
+      int *data_old = static_cast<int*>(itr->data()->value());
       for (size_t i = 0; i < kElementCount; i++) {
 	data_new[i] = data_old[i] - 1;
       }
@@ -345,7 +345,8 @@ double gettime() {
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+  return (static_cast<double>(ts.tv_sec) * 10E9 +
+	  static_cast<double>(ts.tv_nsec));
 }
 
 double gettime(DataStore::MapEnvironment& env) {
@@ -354,7 +355,8 @@ double gettime(DataStore::MapEnvironment& env) {
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return ((double) ts.tv_sec) * 10E9 + ((double) ts.tv_nsec);
+  return (static_cast<double>(ts.tv_sec) * 10E9 +
+	  static_cast<double>(ts.tv_nsec));
 }
 
 int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
@@ -362,10 +364,10 @@ int calculate_task_nprocs(View& view, View& alc_view, int given_nprocs) {
   int nprocs_calc = 1;
   for (size_t i = 0; i < view.size(); i++) {
     if (!view.dim(i) && alc_view.dim(i)) {
-      nprocs_calc *= (int)kEnsembleDataDimSizes[i];
+      nprocs_calc *= static_cast<int>(kEnsembleDataDimSizes[i]);
     }
     if (alc_view.dim(i)) {
-      total_nprocs *= (int)kEnsembleDataDimSizes[i];
+      total_nprocs *= static_cast<int>(kEnsembleDataDimSizes[i]);
     }
   }
   if (nprocs < total_nprocs) {
