@@ -1180,12 +1180,13 @@ namespace {
     // data
     size_t dat_siz = *reinterpret_cast<size_t*>(p);
     p += sizeof(size_t);
-    Data *d = new Data();
-    d->copy_buf(static_cast<void*>(p), dat_siz);
+    Data d;
+    d.copy_buf(static_cast<void*>(p), dat_siz);
     p += dat_siz;
-    d->set_owner(*reinterpret_cast<int*>(p));
+    d.set_owner(*reinterpret_cast<int*>(p));
 
-    return DataPack(k, d, true);
+    DataPack dp = DataPack(k, &d, true);
+    return dp;
   }
 
   inline size_t calc_send_target(size_t index, size_t count, size_t nprocs) {

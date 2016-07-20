@@ -131,6 +131,7 @@ namespace kmrnext {
       d->written(write_offset, buf_siz);
       write_offset += buf_siz;
     }
+    free(buf);
     fout.flush();
     fout.close();
     data_updated_ = false;
@@ -162,6 +163,7 @@ namespace kmrnext {
     for (size_t i = 0; i < data_size_; i++) {
       data_[i].restore(buf);
     }
+    free(buf);
     data_cached_ = true;
     return true;
   }

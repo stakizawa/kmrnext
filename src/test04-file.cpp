@@ -134,6 +134,7 @@ main(int argc, char **argv) {
     print_datapacks(dpvec1, "        ");
     print_line("");
   }
+  delete dpvec1;
 
   ///////////  Remove and then add a Data
   kmrnext::DataPack dp2 = ds0->remove(key0);
