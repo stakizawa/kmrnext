@@ -301,8 +301,19 @@ module kmrnextf
        type(c_ptr), intent(in), value :: dat
      end function C_kmrnext_data_size
 
-     ! kmrnext_create_dp
-     ! kmrnext_free_dp
+     type(c_ptr) function C_kmrnext_create_dp(key, dat) &
+          bind(c, name='KMRNEXT_create_dp')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: key
+       type(c_ptr), intent(in), value :: dat
+     end function C_kmrnext_create_dp
+
+     subroutine C_kmrnext_free_dp(dp) bind(c, name='KMRNEXT_free_dp')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: dp
+     end subroutine C_kmrnext_free_dp
 
      type(c_ptr) function C_kmrnext_dp_key(dp) bind(c, name='KMRNEXT_dp_key')
        use iso_c_binding
@@ -614,11 +625,20 @@ contains
     zz = C_kmrnext_data_size(dat)
   end function kmrnext_data_size
 
-  ! kmrnext_create_dp
-  ! kmrnext_free_dp
+  type(c_ptr) function kmrnext_create_dp(key, dat) result(zz)
+    type(c_ptr), intent(in), value :: key
+    type(c_ptr), intent(in), value :: dat
+    zz = C_kmrnext_create_dp(key, dat)
+  end function kmrnext_create_dp
+
+  integer function kmrnext_free_dp(dp) result(zz)
+    type(c_ptr), intent(in), value :: dp
+    call C_kmrnext_free_dp(dp)
+    zz = 0
+  end function kmrnext_free_dp
 
   type(c_ptr) function kmrnext_dp_key(dp) result(zz)
-    type(c_ptr),       intent(in), value :: dp
+    type(c_ptr), intent(in), value :: dp
     zz = C_kmrnext_dp_key(dp)
   end function kmrnext_dp_key
 

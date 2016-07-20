@@ -104,7 +104,7 @@ void *KMRNEXT_ds_get(void *ds, void *key)
   DataStore *_ds = (DataStore*)ds;
   Key *_key = (Key*)key;
   DataPack dp = _ds->get(*_key);
-  DataPack *_dp = new DataPack(dp.key(), dp.data());
+  DataPack *_dp = new DataPack(dp.key(), dp.data(), true);
   return (void*)_dp;
 }
 
@@ -121,7 +121,7 @@ datapacks KMRNEXT_ds_get_view(void *ds, void *key, void *view)
   size_t idx = 0;
   for (vector<DataPack>::iterator itr = dpvec->begin(); itr != dpvec->end();
        itr++) {
-    DataPack *dp = new DataPack((*itr).key(), (*itr).data());
+    DataPack *dp = new DataPack((*itr).key(), (*itr).data(), true);
     dps.data[idx] = dp;
     idx += 1;
   }
@@ -188,7 +188,9 @@ char *KMRNEXT_ds_dump(void *ds, kmrnext_dumpfn_t d)
     WrappedDumper(kmrnext_dumpfn_t fn) : fn_(fn) {}
     string operator()(DataPack& dp) {
       char * str_c = fn_((void*)&dp);
-      return string(str_c);
+      string str(str_c);
+      free(str_c);
+      return str;
     }
   } dumper(d);
   DataStore *_ds = (DataStore*)ds;
@@ -361,7 +363,7 @@ void KMRNEXT_free_datapacks(datapacks dps)
 char *copy_string_to_cstr(string &str)
 {
   size_t len = strlen(str.c_str()) + 1;
-  char *buf = new char[len];
+  char *buf = (char*)calloc(len, sizeof(char));
   memcpy(buf, str.c_str(), len);
   return buf;
 }

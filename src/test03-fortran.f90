@@ -109,13 +109,11 @@ contains
 
     type(c_ptr)                :: key, dat, valptr
     type(c_ptr)                :: key_str
-    !character(c_char), pointer :: key_str(:)
     integer(c_long),   pointer :: val
 
     key = kmrnext_dp_key(dp)
     dat = kmrnext_dp_data(dp)
     key_str = C_kmrnext_key_string(key)
-    !call kmrnext_key_string(key, key_str)
     valptr = kmrnext_data_value(dat)
     call C_F_POINTER(valptr, val)
     zz = C_dumper_helper(key_str, val)
@@ -151,6 +149,7 @@ contains
     end do
     dat = kmrnext_create_data(C_LOC(sum), int(8,kind=c_long))
     ierr = kmrnext_ds_add(ods, key, dat)
+    ierr = kmrnext_free_data(dat)
     zz = 0
 #ifdef BACKEND_KMR
     if (env%rank == 0) then
@@ -308,6 +307,7 @@ program main
      call kmrnext_ds_string(ds1, str)
      write (*,*) '  DataStore: ', str
      write (*,*)
+     deallocate(str)
   end if
 
   !------ Load data contents from a file
@@ -341,6 +341,8 @@ program main
         write (*,*) ''
      end if
   end if
+  ierr = kmrnext_free_dp(dp1)
+  ierr = kmrnext_free_dp(dp2);
 
   !------ Setup views
   v1 = kmrnext_create_view(kDimension3)

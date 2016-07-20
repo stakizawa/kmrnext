@@ -46,9 +46,11 @@ main(int argc, char **argv)
     size_t sizes3[kDimension3] = {kDim3_0, kDim3_1, kDim3_2};
     KMRNEXT_ds_set_size(ds1, sizes3);
     if (kPrint && rank == 0) {
+	char *ds_str = KMRNEXT_ds_string(ds1);
 	printf("0. Create a DataStore\n");
-	printf("  DataStore: %s\n", KMRNEXT_ds_string(ds1));
+	printf("  DataStore: %s\n", ds_str);
 	printf("\n");
+	free(ds_str);
     }
 
     ///////////  Load data contents from a file
@@ -161,6 +163,7 @@ summarizer(void *ids, void *ods, void *key, datapacks dps, mapenv env)
     }
     void *data = KMRNEXT_create_data(&sum, sizeof(long));
     KMRNEXT_ds_add(ods, key, data);
+    KMRNEXT_free_data(data);
     return 0;
 }
 
@@ -203,7 +206,7 @@ dpdumper(void *dp)
     char *buf = (char*)calloc(len, sizeof(char));
     snprintf(buf, len, "  %s : %ld\n", key_str, *val);
     free(key_str);
-    return buf;  // it may be a memory leak
+    return buf;
 }
 
 void
@@ -211,7 +214,10 @@ print_data_store(void *ds, char *padding, int count)
 {
     long ds_count = KMRNEXT_ds_count(ds);
     char *ds_str = KMRNEXT_ds_dump(ds, dpdumper);
-    if (rank != 0) return;
+    if (rank != 0) {
+	free(ds_str);
+	return;
+    }
 
     printf("%sCount of data in the DataStore: %ld\n", padding, ds_count);
     if (count > 0) {

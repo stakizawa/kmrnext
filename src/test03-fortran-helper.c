@@ -21,17 +21,19 @@ dumper_helper(char *key_str, long val)
     size_t len = strlen(key_str) + 12;
     char *buf = (char*)calloc(len, sizeof(char));
     snprintf(buf, len, "  %s : %ld\n", key_str, val);
-    return buf; // it may be a memory leak
+    free(key_str);
+    return buf;
 }
 
 void
 print_data_store_helper(char *dumped_str, long ds_count,
 			int nspace, int print_count)
 {
-    char *padding = (char *)calloc((size_t)nspace, sizeof(char));
+    char *padding = (char *)calloc((size_t)nspace + 1, sizeof(char));
     for (int i = 0; i < nspace; i++) {
 	padding[i] = ' ';
     }
+    padding[nspace] = '\0';
 
     printf(FORTRAN_PADDING "%sCount of data in the DataStore: %ld\n",
 	   padding, ds_count);
@@ -61,6 +63,7 @@ print_data_store_helper(char *dumped_str, long ds_count,
     }
 
     free(padding);
+    free(dumped_str);
 }
 
 void
@@ -69,6 +72,8 @@ print_get_result_helper(char *key_req_str, char *key_ans_str, long val,
 {
     printf(FORTRAN_PADDING "  Query key: %s    Result: %s: %ld (Size:%ld)\n",
 	   key_req_str, key_ans_str, val, vsize);
+    free(key_req_str);
+    free(key_ans_str);
 }
 
 void
@@ -84,10 +89,13 @@ print_get_view_result_helper1(char *view_str, char*key_str, size_t dp_count,
     } else {
 	printf(FORTRAN_PADDING "    values (all)\n");
     }
+    free(view_str);
+    free(key_str);
 }
 
 void
 print_get_view_result_helper2(char *dp_key_str, long dat_val)
 {
     printf(FORTRAN_PADDING "    %s : %ld\n", dp_key_str, dat_val);
+    free(dp_key_str);
 }
