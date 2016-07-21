@@ -189,8 +189,8 @@ namespace {
     kmrnext::DataPack dp = ds.get(*key0_);
     EXPECT_EQ(*key0_, dp.key());
     EXPECT_EQ(*static_cast<long*>(d0_->value()),
-	      *static_cast<long*>(dp.data()->value()));
-    EXPECT_EQ(d0_->size(), dp.data()->size());
+	      *static_cast<long*>(dp.data().value()));
+    EXPECT_EQ(d0_->size(), dp.data().size());
 
     // If a dimension is out of range, it throws a runtime_error.
     EXPECT_THROW({ds.add(*ekey0_, *d0_);}, std::runtime_error);
@@ -202,13 +202,13 @@ namespace {
     kmrnext::DataPack dp0 = ds0_->get(*key0_);
     EXPECT_EQ(*key0_, dp0.key());
     EXPECT_EQ(*static_cast<long*>(d0_->value()),
-	      *static_cast<long*>(dp0.data()->value()));
-    EXPECT_EQ(d0_->size(), dp0.data()->size());
+	      *static_cast<long*>(dp0.data().value()));
+    EXPECT_EQ(d0_->size(), dp0.data().size());
 
     // If the data of the specified Key is not set, it returns NULL.
     kmrnext::DataPack dp1 = ds4_->get(*key0_);
     EXPECT_EQ(*key0_, dp1.key());
-    EXPECT_EQ(NULL, dp1.data()->value());
+    EXPECT_EQ(NULL, dp1.data().value());
 
     // If dimension sizes of Key and DataStore are not same,
     // it throws a runtime_error.
@@ -243,25 +243,25 @@ namespace {
     kmrnext::DataPack dp0 = ds0_->remove(*key0_);
     EXPECT_EQ(*key0_, dp0.key());
     EXPECT_EQ(*static_cast<long*>(d0_->value()),
-	      *static_cast<long*>(dp0.data()->value()));
-    EXPECT_EQ(d0_->size(), dp0.data()->size());
+	      *static_cast<long*>(dp0.data().value()));
+    EXPECT_EQ(d0_->size(), dp0.data().size());
     // If the data is correctly remove, the following get returns NULL.
     kmrnext::DataPack dp1 = ds0_->get(*key0_);
     EXPECT_EQ(*key0_, dp1.key());
-    EXPECT_EQ(NULL, dp1.data()->value());
+    EXPECT_EQ(NULL, dp1.data().value());
     // If the data is correctly remove, the new Data can be set to
     // the same Key.
     EXPECT_NO_THROW({ds0_->add(*key0_, *d1_);});
     kmrnext::DataPack dp2 = ds0_->get(*key0_);
     EXPECT_EQ(*key0_, dp2.key());
     EXPECT_EQ(*static_cast<long*>(d1_->value()),
-	      *static_cast<long*>(dp2.data()->value()));
-    EXPECT_EQ(d1_->size(), dp2.data()->size());
+	      *static_cast<long*>(dp2.data().value()));
+    EXPECT_EQ(d1_->size(), dp2.data().size());
 
     // If the data of the specified Kye is not set, it returns NULL.
     kmrnext::DataPack dp3 = ds4_->remove(*key0_);
     EXPECT_EQ(*key0_, dp3.key());
-    EXPECT_EQ(NULL, dp3.data()->value());
+    EXPECT_EQ(NULL, dp3.data().value());
 
     // If dimension sizes of Key and DataStore are not same,
     // it throws a runtime_error.
@@ -284,11 +284,11 @@ namespace {
     EXPECT_EQ(ds1_->dim(0), mds0.dim(1));
     EXPECT_EQ(ds1_->dim(1), mds0.dim(2));
     EXPECT_EQ(*static_cast<long*>(d1_->value()),
-	      *static_cast<long*>(mds0.get(*key0_).data()->value()));
+	      *static_cast<long*>(mds0.get(*key0_).data().value()));
     EXPECT_EQ(*static_cast<long*>(d1_->value()),
-	      *static_cast<long*>(mds0.get(*key1_).data()->value()));
+	      *static_cast<long*>(mds0.get(*key1_).data().value()));
     EXPECT_EQ(*static_cast<long*>(d1_->value()),
-	      *static_cast<long*>(mds0.get(*key2_).data()->value()));
+	      *static_cast<long*>(mds0.get(*key2_).data().value()));
 
     // If the given vector is empty, it throws a runtime_error.
     std::vector<kmrnext::DataStore*> vec1;
@@ -304,9 +304,9 @@ namespace {
     EXPECT_EQ(ds1_->dim(0), mds2.dim(1));
     EXPECT_EQ(ds1_->dim(1), mds2.dim(2));
     EXPECT_EQ(*static_cast<long*>(d1_->value()),
-	      *static_cast<long*>(mds2.get(*key0_).data()->value()));
+	      *static_cast<long*>(mds2.get(*key0_).data().value()));
     EXPECT_EQ(*static_cast<long*>(d1_->value()),
-	      *static_cast<long*>(mds2.get(*key1_).data()->value()));
+	      *static_cast<long*>(mds2.get(*key1_).data().value()));
     EXPECT_THROW({mds2.get(*key2_);}, std::runtime_error); // not exist
 
     // If the data is already set, it throws a runtime_error
@@ -344,15 +344,15 @@ namespace {
     EXPECT_EQ(array_ds0_[1], sds00.dim(0));
     EXPECT_EQ(array_ds0_[2], sds00.dim(1));
     EXPECT_EQ(*static_cast<long*>(d0_->value()),
-	      *static_cast<long*>(sds00.get(*key2d0_).data()->value()));
+	      *static_cast<long*>(sds00.get(*key2d0_).data().value()));
     EXPECT_EQ(*static_cast<long*>(d0_->value()),
-	      *static_cast<long*>(sds00.get(*key2d1_).data()->value()));
+	      *static_cast<long*>(sds00.get(*key2d1_).data().value()));
     EXPECT_EQ(array_ds0_[1], sds01.dim(0));
     EXPECT_EQ(array_ds0_[2], sds01.dim(1));
     EXPECT_EQ(*static_cast<long*>(d0_->value()),
-	      *static_cast<long*>(sds01.get(*key2d0_).data()->value()));
+	      *static_cast<long*>(sds01.get(*key2d0_).data().value()));
     EXPECT_EQ(*static_cast<long*>(d0_->value()),
-	      *static_cast<long*>(sds01.get(*key2d1_).data()->value()));
+	      *static_cast<long*>(sds01.get(*key2d1_).data().value()));
 
     // If target DataStore has only one dimension, it throws runtime_errror.
     std::vector<kmrnext::DataStore*> vec1;
@@ -388,7 +388,7 @@ namespace {
       long sum = 0;
       for (size_t i = 0; i < dps.size(); i++) {
 	kmrnext::DataPack& dp = dps.at(i);
-	long v = *static_cast<long*>(dp.data()->value()) + 1;
+	long v = *static_cast<long*>(dp.data().value()) + 1;
 	sum += v;
       }
       long avg = sum / static_cast<long>(dps.size());
@@ -405,16 +405,16 @@ namespace {
     kmrnext::DataStore ods0(ds_size_, gNext);
     ods0.set(array_ds0_);
     ds0_->map(mapper, *v0_, &ods0);
-    EXPECT_EQ(2, *static_cast<long*>(ods0.get(*key0_).data()->value()));
-    EXPECT_EQ(2, *static_cast<long*>(ods0.get(*key1_).data()->value()));
-    EXPECT_EQ(2, *static_cast<long*>(ods0.get(*key2_).data()->value()));
+    EXPECT_EQ(2, *static_cast<long*>(ods0.get(*key0_).data().value()));
+    EXPECT_EQ(2, *static_cast<long*>(ods0.get(*key1_).data().value()));
+    EXPECT_EQ(2, *static_cast<long*>(ods0.get(*key2_).data().value()));
 
     kmrnext::DataStore ods1(2, gNext);
     size_t ary_ods1[2] = {2,2};
     ods1.set(ary_ods1);
     ds0_->map(mapper, *v1_, &ods1);
-    EXPECT_EQ(2, *static_cast<long*>(ods1.get(*key2d0_).data()->value()));
-    EXPECT_EQ(2, *static_cast<long*>(ods1.get(*key2d1_).data()->value()));
+    EXPECT_EQ(2, *static_cast<long*>(ods1.get(*key2d0_).data().value()));
+    EXPECT_EQ(2, *static_cast<long*>(ods1.get(*key2d1_).data().value()));
 
     // If the dimension of view does not match that of the input DataStore,
     // it throws runtime_error.
@@ -427,9 +427,9 @@ namespace {
 
     // If the output DataStore is omitted, map overwrites the input DataStore.
     kmrnext::DataStore *ds0 = ds0_->duplicate();
-    EXPECT_EQ(1, *static_cast<long*>(ds0->get(*key0_).data()->value()));
+    EXPECT_EQ(1, *static_cast<long*>(ds0->get(*key0_).data().value()));
     ds0->map(mapper, *v0_);
-    EXPECT_EQ(2, *static_cast<long*>(ds0->get(*key0_).data()->value()));
+    EXPECT_EQ(2, *static_cast<long*>(ds0->get(*key0_).data().value()));
     delete ds0;
   }
 
@@ -526,9 +526,9 @@ namespace {
       }
     }
     ds0.load_integers(vec0, loader1d);
-    EXPECT_EQ(1, *static_cast<long*>(ds0.get(*key0_).data()->value()));
-    EXPECT_EQ(2, *static_cast<long*>(ds0.get(*key1_).data()->value()));
-    EXPECT_EQ(2, *static_cast<long*>(ds0.get(*key2_).data()->value()));
+    EXPECT_EQ(1, *static_cast<long*>(ds0.get(*key0_).data().value()));
+    EXPECT_EQ(2, *static_cast<long*>(ds0.get(*key1_).data().value()));
+    EXPECT_EQ(2, *static_cast<long*>(ds0.get(*key2_).data().value()));
 
     // Test 1: DataLoader2D, load 2 times
     kmrnext::DataStore ds1(ds_size_, gNext);
@@ -538,9 +538,9 @@ namespace {
       vec1.push_back(static_cast<long>(i));
     }
     ds1.load_integers(vec1, loader2d);
-    EXPECT_EQ(1, *static_cast<long*>(ds1.get(*key0_).data()->value()));
-    EXPECT_EQ(1, *static_cast<long*>(ds1.get(*key1_).data()->value()));
-    EXPECT_EQ(2, *static_cast<long*>(ds1.get(*key2_).data()->value()));
+    EXPECT_EQ(1, *static_cast<long*>(ds1.get(*key0_).data().value()));
+    EXPECT_EQ(1, *static_cast<long*>(ds1.get(*key1_).data().value()));
+    EXPECT_EQ(2, *static_cast<long*>(ds1.get(*key2_).data().value()));
 
     // Test 2: DataLoader3D, load once
     kmrnext::DataStore ds2(ds_size_, gNext);
@@ -548,9 +548,9 @@ namespace {
     std::vector<long> vec2;
     vec2.push_back(0);
     ds2.load_integers(vec2, loader3d);
-    EXPECT_EQ(1, *static_cast<long*>(ds2.get(*key0_).data()->value()));
-    EXPECT_EQ(1, *static_cast<long*>(ds2.get(*key1_).data()->value()));
-    EXPECT_EQ(1, *static_cast<long*>(ds2.get(*key2_).data()->value()));
+    EXPECT_EQ(1, *static_cast<long*>(ds2.get(*key0_).data().value()));
+    EXPECT_EQ(1, *static_cast<long*>(ds2.get(*key1_).data().value()));
+    EXPECT_EQ(1, *static_cast<long*>(ds2.get(*key2_).data().value()));
 
     // If the size of array is not same as the product of dimension sizes
     // of the DataStore, it throws runtime_error.
@@ -568,7 +568,7 @@ namespace {
     std::string operator()(kmrnext::DataPack& dp)
     {
       std::ostringstream os;
-      os << *static_cast<long*>(dp.data()->value()) << ",";
+      os << *static_cast<long*>(dp.data().value()) << ",";
       return os.str();
     }
   };
@@ -612,8 +612,8 @@ namespace {
     // Pointers to data elements having the same coordinate are not same
     kmrnext::DataPack dp0_ = ds0_->get(*key0_);
     kmrnext::DataPack dp0  = ds0 ->get(*key0_);
-    void *v_ds0_ = dp0_.data()->value();
-    void *v_ds0  = dp0 .data()->value();
+    void *v_ds0_ = dp0_.data().value();
+    void *v_ds0  = dp0 .data().value();
     // The following codes do not work as I thought, why?
     // Maybe, memory of v_ds0_ is freed when the second get() is called.
     //   void *v_ds0_ = ds0_->get(*key0_).data()->value();

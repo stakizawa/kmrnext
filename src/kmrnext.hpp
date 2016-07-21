@@ -25,6 +25,7 @@ namespace kmrnext {
   class Data;
   class DataPack;
   class DataStore;
+  class DataElement;
 
   ///////////////////////////////////////////////////////////////////////////
   /// A class that stores KMR Next runtime status
@@ -41,9 +42,9 @@ namespace kmrnext {
 
     /// It initializes the whole system.
     ///
-    /// \param[in] argc the number of command line arguments
-    /// \param[in] argv the command line arguments
-    /// \return         an instance of KMRNext class or its derived class
+    /// \param[in] argc The number of command line arguments.
+    /// \param[in] argv The command line arguments.
+    /// \return         An instance of KMRNext class or its derived class.
     static KMRNext* init(int argc, char **argv);
 
     /// It finalizes the whole system.
@@ -60,7 +61,7 @@ namespace kmrnext {
 
     /// It sets IO mode of DataSotre.
     ///
-    /// \param[in] mode the IO mode
+    /// \param[in] mode The IO mode.
     void set_io_mode(KMRNext::IOMode mode) { iomode_ = mode; };
 
     /// It returns the current IO mode.
@@ -68,8 +69,8 @@ namespace kmrnext {
 
     /// It creates a DataStore with the specified dimension size.
     ///
-    /// \param[in] siz the dimension size of a new DataStore
-    /// \return        an instance of DataStore
+    /// \param[in] siz The dimension size of a new DataStore
+    /// \return        An instance of DataStore
     DataStore* create_ds(size_t siz);
 
 #ifdef BACKEND_KMR
@@ -122,10 +123,10 @@ namespace kmrnext {
   public:
     /// It creates a new dimensional data.
     ///
-    /// \param[in] siz the numberof of dimensions
-    /// \return        a new instance of Dimensional class
+    /// \param[in] siz The numberof of dimensions
+    /// \return        A new instance of Dimensional class
     /// \exception std::runtime_error
-    ///                when siz exceeds the maximum dimension size
+    ///                When siz exceeds the maximum dimension size
     explicit Dimensional(size_t siz) : size_(siz) {
       if (size_ > kMaxDimensionSize) {
 	ostringstream os;
@@ -138,7 +139,7 @@ namespace kmrnext {
 
     /// It sets value of each dimension.
     ///
-    /// \param[in] val an array that stores value of each dimension
+    /// \param[in] val An array that stores value of each dimension
     virtual void set(const T *val) {
       for (size_t i = 0; i < size_; i++) {
 	value_[i] = val[i];
@@ -150,10 +151,10 @@ namespace kmrnext {
 
     /// It returns the value of the specified dimension.
     ///
-    /// \param[in] idx index of the target dimension
-    /// \return        value of the dimension
+    /// \param[in] idx Index of the target dimension
+    /// \return        Value of the dimension
     /// \exception std::runtime_error
-    ///                when idx exceeds the maximum dimension size
+    ///                When idx exceeds the maximum dimension size
     T dim(size_t idx) const {
       if (idx >= size_) {
 	ostringstream os;
@@ -165,10 +166,10 @@ namespace kmrnext {
 
     /// It sets a value to the specified dimension.
     ///
-    /// \param[in] idx index of the target dimension
-    /// \param[in] val value to be set
+    /// \param[in] idx Index of the target dimension
+    /// \param[in] val Value to be set
     /// \exception std::runtime_error
-    ///                when idx exceeds the maximum dimension size
+    ///                When idx exceeds the maximum dimension size
     void set_dim(size_t idx, T val) {
       if (idx >= size_) {
 	ostringstream os;
@@ -230,57 +231,39 @@ namespace kmrnext {
   ///////////////////////////////////////////////////////////////////////////
   class Data {
   public:
-    Data();
-
     /// It creates a new Data.
     ///
-    /// \param[in] val     value of data to be set
-    /// \param[in] val_siz size of value
-    Data(void *val, const size_t val_siz);
+    /// It does not allocate memory space for the value.  If you want to
+    /// allocate, call allocate().
+    ///
+    /// \param[in] val     Value of data to be set.
+    /// \param[in] val_siz Size of value.
+    Data(void *val, const size_t val_siz)
+      : value_(val), value_size_(val_siz), value_allocated_(false) {};
+
+    /// Copy constructor
+    ///
+    /// The copy constructor do not allocate memory for value.
+    Data(const Data& obj);
+
+    /// Copy constructor
+    ///
+    /// The copy constructor do not allocate memory for value.
+    Data(const Data* obj);
 
     ~Data();
 
-    /// It sets a value to this Data.
+    /// It allocates a memory space for the value.
     ///
-    /// \param[in] src       cset Data
-    /// \exception std::runtime_error when copy failed
-    void set_value(const Data& src);
+    /// \exception std::runtime_error
+    ///            When an error occurs while allocating.
+    void allocate();
 
-    /// It updates this Data by the specified Data.
-    ///
-    /// \param[in] src       cset Data
-    /// \exception std::runtime_error when copy failed
-    void update_value(const Data& src);
-
-    /// It copies the specified buffer to this Data.
-    ///
-    /// \param[in] val     buffer to be copied
-    /// \param[in] val_siz size of the buffer
-    /// \exception std::runtime_error when copy failed
-    void copy_buf(void *val, const size_t val_siz);
-
-    /// It returns a pointer to the stored data.
+    /// It returns a pointer to the value of the Data.
     void *value() const { return value_; }
 
-    /// It returns size of the stored data.
+    /// It returns size of the Data.
     size_t size() const { return value_size_; }
-
-    /// It clears the Data but does not delete it.
-    void clear();
-
-    /// It restores the Data from a file buffer.
-    ///
-    /// \param[in] buf  file buffer
-    void restore(char *buf);
-
-    /// It is called when the Data is written to a file.
-    ///
-    /// \param[in] start_pos   file start position
-    /// \param[in] written_siz written size in bytes
-    void written(size_t start_pos, size_t written_siz);
-
-    /// It clears memory cache of the Data.
-    void clear_cache();
 
     bool operator==(const Data& rhs) const;
 
@@ -288,59 +271,13 @@ namespace kmrnext {
       return !(*this == rhs);
     }
 
-#ifdef BACKEND_KMR
-    /// It returns rank of owner process of this Data.
-    int owner() const { return owner_; }
-
-    /// It sets owner of this Data.
-    ///
-    /// \param[in] rank the owner rank
-    void set_owner(int rank) { owner_ = rank; }
-
-    /// It sets that this Data is shared among processes.
-    void shared() { shared_ = true; }
-
-    /// It sets that this Data is not shared among processes.
-    void unshared() { shared_ = false; }
-
-    /// It returns true if this Data is shared among processes.
-    bool is_shared() const { return shared_; }
-#endif
-
   private:
     // The actual value of Data.
     void *value_;
-    // The actual size of value of Data.
+    // The size of Data value.
     size_t value_size_;
     // True, if value is allocated.
     bool value_allocated_;
-
-    // True, if Data is set a value.
-    bool data_set_;
-    // The offset of value of Data in a file.
-    size_t data_file_offset_;
-    // The size of value of Data in a file.
-    size_t data_file_size_;
-
-#ifdef BACKEND_KMR
-    int owner_;
-    bool shared_;
-#endif
-
-    // It deeply copies the specified Data.
-    //
-    // \param[in] src       copied Data
-    // \param[in] overwrite If the overwrite option is true, it removes
-    //                      the current stored-data and overwrites itself
-    //                      by the specified Data(src).
-    // \exception std::runtime_error when copy failed
-    void copy_deep(const Data& src, bool overwrite=false);
-
-    // It shallowly copies the specified Data.
-    //
-    // \param[in] src copied Data
-    // \exception std::runtime_error when copy failed
-    void copy_shallow(const Data& src);
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -353,17 +290,17 @@ namespace kmrnext {
     /// \param[in] k         Key of the DataPack
     /// \param[in] d         Data of the DataPack
     /// \param[in] allocate  if True, Data is internally allocated
-    DataPack(const Key k, Data *d, bool allocate=false);
+    DataPack(const Key& k, const Data* d, bool allocate=false);
+
+    DataPack(const Key& k, const Data& d, bool allocate=false);
 
     DataPack(const DataPack &obj);
-
-    ~DataPack() { if (allocated_) { delete data_; } }
 
     /// It returns the key.
     Key& key() { return key_; }
 
     /// It returns the stored data.
-    Data *data() const { return data_; }
+    Data& data() { return data_; }
 
     /////////////////////////////////////////////////////////////////////////
     /// A virtual class used for dumping data in a DataStore
@@ -378,7 +315,7 @@ namespace kmrnext {
 
   private:
     Key key_;
-    Data *data_;
+    Data data_;
     bool allocated_;
   };
 
@@ -590,12 +527,12 @@ namespace kmrnext {
     static void finalize();
 
   private:
-    // Pointer to stored Data
-    Data *data_;
-    // Size of data_
-    size_t data_size_;
-    // True if the data_ is already allocated
-    bool data_allocated_;
+    // Pointer to stored DataElements
+    DataElement *dlist_;
+    // Size of dlist_
+    size_t dlist_size_;
+    // True if dlist_ is already allocated
+    bool dlist_allocated_;
     // True if the input and output DataStore of map function is same
     bool map_inplace_;
     // A KMRNext object that stores execution status
@@ -654,6 +591,97 @@ namespace kmrnext {
 
     // It clears memory cache.
     void clear_cache();
+  };
+
+  ///////////////////////////////////////////////////////////////////////////
+  /// A class that represents an element in a DataStore
+  ///////////////////////////////////////////////////////////////////////////
+  class DataElement {
+  public:
+    DataElement();
+
+    ~DataElement();
+
+    /// It sets a Data to the DataElement.
+    ///
+    /// \param[in] dat                Data to be set.
+    /// \exception std::runtime_error When copy failed.
+    void set(const Data* dat);
+
+    /// It replaces a Data in the DataElement by the specified Data.
+    ///
+    /// \param[in] dat                Data to be set
+    /// \exception std::runtime_error When copy failed
+    void replace(const Data* dat);
+
+    /// It returns Data in the DataElement.
+    Data* data() { return data_; }
+
+    /// It returns true if a Data is set to the DataElement.
+    bool is_set() { return data_set_; }
+
+    /// It clears all attribute of the Data.
+    void clear();
+
+    /// It restores the Data in the DataElement from a file buffer.
+    ///
+    /// \param[in] buf  A file buffer
+    void restore(char *buf);
+
+    /// It is called when the Data in the DataElement is written to a file.
+    ///
+    /// \param[in] start_pos   File start position
+    /// \param[in] written_siz Written size in bytes
+    void written(size_t start_pos, size_t written_siz);
+
+    /// It clears memory cache of the DataElement.
+    void clear_cache();
+
+#ifdef BACKEND_KMR
+    /// It returns rank of owner process of the Data.
+    int owner() const { return owner_; }
+
+    /// It sets owner of this Data.
+    ///
+    /// \param[in] rank The owner rank
+    void set_owner(int rank) { owner_ = rank; }
+
+    /// It sets that the Data is shared among processes.
+    void shared() { shared_ = true; }
+
+    /// It sets that the Data is not shared among processes.
+    void unshared() { shared_ = false; }
+
+    /// It returns true if the Data is shared among processes.
+    bool is_shared() const { return shared_; }
+#endif
+
+  private:
+    // Data in this DataElement
+    Data* data_;
+    // True, if Data is set
+    bool data_set_;
+
+    // True, if Data is updated only on memory
+    bool data_updated_;
+    // The offset of the Data in a file
+    size_t data_file_offset_;
+    // The size of the Data in a file
+    size_t data_file_size_;
+
+#ifdef BACKEND_KMR
+    int owner_;
+    bool shared_;
+#endif
+
+    // It sets a Data to the Dataelement.
+    //
+    // \param[in] dat       Data to be set
+    // \param[in] overwrite If the overwrite option is true, it removes
+    //                      the current stored-Data and overwrites it
+    //                      by the specified Data.
+    // \exception std::runtime_error When copy failed
+    void set_data(const Data* dat, bool overwrite=false);
   };
 
 }

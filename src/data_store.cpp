@@ -114,8 +114,11 @@ namespace kmrnext {
     size_t cur_buf_siz = kDefaultWriteBufferSize;
     char *buf = static_cast<char*>(calloc(cur_buf_siz, sizeof(char)));
 
-    for (size_t i = 0; i < data_size_; i++) {
-      Data *d = &(data_[i]);
+    for (size_t i = 0; i < dlist_size_; i++) {
+      if (!dlist_[i].is_set()) {
+	continue;
+      }
+      Data *d = dlist_[i].data();
       size_t d_siz = d->size();
       if (d_siz == 0) {
 	continue;
@@ -126,15 +129,17 @@ namespace kmrnext {
 	cur_buf_siz = buf_siz;
 	buf = static_cast<char*>(realloc(buf, cur_buf_siz));
       }
+      // TODO maybe memcpy() is not necessary
       memcpy(buf, d_val, d_siz);
       fout.write(buf, static_cast<streamsize>(buf_siz));
-      d->written(write_offset, buf_siz);
+      dlist_[i].written(write_offset, buf_siz);
       write_offset += buf_siz;
     }
     free(buf);
     fout.flush();
     fout.close();
     data_updated_ = false;
+    data_cached_ = true;
     return true;
   }
 
@@ -160,8 +165,8 @@ namespace kmrnext {
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < data_size_; i++) {
-      data_[i].restore(buf);
+    for (size_t i = 0; i < dlist_size_; i++) {
+      dlist_[i].restore(buf);
     }
     free(buf);
     data_cached_ = true;
@@ -175,8 +180,8 @@ namespace kmrnext {
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < data_size_; i++) {
-      data_[i].clear_cache();
+    for (size_t i = 0; i < dlist_size_; i++) {
+      dlist_[i].clear_cache();
     }
     data_cached_ = false;
   }
@@ -239,8 +244,8 @@ namespace {
 		     DataStore::MapEnvironment& env)
       {
 	T *val;
-	deserialize(static_cast<char*>(dps.at(0).data()->value()),
-		    dps.at(0).data()->size(), &val);
+	deserialize(static_cast<char*>(dps.at(0).data().value()),
+		    dps.at(0).data().size(), &val);
 	loader_(outds, *val);
 	delete val;
 	return 0;

@@ -43,9 +43,9 @@ public:
   {
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
-      long *data_old = static_cast<long*>(itr->data()->value());
+      long *data_old = static_cast<long*>(itr->data().value());
       long data_new = *data_old + 1;
-      Data data(&data_new, itr->data()->size());
+      Data data(&data_new, itr->data().size());
       outds->add(itr->key(), data);
     }
     return 0;
@@ -66,12 +66,12 @@ public:
   {
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
-      long *data_old = static_cast<long*>(itr->data()->value());
+      long *data_old = static_cast<long*>(itr->data().value());
       Key lkey = local_key(itr->key(), env.view);
       DataPack cdp = dsC_->get(lkey);
-      long *cdata = static_cast<long*>(cdp.data()->value());
+      long *cdata = static_cast<long*>(cdp.data().value());
       long data_new = *data_old + *cdata;
-      Data data(&data_new, itr->data()->size());
+      Data data(&data_new, itr->data().size());
       outds->add(itr->key(), data);
     }
     return 0;
@@ -96,9 +96,9 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       DataPack cdp = dsC_->get(itr->key());
-      long *cdata = static_cast<long*>(cdp.data()->value());
+      long *cdata = static_cast<long*>(cdp.data().value());
       DataPack gdp = dsG_->get(itr->key());
-      long *gdata = static_cast<long*>(gdp.data()->value());
+      long *gdata = static_cast<long*>(gdp.data().value());
       long fdata = 0;
       for (size_t i = 0; i < kEnsembles; i++) {
 	Key fkey = Key(kDimSize + 1);
@@ -107,13 +107,13 @@ public:
 	  fkey.set_dim(j+1, itr->key().dim(j));
 	}
 	DataPack fdp = dsF_->get(fkey);
-	long *fdata0 = static_cast<long*>(fdp.data()->value());
+	long *fdata0 = static_cast<long*>(fdp.data().value());
 	fdata += *fdata0;
       }
 
-      long *data_old = static_cast<long*>(itr->data()->value());
+      long *data_old = static_cast<long*>(itr->data().value());
       long data_new = *data_old - *cdata - *gdata + fdata;
-      Data data(&data_new, itr->data()->size());
+      Data data(&data_new, itr->data().size());
       outds->add(itr->key(), data);
     }
     return 0;
@@ -135,11 +135,11 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       DataPack pdp = dsP_->get(itr->key());
-      long *pdata = static_cast<long*>(pdp.data()->value());
+      long *pdata = static_cast<long*>(pdp.data().value());
 
-      long *data_old = static_cast<long*>(itr->data()->value());
+      long *data_old = static_cast<long*>(itr->data().value());
       long data_new = *data_old + *pdata;
-      Data data(&data_new, itr->data()->size());
+      Data data(&data_new, itr->data().size());
       outds->add(itr->key(), data);
     }
     return 0;
@@ -344,7 +344,7 @@ public:
   {
     ostringstream os;
     os << dp.key().to_string() << " : ";
-    long *data = static_cast<long*>(dp.data()->value());
+    long *data = static_cast<long*>(dp.data().value());
     os << *data << endl;
     return os.str();
   }

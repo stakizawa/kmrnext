@@ -314,7 +314,7 @@ void *KMRNEXT_create_dp(void *key, void *data)
 {
   Key *_key = static_cast<Key*>(key);
   Data *_data = static_cast<Data*>(data);
-  DataPack *dp = new DataPack(*_key, _data);
+  DataPack *dp = new DataPack(*_key, *_data);
   return static_cast<void*>(dp);
 }
 
@@ -333,8 +333,7 @@ void *KMRNEXT_dp_key(void *dp)
 void *KMRNEXT_dp_data(void *dp)
 {
   DataPack *_dp = static_cast<DataPack*>(dp);
-  Data *data = _dp->data();
-  return static_cast<void*>(data);
+  return static_cast<void*>(&(_dp->data()));
 }
 
 void *KMRNEXT_create_view(size_t siz)

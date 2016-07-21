@@ -3,18 +3,18 @@
 namespace kmrnext {
 
   DataStore::DataStore(size_t siz)
-    : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), map_inplace_(false), kmrnext_(NULL),
+    : Dimensional<size_t>(siz), dlist_(NULL), dlist_size_(0),
+    dlist_allocated_(false), map_inplace_(false), kmrnext_(NULL),
     data_updated_(false), data_cached_(false) {}
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
-    : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), map_inplace_(false), kmrnext_(kn),
+    : Dimensional<size_t>(siz), dlist_(NULL), dlist_size_(0),
+    dlist_allocated_(false), map_inplace_(false), kmrnext_(kn),
     data_updated_(false), data_cached_(false) {}
 
   DataStore::~DataStore() {
-    if (data_allocated_) {
-      delete[] data_;
+    if (dlist_allocated_) {
+      delete[] dlist_;
     }
     if (io_mode() == KMRNext::File) {
       string fname = filename();
@@ -23,30 +23,30 @@ namespace kmrnext {
   }
 
   void DataStore::set(const size_t *val) {
-    if (data_size_ != 0) {
+    if (dlist_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
     }
 
-    data_size_ = 1;
+    dlist_size_ = 1;
     for (size_t i = 0; i < size_; i++) {
       value_[i] = val[i];
-      data_size_ *= val[i];
+      dlist_size_ *= val[i];
     }
-    data_ = new Data[data_size_];
-    data_allocated_ = true;
+    dlist_ = new DataElement[dlist_size_];
+    dlist_allocated_ = true;
   }
 
   void DataStore::add(const Key& key, const Data& data) {
     check_key_range(key);
-    if (!data_allocated_) {
+    if (!dlist_allocated_) {
       set(value_);
     }
     size_t idx = key_to_index(key);
-    Data *d = &(data_[idx]);
+    DataElement *de = &(dlist_[idx]);
     if (map_inplace_) {
-      d->update_value(data);
+      de->replace(&data);
     } else {
-      d->set_value(data);
+      de->set(&data);
     }
     if (io_mode() == KMRNext::File) {
       data_updated_ = true;
@@ -59,7 +59,8 @@ namespace kmrnext {
       load();
     }
     size_t idx = key_to_index(key);
-    DataPack dp = DataPack(key, &(data_[idx]), true);
+    Data* dat = dlist_[idx].data();
+    DataPack dp = DataPack(key, dat, true);
     if (io_mode() == KMRNext::File) {
       clear_cache();
     }
@@ -74,7 +75,7 @@ namespace kmrnext {
     }
 
     vector<DataPack> *dps = new vector<DataPack>();
-    for (size_t i = 0; i < data_size_; i++) {
+    for (size_t i = 0; i < dlist_size_; i++) {
       Key tmpkey = index_to_key(i);
       bool push = true;
       for (size_t j = 0; j < size_; j++) {
@@ -84,7 +85,7 @@ namespace kmrnext {
 	}
       }
       if (push) {
-	dps->push_back(DataPack(tmpkey, &(data_[i]), true));
+	dps->push_back(DataPack(tmpkey, dlist_[i].data(), true));
       }
     }
 
@@ -101,8 +102,8 @@ namespace kmrnext {
     }
 
     size_t idx = key_to_index(key);
-    DataPack dp(key, &(data_[idx]), true);
-    data_[idx].clear();
+    DataPack dp(key, dlist_[idx].data(), true);
+    dlist_[idx].clear();
 
     if (io_mode() == KMRNext::File) {
       data_updated_ = true;
@@ -115,26 +116,26 @@ namespace kmrnext {
     if (dslist.size() == 0) {
       throw runtime_error("There should be at least one DataStore.");
     }
-    if (data_size_ != 0) {
+    if (dlist_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
     }
     {
       // Check each DataStore in the vector
       size_t expected_dim_size = size_ - 1;
-      size_t expected_data_size = 0;
+      size_t expected_dlist_size = 0;
       for (size_t i = 0; i < dslist.size(); i++) {
 	DataStore *src = dslist.at(i);
 	if (expected_dim_size != src->size_) {
 	  throw runtime_error("Dimension size of one of DataStore is wrong.");
 	}
-	size_t calc_data_size = 1;
+	size_t calc_dlist_size = 1;
 	for (size_t j = 0; j < expected_dim_size; j++) {
-	  calc_data_size *= src->value_[j];
+	  calc_dlist_size *= src->value_[j];
 	}
 	if (i == 0) {
-	  expected_data_size = calc_data_size;
+	  expected_dlist_size = calc_dlist_size;
 	} else {
-	  if (expected_data_size != calc_data_size) {
+	  if (expected_dlist_size != calc_dlist_size) {
 	    throw runtime_error("Data count one of DataStore is wrong.");
 	  }
 	}
@@ -147,12 +148,12 @@ namespace kmrnext {
       value_[i] = ds0->value_[i-1];
     }
 
-    data_size_ = 1;
+    dlist_size_ = 1;
     for (size_t i = 0; i < size_; i++) {
-      data_size_ *= value_[i];
+      dlist_size_ *= value_[i];
     }
-    data_ = new Data[data_size_];
-    data_allocated_ = true;
+    dlist_ = new DataElement[dlist_size_];
+    dlist_allocated_ = true;
 
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
@@ -160,13 +161,13 @@ namespace kmrnext {
       if (io_mode() == KMRNext::File) {
 	src->load();
       }
-      for (size_t j = 0; j < src->data_size_; j++) {
-	data_[offset + j].set_value(src->data_[j]);
+      for (size_t j = 0; j < src->dlist_size_; j++) {
+	dlist_[offset + j].set(src->dlist_[j].data());
       }
       if (io_mode() == KMRNext::File) {
 	src->clear_cache();
       }
-      offset += src->data_size_;
+      offset += src->dlist_size_;
     }
 
     if (io_mode() == KMRNext::File) {
@@ -176,7 +177,7 @@ namespace kmrnext {
   }
 
   void DataStore::split_to(vector<DataStore*>& dslist) {
-    if (data_size_ == 0) {
+    if (dlist_size_ == 0) {
       throw runtime_error("Data should be set.");
     }
     if (size_ < 2) {
@@ -212,14 +213,14 @@ namespace kmrnext {
     for (size_t i = 0; i < dslist.size(); i++) {
       DataStore *dst = dslist.at(i);
       dst->set(split_dims);
-      for (size_t j = 0; j < dst->data_size_; j++) {
-	dst->data_[j].set_value(data_[offset + j]);
+      for (size_t j = 0; j < dst->dlist_size_; j++) {
+	dst->dlist_[j].set(dlist_[offset + j].data());
       }
       if (io_mode() == KMRNext::File) {
 	dst->store();
 	dst->clear_cache();
       }
-      offset += dst->data_size_;
+      offset += dst->dlist_size_;
     }
 
     if (io_mode() == KMRNext::File) {
@@ -229,7 +230,7 @@ namespace kmrnext {
 
   void DataStore::map(Mapper& m, const View& view, DataStore* outds) {
     check_map_args(view, outds);
-    if (data_size_ == 0) {
+    if (dlist_size_ == 0) {
       return;
     }
 
@@ -246,26 +247,26 @@ namespace kmrnext {
     }
 
     vector< vector<DataPack> > dpgroups(nkeys);
-    for (size_t i = 0; i < data_size_; i++) {
-      if (data_[i].value() == NULL) {
+    for (size_t i = 0; i < dlist_size_; i++) {
+      if (dlist_[i].data() == NULL) {
 	continue;
       }
       Key tmpkey = index_to_key(i);
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
-      dps.push_back(DataPack(tmpkey, &(data_[i])));
+      dps.push_back(DataPack(tmpkey, dlist_[i].data()));
     }
 
     if (kmrnext_->profile()) {
-      long data_count = 0;
+      long dlist_count = 0;
       for (size_t i = 0; i < dpgroups.size(); i++) {
 	vector<DataPack> &dps = dpgroups.at(i);
 	if (dps.size() > 0) {
-	  data_count += 1;
+	  dlist_count += 1;
 	}
       }
       ostringstream os;
-      os << "count of data to be mapped: " << data_count;
+      os << "count of data to be mapped: " << dlist_count;
       profile_out(os.str());
     }
 
@@ -276,7 +277,7 @@ namespace kmrnext {
     }
     MapEnvironment env = { 0, view };
     for (size_t i = 0; i < dpgroups.size(); i++) {
-      vector<DataPack> &dps = dpgroups.at(i);
+      vector<DataPack>& dps = dpgroups.at(i);
       if (dps.size() > 0) {
 	Key viewed_key = key_to_viewed_key(dps.at(0).key(), view);
 	m(this, _outds, viewed_key, dps, env);
@@ -354,7 +355,7 @@ namespace kmrnext {
       {
 	for (std::vector<kmrnext::DataPack>:: iterator itr = dps.begin();
 	     itr != dps.end(); itr++) {
-	  Data d((*itr).data()->value(), (*itr).data()->size());
+	  Data d((*itr).data().value(), (*itr).data().size());
 	  outds->add((*itr).key(), d);
 	}
 	return 0;

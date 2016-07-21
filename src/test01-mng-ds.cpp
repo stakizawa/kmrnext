@@ -200,7 +200,7 @@ public:
   string operator()(kmrnext::DataPack& dp) {
     ostringstream os;
     os << padding_ << dp.key().to_string() << " : "
-       << *static_cast<long*>(dp.data()->value()) << endl;
+       << *static_cast<long*>(dp.data().value()) << endl;
     return os.str();
   }
 };

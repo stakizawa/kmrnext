@@ -39,7 +39,7 @@ public:
     long sum = 0;
     for (size_t i = 0; i < dps.size(); i++) {
       kmrnext::DataPack& dp = dps.at(i);
-      long v = *static_cast<long*>(dp.data()->value());
+      long v = *static_cast<long*>(dp.data().value());
       sum += v;
     }
     kmrnext::Data d(&sum, sizeof(long));
@@ -156,8 +156,8 @@ main(int argc, char **argv) {
     print_ds_contents(ds0, "        ");
     print_line("");
   }
-  ds0->add(key0, *(dp3.data()));
-  ds0->add(key1, *(dp2.data()));
+  ds0->add(key0, dp3.data());
+  ds0->add(key1, dp2.data());
   if (kPrint) {
     print_line("    Add:  " + key0.to_string());
     print_line("    Add:  " + key1.to_string());
@@ -314,7 +314,7 @@ public:
   string operator()(kmrnext::DataPack& dp) {
     ostringstream os;
     os << dp.key().to_string() << " : "
-       << *static_cast<long*>(dp.data()->value()) << endl;
+       << *static_cast<long*>(dp.data().value()) << endl;
     return os.str();
   }
 };
@@ -333,9 +333,9 @@ void print_ds_contents(kmrnext::DataStore* ds, string padding) {
 void print_datapack(kmrnext::DataPack& dp, string padding) {
   if (rank != 0) return;
   kmrnext::Key key = dp.key();
-  kmrnext::Data* data = dp.data();
+  kmrnext::Data data = dp.data();
   cout << padding << key.to_string() << " : "
-       << *static_cast<long*>(data->value()) << endl;
+       << *static_cast<long*>(data.value()) << endl;
 }
 
 void print_datapacks(vector<kmrnext::DataPack>* dpvec, string padding) {
@@ -343,8 +343,8 @@ void print_datapacks(vector<kmrnext::DataPack>* dpvec, string padding) {
   for (vector<kmrnext::DataPack>::iterator itr = dpvec->begin();
        itr != dpvec->end(); itr++) {
     kmrnext::Key key = itr->key();
-    kmrnext::Data *data = itr->data();
+    kmrnext::Data data = itr->data();
     cout << padding << key.to_string() << " : "
-	 << *static_cast<long*>(data->value()) << endl;
+	 << *static_cast<long*>(data.value()) << endl;
   }
 }

@@ -33,13 +33,14 @@ namespace {
 
   TEST_F(DataTest, Constructor) {
     kmrnext::Data d(&value_, value_size_);
+    // The constructor do not allocate memory for value
     EXPECT_EQ(&value_, d.value());
     EXPECT_EQ(value_size_, d.size());
   }
 
-  TEST_F(DataTest, Set_value) {
-    kmrnext::Data d0;
-    d0.set_value(*data_);
+  TEST_F(DataTest, Allocate) {
+    kmrnext::Data d0(&value_, value_size_);;
+    d0.allocate();
     // value is same
     EXPECT_EQ(*static_cast<int*>(data_->value()),
 	      *static_cast<int*>(d0.value()));
@@ -48,7 +49,6 @@ namespace {
     EXPECT_EQ(data_->size(), d0.size());
 
     // If *value is already set, it throws a runtime_error.
-    kmrnext::Data d1(&value_, value_size_);
-    EXPECT_THROW({d1.set_value(*data_);}, std::runtime_error);
+    EXPECT_THROW({d0.allocate();}, std::runtime_error);
   }
 }

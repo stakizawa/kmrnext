@@ -6,25 +6,19 @@
 
 namespace kmrnext {
 
-#ifdef BACKEND_SERIAL
-  Data::Data() :
-    value_(NULL), value_size_(0), value_allocated_(false),
-    data_set_(false), data_file_offset_(0), data_file_size_(0) {}
+  Data::Data(const Data& obj)
+    : value_(obj.value_), value_size_(obj.value_size_),
+      value_allocated_(false) {}
 
-  Data::Data(void *val, const size_t val_siz) :
-    value_(val), value_size_(val_siz), value_allocated_(false),
-    data_set_(true), data_file_offset_(0), data_file_size_(0) {}
-#elif defined BACKEND_KMR
-  Data::Data() :
-    value_(NULL), value_size_(0), value_allocated_(false),
-    data_set_(false), data_file_offset_(0), data_file_size_(0),
-    owner_(-1), shared_(false) {}
-
-  Data::Data(void *val, const size_t val_siz) :
-    value_(val), value_size_(val_siz), value_allocated_(false),
-    data_set_(true), data_file_offset_(0), data_file_size_(0),
-    owner_(-1), shared_(false) {}
-#endif
+  Data::Data(const Data* obj) : value_allocated_(false) {
+    if (obj != NULL) {
+      value_ = obj->value_;
+      value_size_ = obj->value_size_;
+    } else {
+      value_ = NULL;
+      value_size_ = 0;
+    }
+  }
 
   Data::~Data() {
     if (value_allocated_) {
@@ -32,149 +26,147 @@ namespace kmrnext {
     }
   }
 
-  void Data::set_value(const Data& src) {
-    copy_deep(src);
-  }
-
-  void Data::update_value(const Data& src) {
-    copy_deep(src, true);
-  }
-
-  void Data::copy_deep(const Data& src, bool overwrite) {
-    if (overwrite) {
-      if (src.value_ == NULL) {
-	throw runtime_error("The copy target Data should not be NULL.");
-      }
-      if (value_ == NULL) {
-	value_ = static_cast<void*>(calloc(src.value_size_, sizeof(char)));
-      } else {
-	if (value_size_ != src.value_size_) {
-	  value_ = static_cast<void*>(realloc(value_,
-					      src.value_size_ * sizeof(char)));
-	}
-      }
-      memcpy(value_, src.value_, src.value_size_);
-    } else {
-      if (value_ != NULL || data_set_) {
-	throw runtime_error("Data is already set value.");
-      }
-      if (src.value_ != NULL) {
-	value_ = static_cast<void*>(calloc(src.value_size_, sizeof(char)));
-	memcpy(value_, src.value_, src.value_size_);
-      } else {
-	return;
-      }
-    }
-    value_size_ = src.value_size_;
-    value_allocated_ = true;
-    data_set_ = true;
-#ifdef BACKEND_KMR
-    owner_ = src.owner_;
-    shared_ = src.shared_;
-#endif
-  }
-
-  void Data::copy_shallow(const Data& src) {
-    if (value_ != NULL) {
-      throw runtime_error("Data is already set value.");
-    }
-    value_ = src.value_;
-    value_size_ = src.value_size_;
-    value_allocated_ = true;
-    data_set_ = true;
-#ifdef BACKEND_KMR
-    owner_ = src.owner_;
-    shared_ = src.shared_;
-#endif
-  }
-
-  void Data::copy_buf(void *val, const size_t val_siz) {
-    if (value_ != NULL) {
-      throw runtime_error("Data is already set value.");
-    }
-    value_ = static_cast<void*>(calloc(val_siz, sizeof(char)));
-    memcpy(value_, val, val_siz);
-    value_size_ = val_siz;
-    value_allocated_ = true;
-    data_set_ = true;
-  }
-
-  void Data::clear() {
-    if (value_allocated_) {
-      free(value_);
-      value_ = NULL;
-    }
-    value_size_ = 0;
-    value_allocated_ = false;
-    data_set_ = false;
-    data_file_offset_ = 0;
-    data_file_size_ = 0;
-#ifdef BACKEND_KMR
-    owner_ = -1;
-    shared_ = false;
-#endif
-  }
-
-  void Data::restore(char *buf) {
-    if (!data_set_) {
-      // Skip as Data is removed
+  void Data::allocate() {
+    if (value_size_ == 0) {
       return;
     }
-    // assume that 'data_set_ == true'
     if (value_allocated_) {
-      // Skip as Data is updated in memory
-      return;
+      throw runtime_error("Already allocated.");
     }
-    if (data_file_size_ == 0) {
-      throw runtime_error("Data can not be found in the file.");
-    }
-    copy_buf(buf + data_file_offset_, data_file_size_);
-  }
-
-  void Data::written(size_t start_pos, size_t written_siz) {
-    data_set_ = true;
-    data_file_offset_ = start_pos;
-    data_file_size_ = written_siz;
-  }
-
-  void Data::clear_cache() {
-    if (value_allocated_) {
-      free(value_);
-      value_ = NULL;
-    }
-    value_size_ = 0;
-    value_allocated_ = false;
+    void *tmp = value_;
+    value_ = static_cast<void*>(calloc(value_size_, sizeof(char)));
+    memcpy(value_, tmp, value_size_);
+    value_allocated_ = true;
   }
 
   bool Data::operator==(const Data& rhs) const {
     if (value_size_ != rhs.value_size_) {
       return false;
     }
-    int cc = memcmp(value_, rhs.value_, value_size_);
-    if (cc != 0) {
-      return false;
+    if (value_ != rhs.value_) {
+      int cc = memcmp(value_, rhs.value_, value_size_);
+      if (cc != 0) {
+	return false;
+      }
     }
     return true;
   }
 
-  DataPack::DataPack(const Key k, Data *d, bool allocate)
-    : key_(k), allocated_(allocate) {
+  DataPack::DataPack(const Key& k, const Data* d, bool allocate)
+    : key_(k), data_(d), allocated_(allocate) {
     if (allocated_) {
-      data_ = new Data();
-      data_->set_value(*d);
-    } else {
-      data_ = d;
+      data_.allocate();
+    }
+  }
+
+  DataPack::DataPack(const Key& k, const Data& d, bool allocate)
+    : key_(k), data_(d), allocated_(allocate) {
+    if (allocated_) {
+      data_.allocate();
     }
   }
 
   DataPack::DataPack(const DataPack &obj)
-    : key_(obj.key_), allocated_(obj.allocated_) {
+    : key_(obj.key_), data_(obj.data_), allocated_(obj.allocated_) {
     if (allocated_) {
-      data_ = new Data();
-      data_->set_value(*(obj.data_));
-    } else {
-      data_ = obj.data_;
+      data_.allocate();
     }
+  }
+
+  DataElement::DataElement()
+    : data_(NULL), data_set_(false),
+      data_updated_(false), data_file_offset_(0), data_file_size_(0)
+#ifdef BACKEND_KMR
+      owner_(-1), shared_(false)
+#endif
+  {}
+
+  DataElement::~DataElement() {
+    if (data_set_) {
+      delete data_;
+    }
+  }
+
+  void DataElement::set(const Data* dat) {
+    set_data(dat);
+  }
+
+  void DataElement::replace(const Data* dat) {
+    set_data(dat, true);
+  }
+
+  void DataElement::set_data(const Data* dat, bool overwrite) {
+    if (overwrite) {
+      if (data_set_) {
+	delete data_;
+      }
+    } else {
+      if (data_set_) {
+	throw runtime_error("Data is already set value.");
+      }
+    }
+    data_ = new Data(dat->value(), dat->size());
+    data_->allocate();
+    data_set_ = true;
+
+    data_updated_ = true;
+
+#if 0   // TODO
+#ifdef BACKEND_KMR
+    owner_ = dat.owner_;
+    shared_ = dat.shared_;
+#endif
+#endif
+  }
+
+  void DataElement::clear() {
+    if (data_set_) {
+      delete data_;
+    }
+    data_ = NULL;
+    data_set_ = false;
+
+    data_updated_ = false;
+    data_file_offset_ = 0;
+    data_file_size_ = 0;
+
+#ifdef BACKEND_KMR
+    owner_ = -1;
+    shared_ = false;
+#endif
+  }
+
+  void DataElement::restore(char *buf) {
+    if (!data_set_) {
+      // Skip as Data is removed
+      return;
+    }
+    if (data_updated_) {
+      // Skip as Data is updated in memory
+      return;
+    }
+    if (data_file_size_ == 0) {
+      throw runtime_error("Data can not be found in the file.");
+    }
+    if (data_ != NULL) {
+      throw runtime_error("Data should be NULL.");
+    }
+    data_ = new Data(buf + data_file_offset_, data_file_size_);
+    data_->allocate();
+  }
+
+  void DataElement::written(size_t start_pos, size_t written_siz) {
+    data_updated_ = false;
+    data_file_offset_ = start_pos;
+    data_file_size_ = written_siz;
+  }
+
+  void DataElement::clear_cache() {
+    if (data_ != NULL) {
+      delete data_;
+      data_ = NULL;
+    }
+    data_updated_ = false;
   }
 
 }

@@ -139,7 +139,7 @@ public:
       Key okey(kDimMatrix);
       okey.set_dim(0, ikey.dim(1));
       okey.set_dim(1, ikey.dim(0));
-      Data data(itr->data()->value(), itr->data()->size());
+      Data data(itr->data().value(), itr->data().size());
       outds->add(okey, data);
     }
     return 0;
@@ -186,11 +186,11 @@ void print_matrix(DataStore* ds)
     for (size_t j = 0; j < matrix_size; j++) {
       key.set_dim(1, j);
       DataPack dp = ds->get(key);
-      Data *data = dp.data();
+      Data data = dp.data();
 #ifdef BACKEND_SERIAL
-      os << *static_cast<int*>(data->value()) << " ";
+      os << *static_cast<int*>(data.value()) << " ";
 #elif defined BACKEND_KMR
-      os << *static_cast<int*>(data->value()) << "(" << data->owner() << ") ";
+      os << *static_cast<int*>(data.value()) << "(" << data->owner() << ") ";
 #endif
     }
     os << endl;

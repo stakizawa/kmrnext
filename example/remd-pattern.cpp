@@ -37,7 +37,7 @@ public:
   {
     ostringstream os;
     os << dp.key().to_string() << " : ";
-    double *data = static_cast<double*>(dp.data()->value());
+    double *data = static_cast<double*>(dp.data().value());
     for (size_t i = 0; i < kElementCount; i++) {
       os << data[i] << " ";
     }
@@ -211,11 +211,11 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       double *data_new = new double[kElementCount];
-      double *data_old = static_cast<double*>(itr->data()->value());
+      double *data_old = static_cast<double*>(itr->data().value());
       for (size_t i = 0; i < kElementCount; i++) {
 	data_new[i] = data_old[i] + 1;
       }
-      Data data(data_new, itr->data()->size());
+      Data data(data_new, itr->data().size());
       outds->add(itr->key(), data);
       delete[] data_new;
     }
@@ -271,11 +271,11 @@ public:
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       double *data_new = new double[kElementCount];
-      double *data_old = static_cast<double*>(itr->data()->value());
+      double *data_old = static_cast<double*>(itr->data().value());
       for (size_t i = 0; i < kElementCount; i++) {
 	data_new[i] = data_old[i] - 1;
       }
-      Data data(data_new, itr->data()->size());
+      Data data(data_new, itr->data().size());
       outds->add(itr->key(), data);
       delete[] data_new;
     }

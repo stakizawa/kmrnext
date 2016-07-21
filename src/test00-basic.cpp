@@ -35,7 +35,7 @@ public:
     long sum = 0;
     for (size_t i = 0; i < dps.size(); i++) {
       kmrnext::DataPack& dp = dps.at(i);
-      long v = *static_cast<long*>(dp.data()->value());
+      long v = *static_cast<long*>(dp.data().value());
       sum += v;
     }
     kmrnext::Data d(&sum, sizeof(long));
@@ -201,7 +201,7 @@ public:
   string operator()(kmrnext::DataPack& dp) {
     ostringstream os;
     os << "  " << dp.key().to_string() << " : "
-       << *static_cast<long*>(dp.data()->value()) << endl;
+       << *static_cast<long*>(dp.data().value()) << endl;
     return os.str();
   }
 };
@@ -234,8 +234,8 @@ void print_get_result(kmrnext::Key& key, kmrnext::DataPack& dp) {
   if (rank != 0) return;
   cout << "  Query key: " << key.to_string()
        << "    Result: " << dp.key().to_string() << ": "
-       << *static_cast<long*>(dp.data()->value())
-       << " (Size:" << dp.data()->size() << ")" << endl;
+       << *static_cast<long*>(dp.data().value())
+       << " (Size:" << dp.data().size() << ")" << endl;
 }
 
 void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
@@ -258,7 +258,7 @@ void print_get_view_result(vector<kmrnext::DataPack>* dpvec, kmrnext::View& v,
     }
     cnt += 1;
     cout << "    " << itr->key().to_string() << " : "
-  	 << *static_cast<long*>(itr->data()->value()) << endl;
+  	 << *static_cast<long*>(itr->data().value()) << endl;
   }
   cout << endl;
 }
