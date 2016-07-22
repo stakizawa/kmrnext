@@ -28,7 +28,7 @@ namespace {
   /// Parameter for mapper_get_view
   typedef struct {
     DataStore *ds;
-    Data *data;
+    DataElement *dlist;
     vector<DataPack> *dps;
   } param_mapper_get_view;
 
@@ -46,7 +46,16 @@ namespace {
   /// Parameter for mapper_collate
   typedef struct {
     DataStore *ds;
+    int rank;
   } param_mapper_collate;
+
+  /// A data set used in collate()
+  class CollatePack {
+  public:
+    Key key_;
+    DataElement *de_;
+    CollatePack(Key& k, DataElement* de) : key_(k), de_(de) {}
+  };
 
   /// It copies a key-value to vector<DataPack>.
   ///
@@ -76,11 +85,14 @@ namespace {
   /// the input KVS.
   int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m);
 
-  /// It serializes a datapack to a byte array.
-  void serialize_datapack(DataPack* dp, char** buf, size_t* buf_siz);
+  /// It serializes Key, Data and their attributes to a byte array
+  /// for collate().
+  void serialize_collate(const CollatePack* dep, char** buf, size_t* buf_siz);
 
-  /// It deserializes a datapack from a byte array.
-  DataPack deserialize_datapack(const char* buf, size_t buf_siz);
+  /// It deserializes a Key, Data and their attribute from a byte array
+  /// for collate().
+  void deserialize_collate(const char* buf, size_t buf_siz, DataStore* ds,
+			   int owner);
 
   /// It calculates send target rank.
   inline size_t calc_send_target(size_t index, size_t count, size_t nprocs);
@@ -89,14 +101,14 @@ namespace {
 namespace kmrnext {
 
   DataStore::DataStore(size_t siz)
-    : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), map_inplace_(false), kmrnext_(NULL),
+    : Dimensional<size_t>(siz), dlist_(NULL), dlist_size_(0),
+    dlist_allocated_(false), map_inplace_(false), kmrnext_(NULL),
     data_updated_(false), data_cached_(false),
     parallel_(false), split_(NULL), collated_(false) {}
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
-    : Dimensional<size_t>(siz), data_(NULL), data_size_(0),
-    data_allocated_(false), map_inplace_(false), kmrnext_(kn),
+    : Dimensional<size_t>(siz), dlist_(NULL), dlist_size_(0),
+    dlist_allocated_(false), map_inplace_(false), kmrnext_(kn),
     data_updated_(false), data_cached_(false),
     parallel_(false), split_(NULL), collated_(false) {}
 
@@ -104,8 +116,8 @@ namespace kmrnext {
     if (split_ != NULL) {
       delete split_;
     }
-    if (data_allocated_) {
-      delete[] data_;
+    if (dlist_allocated_) {
+      delete[] dlist_;
     }
     if (io_mode() == KMRNext::File) {
       string fname = filename();
@@ -114,32 +126,32 @@ namespace kmrnext {
   }
 
   void DataStore::set(const size_t *val) {
-    if (data_size_ != 0) {
+    if (dlist_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
     }
 
-    data_size_ = 1;
+    dlist_size_ = 1;
     for (size_t i = 0; i < size_; i++) {
       value_[i] = val[i];
-      data_size_ *= val[i];
+      dlist_size_ *= val[i];
     }
-    data_ = new Data[data_size_];
-    data_allocated_ = true;
+    dlist_ = new DataElement[dlist_size_];
+    dlist_allocated_ = true;
   }
 
   void DataStore::add(const Key& key, const Data& data) {
     check_key_range(key);
-    if (!data_allocated_) {
+    if (!dlist_allocated_) {
       set(value_);
     }
     if (parallel_ || kmrnext_->rank() == 0) {
       size_t idx = key_to_index(key);
-      Data *d = &(data_[idx]);
+      DataElement *de = &(dlist_[idx]);
       try {
 	if (map_inplace_) {
-	  d->update_value(data);
+	  de->replace(&data);
 	} else {
-	  d->set_value(data);
+	  de->set(&data);
 	}
       }
       catch (runtime_error& e) {
@@ -148,7 +160,7 @@ namespace kmrnext {
 	     << "on Rank" << kmrnext_->rank() << "." << endl;
 	throw e;
       }
-      d->set_owner(kmrnext_->rank());
+      de->set_owner(kmrnext_->rank());
       if (io_mode() == KMRNext::File) {
 	data_updated_ = true;
       }
@@ -162,20 +174,21 @@ namespace kmrnext {
     }
 
     size_t idx = key_to_index(key);
-    if (data_[idx].is_shared()) {
-      return DataPack(key, &(data_[idx]), true);
+    if (dlist_[idx].is_shared()) {
+      return DataPack(key, dlist_[idx].data(), true);
     }
 
     KMR_KVS *snd = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
     KMR_KVS *rcv = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
-    if (data_[idx].value() != NULL) {
-      size_t snd_siz = sizeof(int) + data_[idx].size();
+    if (dlist_[idx].is_set()) {
+      Data *d = dlist_[idx].data();
+      size_t snd_siz = sizeof(int) + d->size();
       char *snd_buf = static_cast<char*>(malloc(sizeof(char) * snd_siz));
       int owner = kmrnext_->rank();
       memcpy(snd_buf, &owner, sizeof(int));
-      memcpy(snd_buf + sizeof(int), data_[idx].value(), data_[idx].size());
+      memcpy(snd_buf + sizeof(int), d->value(), d->size());
       struct kmr_kv_box kv;
       kv.klen = (int)sizeof(long);
       kv.vlen = (int)snd_siz;
@@ -195,25 +208,25 @@ namespace kmrnext {
     if (local_count == 1) {
       struct kmr_kv_box kv;
       kmr_take_one(rcv, &kv);
-      if (data_[idx].value() == NULL) {
+      if (!dlist_[idx].is_set()) {
 	// Copy data for future access.
 	int owner;
 	memcpy(&owner, kv.v.p, sizeof(int));
 	Data rcvdat(static_cast<void*>((const_cast<char*>(kv.v.p) +
 					sizeof(int))),
 		    kv.vlen - sizeof(int));
-	data_[idx].set_value(rcvdat);
-	data_[idx].set_owner(owner);
+	dlist_[idx].set(&rcvdat);
+	dlist_[idx].set_owner(owner);
 	if (io_mode() == KMRNext::File) {
 	  data_updated_ = true;
 	  store();
 	}
       }
-      data_[idx].shared();
+      dlist_[idx].shared();
     }
     kmr_free_kvs(rcv);
 
-    DataPack dp = DataPack(key, &(data_[idx]), true);
+    DataPack dp = DataPack(key, dlist_[idx].data(), true);
     if (io_mode() == KMRNext::File) {
       clear_cache();
     }
@@ -235,8 +248,8 @@ namespace kmrnext {
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < data_size_; i++) {
-      if (data_[i].value() == NULL) {
+    for (size_t i = 0; i < dlist_size_; i++) {
+      if (!dlist_[i].is_set()) {
 	continue;
       }
       Key tmpkey = index_to_key(i);
@@ -248,20 +261,21 @@ namespace kmrnext {
 	}
       }
       if (match) {
-	if (data_[i].is_shared()) {
+	if (dlist_[i].is_shared()) {
 	  // the data is already replicated
 #ifdef _OPENMP
           #pragma omp critical
 #endif
-	  dps->push_back(DataPack(tmpkey, &(data_[i]), true));
+	  dps->push_back(DataPack(tmpkey, dlist_[i].data(), true));
 	  continue;
 	} else {
 	  // replicate the data
-	  size_t snd_siz = sizeof(int) + data_[i].size();
+	  Data *d = dlist_[i].data();
+	  size_t snd_siz = sizeof(int) + d->size();
 	  char *snd_buf = static_cast<char*>(malloc(sizeof(char) * snd_siz));
 	  int owner = kmrnext_->rank();
 	  memcpy(snd_buf, &owner, sizeof(int));
-	  memcpy(snd_buf + sizeof(int), data_[i].value(), data_[i].size());
+	  memcpy(snd_buf + sizeof(int), d->value(), d->size());
 	  struct kmr_kv_box kv;
 	  kv.klen = static_cast<int>(sizeof(size_t));
 	  kv.vlen = static_cast<int>(snd_siz);
@@ -274,7 +288,7 @@ namespace kmrnext {
     }
     kmr_add_kv_done(snd);
     kmr_replicate(snd, rcv, kmr_noopt);
-    param_mapper_get_view param = { this, data_, dps };
+    param_mapper_get_view param = { this, dlist_, dps };
     kmr_map(rcv, NULL, (void*)&param, kmr_noopt, mapper_get_view);
 
     if (io_mode() == KMRNext::File) {
@@ -287,9 +301,9 @@ namespace kmrnext {
 
   DataPack DataStore::remove(const Key& key) {
     DataPack dp0 = get(key);
-    if (dp0.data()->value() != NULL) {
+    if (dp0.data().value() != NULL) {
       size_t idx = key_to_index(key);
-      data_[idx].clear();
+      dlist_[idx].clear();
     }
     return dp0;
   }
@@ -298,26 +312,26 @@ namespace kmrnext {
     if (dslist.size() == 0) {
       throw runtime_error("There should be at least one DataStore.");
     }
-    if (data_size_ != 0) {
+    if (dlist_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
     }
     {
       // Check each DataStore in the vector
       size_t expected_dim_size = size_ - 1;
-      size_t expected_data_size = 0;
+      size_t expected_dlist_size = 0;
       for (size_t i = 0; i < dslist.size(); i++) {
 	DataStore *src = dslist.at(i);
 	if (expected_dim_size != src->size_) {
 	  throw runtime_error("Dimension size of one of DataStore is wrong.");
 	}
-	size_t calc_data_size = 1;
+	size_t calc_dlist_size = 1;
 	for (size_t j = 0; j < expected_dim_size; j++) {
-	  calc_data_size *= src->value_[j];
+	  calc_dlist_size *= src->value_[j];
 	}
 	if (i == 0) {
-	  expected_data_size = calc_data_size;
+	  expected_dlist_size = calc_dlist_size;
 	} else {
-	  if (expected_data_size != calc_data_size) {
+	  if (expected_dlist_size != calc_dlist_size) {
 	    throw runtime_error("Data count of one of DataStore is wrong.");
 	  }
 	}
@@ -330,12 +344,12 @@ namespace kmrnext {
       value_[i] = ds0->value_[i-1];
     }
 
-    data_size_ = 1;
+    dlist_size_ = 1;
     for (size_t i = 0; i < size_; i++) {
-      data_size_ *= value_[i];
+      dlist_size_ *= value_[i];
     }
-    data_ = new Data[data_size_];
-    data_allocated_ = true;
+    dlist_ = new DataElement[dlist_size_];
+    dlist_allocated_ = true;
 
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
@@ -343,13 +357,13 @@ namespace kmrnext {
       if (io_mode() == KMRNext::File) {
 	src->load();
       }
-      for (size_t j = 0; j < src->data_size_; j++) {
-	data_[offset + j].set_value(src->data_[j]);
+      for (size_t j = 0; j < src->dlist_size_; j++) {
+	dlist_[offset + j].set(src->dlist_[j].data());
       }
       if (io_mode() == KMRNext::File) {
 	src->clear_cache();
       }
-      offset += src->data_size_;
+      offset += src->dlist_size_;
     }
 
     if (io_mode() == KMRNext::File) {
@@ -359,7 +373,7 @@ namespace kmrnext {
   }
 
   void DataStore::split_to(vector<DataStore*>& dslist) {
-    if (data_size_ == 0) {
+    if (dlist_size_ == 0) {
       throw runtime_error("Data should be set.");
     }
     if (size_ < 2) {
@@ -395,14 +409,14 @@ namespace kmrnext {
     for (size_t i = 0; i < dslist.size(); i++) {
       DataStore *dst = dslist.at(i);
       dst->set(split_dims);
-      for (size_t j = 0; j < dst->data_size_; j++) {
-	dst->data_[j].set_value(data_[offset + j]);
+      for (size_t j = 0; j < dst->dlist_size_; j++) {
+	dst->dlist_[j].set(dlist_[offset + j].data());
       }
       if (io_mode() == KMRNext::File) {
 	dst->store();
 	dst->clear_cache();
       }
-      offset += dst->data_size_;
+      offset += dst->dlist_size_;
     }
 
     if (io_mode() == KMRNext::File) {
@@ -412,7 +426,7 @@ namespace kmrnext {
 
   void DataStore::map(Mapper& m, const View& view, DataStore* outds) {
     check_map_args(view, outds);
-    if (data_size_ == 0) {
+    if (dlist_size_ == 0) {
       return;
     }
 
@@ -447,9 +461,9 @@ namespace kmrnext {
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
-    for (size_t i = 0; i < data_size_; i++) {
-      if (data_[i].value() == NULL ||
-	  (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank())) {
+    for (size_t i = 0; i < dlist_size_; i++) {
+      if (dlist_[i].data() == NULL ||
+	  (dlist_[i].is_shared() && dlist_[i].owner() != kmrnext_->rank())) {
 	continue;
       }
       Key tmpkey = index_to_key(i);
@@ -458,19 +472,19 @@ namespace kmrnext {
 #ifdef _OPENMP
       #pragma omp critical
 #endif
-      dps.push_back(DataPack(tmpkey, &(data_[i])));
+      dps.push_back(DataPack(tmpkey, dlist_[i].data()));
     }
 
     if (kmrnext_->profile()) {
-      long data_count = 0;
+      long dlist_count = 0;
       for (size_t i = 0; i < nkeys; i++) {
 	vector<DataPack> &dps = dpgroups.at(i);
 	if (dps.size() > 0) {
-	  data_count += 1;
+	  dlist_count += 1;
 	}
       }
       ostringstream os;
-      os << "count of data to be mapped: " << data_count;
+      os << "count of data to be mapped: " << dlist_count;
       profile_out(kmrnext_, os.str());
     }
 
@@ -534,12 +548,12 @@ namespace kmrnext {
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
-      for (size_t i = 0; i < data_size_; i++) {
-	if (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank()) {
-	  data_[i].clear();
+      for (size_t i = 0; i < dlist_size_; i++) {
+	if (dlist_[i].is_shared() && dlist_[i].owner() != kmrnext_->rank()) {
+	  dlist_[i].clear();
 	  continue;
 	}
-	data_[i].unshared();
+	dlist_[i].unshared();
       }
       if (io_mode() == KMRNext::File) {
 	data_updated_ = true;
@@ -680,7 +694,7 @@ namespace kmrnext {
       {
 	for (std::vector<kmrnext::DataPack>:: iterator itr = dps.begin();
 	     itr != dps.end(); itr++) {
-	  Data d((*itr).data()->value(), (*itr).data()->size());
+	  Data d((*itr).data().value(), (*itr).data().size());
 	  outds->add((*itr).key(), d);
 	}
 	return 0;
@@ -891,9 +905,10 @@ namespace kmrnext {
 #ifdef _OPENMP
         #pragma omp parallel for
 #endif
-	for (size_t i = 0; i < data_size_; i++) {
-	  if (data_[i].value() == NULL ||
-	      (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank())) {
+	for (size_t i = 0; i < dlist_size_; i++) {
+	  if (dlist_[i].data() == NULL ||
+	      (dlist_[i].is_shared() && dlist_[i].owner() != kmrnext_->rank())
+	      ) {
 	    continue;
 	  }
 	  Key tmpkey = index_to_key(i);
@@ -904,7 +919,7 @@ namespace kmrnext {
 #ifdef _OPENMP
             #pragma omp critical
 #endif
-	    dps.push_back(DataPack(tmpkey, &(data_[i])));
+	    dps.push_back(DataPack(tmpkey, dlist_[i].data()));
 	  }
 	}
       }
@@ -949,32 +964,31 @@ namespace kmrnext {
     // Collate from here
 
     // Search data should be sent
-    vector< vector<DataPack> > dpgroups(ndata);
+    vector< vector<CollatePack> > cpgroups(ndata);
     {
       size_t range_start = (indices_cnt > 0)? indices[0] : 0;
       size_t range_end   = (indices_cnt > 0)? indices[indices_cnt - 1] : 0;
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
-      for (size_t i = 0; i < data_size_; i++) {
-	if (data_[i].value() == NULL) {
+      for (size_t i = 0; i < dlist_size_; i++) {
+	if (!dlist_[i].is_set()) {
 	  continue;
 	}
-	if (data_[i].is_shared() && data_[i].owner() != kmrnext_->rank()) {
-	  data_[i].clear();
+	if (dlist_[i].is_shared() && dlist_[i].owner() != kmrnext_->rank()) {
+	  dlist_[i].clear();
 	  continue;
 	}
-	data_[i].unshared();
+	dlist_[i].unshared();
 	Key tmpkey = index_to_key(i);
-	size_t viewed_idx =
-	  static_cast<long>(key_to_split_index(tmpkey, split));
+	size_t viewed_idx = key_to_split_index(tmpkey, split);
 	if (indices_cnt > 0 &&
 	    !(range_start <= viewed_idx && viewed_idx <= range_end)) {
-	  vector<DataPack>& dps = dpgroups.at(viewed_idx);
+	  vector<CollatePack>& cps = cpgroups.at(viewed_idx);
 #ifdef _OPENMP
           #pragma omp critical
 #endif
-	  dps.push_back(DataPack(tmpkey, &(data_[i])));
+	  cps.push_back(CollatePack(tmpkey, &dlist_[i]));
 	}
       }
     }
@@ -985,13 +999,13 @@ namespace kmrnext {
     #pragma omp parallel for
 #endif
     for (size_t i = 0; i < ndata; i++) {
-      vector<DataPack> &dps = dpgroups.at(i);
-      if (dps.size() > 0) {
-	for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
+      vector<CollatePack> &cps = cpgroups.at(i);
+      if (cps.size() > 0) {
+	for (vector<CollatePack>::iterator itr = cps.begin(); itr != cps.end();
 	     itr++) {
 	  char *buf;
 	  size_t buf_siz;
-	  serialize_datapack(&(*itr), &buf, &buf_siz);
+	  serialize_collate(&(*itr), &buf, &buf_siz);
 	  struct kmr_kv_box kv;
 	  kv.klen = static_cast<int>(sizeof(size_t));
 	  kv.vlen = static_cast<int>(buf_siz);
@@ -1000,7 +1014,7 @@ namespace kmrnext {
 	  kv.v.p  = buf;
 	  kmr_add_kv(kvs0, kv);
 	  free(buf);
-	  (*itr).data()->clear();
+	  (*itr).de_->clear();
 	}
       }
     }
@@ -1013,7 +1027,7 @@ namespace kmrnext {
     kmr_shuffle(kvs0, kvs1, kmr_shflopt);
     parallel_ = true;
     map_inplace_ = true;
-    param_mapper_collate p0 = { this };
+    param_mapper_collate p0 = { this, kmrnext_->rank() };
     kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
     map_inplace_ = false;
     parallel_ = false;
@@ -1058,21 +1072,21 @@ namespace {
     param_mapper_get_view *param = (param_mapper_get_view *)p;
     size_t idx = kv0.k.i;
     Key key = param->ds->index_to_key(idx);
-    if (param->data[idx].value() == NULL) {
+    if (!param->dlist[idx].is_set()) {
       int owner;
       memcpy(&owner, kv0.v.p, sizeof(int));
       Data data(static_cast<void*>(const_cast<char*>(kv0.v.p) + sizeof(int)),
 		kv0.vlen - sizeof(int));
-      param->data[idx].set_value(data);
-      param->data[idx].set_owner(owner);
+      param->dlist[idx].set(&data);
+      param->dlist[idx].set_owner(owner);
     }
-    param->data[idx].shared();
+    param->dlist[idx].shared();
 #ifdef _OPENMP
     #pragma omp critical
     // As a KMR map function is run in parallel by OpenMP, shared resources
     // should be modified in critical regions.
 #endif
-    param->dps->push_back(DataPack(key, &(param->data[idx]), true));
+    param->dps->push_back(DataPack(key, param->dlist[idx].data(), true));
     return MPI_SUCCESS;
   }
 
@@ -1107,20 +1121,12 @@ namespace {
 
   int mapper_collate(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
 		     KMR_KVS *kvo, void *p, const long i) {
-    DataPack dp = deserialize_datapack(kv0.v.p, kv0.vlen);
     param_mapper_collate *param = static_cast<param_mapper_collate*>(p);
-#ifdef _OPENMP
-    #pragma omp critical
-    // As a KMR map function is run in parallel by OpenMP, shared resources
-    // should be modified in critical regions.
-#endif
-    {
-      param->ds->add(dp.key(), *(dp.data()));
-    }
+    deserialize_collate(kv0.v.p, kv0.vlen, param->ds, param->rank);
     return MPI_SUCCESS;
   }
 
-  void serialize_datapack(DataPack* dp, char** buf, size_t* buf_siz) {
+  void serialize_collate(const CollatePack* cp, char** buf, size_t* buf_siz) {
     // Memory layout
     // 1. [key]  size    : sizeof(size_t)
     // 2. [key]  content : sizeof(size_t) * count_of_key
@@ -1131,12 +1137,12 @@ namespace {
     // Two parameters of Data, value_allocated_ and shared_ is not serialized.
 
     // calculate size
-    Key k = dp->key();
-    Data* d = dp->data();
+    Key k = cp->key_;
+    Data d = cp->de_->data();
     *buf_siz  = sizeof(size_t);            // 1. [key]  size
     *buf_siz += sizeof(size_t) * k.size(); // 2. [key]  content
     *buf_siz += sizeof(size_t);            // 3. [data] size
-    *buf_siz += d->size();                 // 4. [data] content
+    *buf_siz += d.size();                  // 4. [data] content
     *buf_siz += sizeof(int);               // 5. [data] owner
 
     // set data to buf
@@ -1150,14 +1156,15 @@ namespace {
       p += sizeof(size_t);
     }
     // data
-    *reinterpret_cast<size_t*>(p) = d->size();
+    *reinterpret_cast<size_t*>(p) = d.size();
     p += sizeof(size_t);
-    memcpy(p, d->value(), d->size());
-    p += d->size();
-    *reinterpret_cast<int*>(p) = d->owner();
+    memcpy(p, d.value(), d.size());
+    p += d.size();
+    *reinterpret_cast<int*>(p) = cp->de_->owner();
   }
 
-  DataPack deserialize_datapack(const char* buf, size_t buf_siz) {
+  void deserialize_collate(const char* buf, size_t buf_siz, DataStore* ds,
+			   int owner) {
     // Memory layout
     // 1. [key]  size    : sizeof(size_t)
     // 2. [key]  content : sizeof(size_t) * count_of_key
@@ -1180,13 +1187,16 @@ namespace {
     // data
     size_t dat_siz = *reinterpret_cast<size_t*>(p);
     p += sizeof(size_t);
-    Data d;
-    d.copy_buf(static_cast<void*>(p), dat_siz);
+    Data d(static_cast<void*>(p), dat_siz);
+#if 0
+    // owner in serialized data is omitted
     p += dat_siz;
-    d.set_owner(*reinterpret_cast<int*>(p));
+    int owner = *reinterpret_cast<int*>(p);
+#endif
 
-    DataPack dp = DataPack(k, &d, true);
-    return dp;
+    DataElement* de = ds->data_element_at(k);
+    de->set(&d);
+    de->set_owner(owner);
   }
 
   inline size_t calc_send_target(size_t index, size_t count, size_t nprocs) {

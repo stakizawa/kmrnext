@@ -40,7 +40,7 @@ main(int argc, char **argv)
 #endif
 #ifdef BACKEND_KMR
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, static_cast<int*>(&matrix_size));
+  MPI_Comm_size(MPI_COMM_WORLD, reinterpret_cast<int*>(&matrix_size));
 #endif
 
   DataStore* ds0 = next->create_ds(kDimMatrix);
@@ -190,7 +190,8 @@ void print_matrix(DataStore* ds)
 #ifdef BACKEND_SERIAL
       os << *static_cast<int*>(data.value()) << " ";
 #elif defined BACKEND_KMR
-      os << *static_cast<int*>(data.value()) << "(" << data->owner() << ") ";
+      DataElement *de = ds->data_element_at(key);
+      os << *static_cast<int*>(data.value()) << "(" << de->owner() << ") ";
 #endif
     }
     os << endl;

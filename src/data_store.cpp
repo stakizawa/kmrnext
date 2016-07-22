@@ -65,6 +65,11 @@ namespace kmrnext {
     load_array(ints, loader, kmrnext_, this, value_, size_);
   }
 
+  DataElement* DataStore::data_element_at(const Key& key) {
+    size_t idx = key_to_index(key);
+    return &dlist_[idx];
+  }
+
   void DataStore::check_view(const View& view) {
     if (size_ != view.size()) {
       throw runtime_error("Dimension size of the DataStore and view "

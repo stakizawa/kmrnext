@@ -514,6 +514,9 @@ namespace kmrnext {
     /// It converts the specified Key by applying the specified View.
     Key key_to_viewed_key(const Key& key, const View& view);
 
+    /// It returns the pointer to the specified indexed DataElement.
+    DataElement* data_element_at(const Key& key);
+
     /// It initializes the static fields.
     ///
     /// It should be called before using DataStore class.  If you call

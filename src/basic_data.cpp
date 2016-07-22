@@ -73,13 +73,16 @@ namespace kmrnext {
     }
   }
 
+#ifdef BACKEND_SERIAL
   DataElement::DataElement()
     : data_(NULL), data_set_(false),
-      data_updated_(false), data_file_offset_(0), data_file_size_(0)
-#ifdef BACKEND_KMR
-      owner_(-1), shared_(false)
+      data_updated_(false), data_file_offset_(0), data_file_size_(0) {}
+#elif BACKEND_KMR
+  DataElement::DataElement()
+    : data_(NULL), data_set_(false),
+      data_updated_(false), data_file_offset_(0), data_file_size_(0),
+      owner_(-1), shared_(false) {}
 #endif
-  {}
 
   DataElement::~DataElement() {
     if (data_set_) {
@@ -96,6 +99,9 @@ namespace kmrnext {
   }
 
   void DataElement::set_data(const Data* dat, bool overwrite) {
+    if (dat == NULL) {
+      return;
+    }
     if (overwrite) {
       if (data_set_) {
 	delete data_;
@@ -110,13 +116,6 @@ namespace kmrnext {
     data_set_ = true;
 
     data_updated_ = true;
-
-#if 0   // TODO
-#ifdef BACKEND_KMR
-    owner_ = dat.owner_;
-    shared_ = dat.shared_;
-#endif
-#endif
   }
 
   void DataElement::clear() {
