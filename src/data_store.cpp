@@ -48,6 +48,162 @@ namespace kmrnext {
     }
   }
 
+  void DataStore::set(const size_t *val) {
+    if (dlist_size_ != 0) {
+      throw runtime_error("DataStore is already initialized.");
+    }
+
+    dlist_size_ = 1;
+    for (size_t i = 0; i < size_; i++) {
+      value_[i] = val[i];
+      dlist_size_ *= val[i];
+    }
+    dlist_ = new DataElement[dlist_size_];
+    dlist_allocated_ = true;
+  }
+
+  void DataStore::set_from(const vector<DataStore*>& dslist) {
+    if (dslist.size() == 0) {
+      throw runtime_error("There should be at least one DataStore.");
+    }
+    if (dlist_size_ != 0) {
+      throw runtime_error("DataStore is already initialized.");
+    }
+    {
+      // Check each DataStore in the vector
+      size_t expected_dim_size = size_ - 1;
+      size_t expected_dlist_size = 0;
+      for (size_t i = 0; i < dslist.size(); i++) {
+	DataStore *src = dslist.at(i);
+	if (expected_dim_size != src->size_) {
+	  throw runtime_error("Dimension size of one of DataStore is wrong.");
+	}
+	size_t calc_dlist_size = 1;
+	for (size_t j = 0; j < expected_dim_size; j++) {
+	  calc_dlist_size *= src->value_[j];
+	}
+	if (i == 0) {
+	  expected_dlist_size = calc_dlist_size;
+	} else {
+	  if (expected_dlist_size != calc_dlist_size) {
+	    throw runtime_error("Data count of one of DataStore is wrong.");
+	  }
+	}
+      }
+    }
+
+    value_[0] = dslist.size();
+    DataStore *ds0 = dslist.at(0);
+    for (size_t i = 1; i < size_; i++) {
+      value_[i] = ds0->value_[i-1];
+    }
+
+    dlist_size_ = 1;
+    for (size_t i = 0; i < size_; i++) {
+      dlist_size_ *= value_[i];
+    }
+    dlist_ = new DataElement[dlist_size_];
+    dlist_allocated_ = true;
+
+    size_t offset = 0;
+    for (size_t i = 0; i < dslist.size(); i++) {
+      DataStore *src = dslist.at(i);
+      if (io_mode() == KMRNext::File) {
+	src->load();
+      }
+      for (size_t j = 0; j < src->dlist_size_; j++) {
+	dlist_[offset + j].set(src->dlist_[j].data());
+      }
+      if (io_mode() == KMRNext::File) {
+	src->clear_cache();
+      }
+      offset += src->dlist_size_;
+    }
+
+    if (io_mode() == KMRNext::File) {
+      store();
+      clear_cache();
+    }
+  }
+
+  void DataStore::split_to(vector<DataStore*>& dslist) {
+    if (dlist_size_ == 0) {
+      throw runtime_error("Data should be set.");
+    }
+    if (size_ < 2) {
+      throw runtime_error("DataStore can't be split.");
+    }
+    if (value_[0] != dslist.size()) {
+      ostringstream os;
+      os << "DataStore vector size should be " << value_[0]
+	 << ", but " << dslist.size() << ".";
+      throw runtime_error(os.str());
+    }
+    {
+      // Check each DataStore in the vector
+      size_t expected_dim_size = size_ - 1;
+      for (vector<DataStore*>::iterator itr = dslist.begin();
+	   itr != dslist.end(); itr++) {
+	if (expected_dim_size != (*itr)->size_) {
+	  throw runtime_error("Dimension size of one of DataStore is wrong.");
+	}
+      }
+    }
+
+    if (io_mode() == KMRNext::File) {
+      load();
+    }
+
+    size_t split_dims[kMaxDimensionSize];
+    for (size_t i = 1; i < size_; i++) {
+      split_dims[i-1] = value_[i];
+    }
+
+    size_t offset = 0;
+    for (size_t i = 0; i < dslist.size(); i++) {
+      DataStore *dst = dslist.at(i);
+      dst->set(split_dims);
+      for (size_t j = 0; j < dst->dlist_size_; j++) {
+	dst->dlist_[j].set(dlist_[offset + j].data());
+      }
+      if (io_mode() == KMRNext::File) {
+	dst->store();
+	dst->clear_cache();
+      }
+      offset += dst->dlist_size_;
+    }
+
+    if (io_mode() == KMRNext::File) {
+      clear_cache();
+    }
+  }
+
+  DataStore* DataStore::duplicate() {
+    class Copier : public Mapper {
+    public:
+      int operator()(DataStore *inds, DataStore *outds,
+		     Key& key, vector<DataPack>& dps,
+		     MapEnvironment& env)
+      {
+	for (std::vector<kmrnext::DataPack>:: iterator itr = dps.begin();
+	     itr != dps.end(); itr++) {
+	  Data d((*itr).data().value(), (*itr).data().size());
+	  outds->add((*itr).key(), d);
+	}
+	return 0;
+      }
+    } copier;
+
+    View view(size_);
+    for (size_t i = 0; i < size_; i++) {
+      view.set_dim(i, false);
+    }
+    DataStore* ds = new DataStore(size_, kmrnext_);
+    ds->set(value_);
+    map(copier, view, ds);
+    return ds;
+  }
+
   KMRNext::IOMode DataStore::io_mode() {
     if (kmrnext_ == NULL) {
       throw runtime_error("KMRNext instance should be set to a DataStore.");
@@ -64,6 +220,101 @@ namespace kmrnext {
 				Loader<long>& loader) {
     load_array(ints, loader, kmrnext_, this, value_, size_);
   }
+
+  size_t DataStore::key_to_index(const Key& key) {
+    size_t idx = 0;
+    for (size_t i = 0; i < size_; i++) {
+      size_t offset = 1;
+      for (size_t j = i+1; j < size_; j++) {
+	offset *= value_[j];
+      }
+      idx += key.dim(i) * offset;
+    }
+    return idx;
+  }
+
+  Key DataStore::index_to_key(const size_t index) {
+    Key key(size_);
+    size_t _index = index;
+    for (size_t i = 0; i < size_; i++) {
+      size_t length = 1;
+      for (size_t j = i+1; j < size_; j++) {
+	length *= value_[j];
+      }
+      key.set_dim(i, _index / length);
+      _index %= length;
+    }
+    return key;
+  }
+
+  size_t DataStore::key_to_viewed_index(const Key& key, const View& view) {
+    // Currently, It returns column-ordered index
+#if 1
+    // It returns column-ordered index
+    size_t idx = 0;
+    for (long i = static_cast<long>(size_) - 1; i >= 0; i--) {
+      if (view.dim(i)) {
+	size_t offset = 1;
+	for (long j = i-1; j >= 0; j--) {
+	  if (view.dim(j)) {
+	    offset *= value_[j];
+	  }
+	}
+	idx += key.dim(i) * offset;
+      }
+    }
+    return idx;
+#else
+    // It returns row-ordered index
+    size_t idx = 0;
+    for (size_t i = 0; i < size_; i++) {
+      if (view.dim(i)) {
+	size_t offset = 1;
+	for (size_t j = i+1; j < size_; j++) {
+	  if (view.dim(j)) {
+	    offset *= value_[j];
+	  }
+	}
+	idx += key.dim(i) * offset;
+      }
+    }
+    return idx;
+#endif
+  }
+
+  Key DataStore::key_to_viewed_key(const Key& key, const View& view) {
+    size_t viewed_key_size = 0;
+    for (size_t i = 0; i < size_; i++) {
+      if (view.dim(i)) {
+	viewed_key_size += 1;
+      }
+    }
+
+    Key viewed_key(viewed_key_size);
+    size_t viewed_key_idx = 0;
+    for (size_t i = 0; i < size_; i++) {
+      if (view.dim(i)) {
+	viewed_key.set_dim(viewed_key_idx, key.dim(i));
+	viewed_key_idx += 1;
+      }
+    }
+    return viewed_key;
+  }
+
+#if 0
+  // A version where dimension of the viewed key is same as the source key
+  Key DataStore::key_to_viewed_key(const Key& key, const View& view) {
+    Key viewed_key(size_);
+    for (size_t i = 0; i < size_; i++) {
+      if (view.dim(i)) {
+	viewed_key.set_dim(i, key.dim(i));
+      } else {
+	viewed_key.set_dim(i, 0);
+      }
+    }
+    return viewed_key;
+  }
+#endif
 
   DataElement* DataStore::data_element_at(const Key& key) {
     size_t idx = key_to_index(key);

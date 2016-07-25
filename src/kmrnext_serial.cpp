@@ -18,7 +18,7 @@ namespace kmrnext {
     }
   }
 
-  KMRNext::KMRNext() : profile_(false), iomode_(Memory) {}
+  KMRNext::KMRNext() : profile_(false), iomode_(KMRNext::Memory) {}
 
   KMRNext::~KMRNext() {}
 
