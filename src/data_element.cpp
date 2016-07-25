@@ -6,12 +6,10 @@ namespace kmrnext {
 
 #ifdef BACKEND_SERIAL
   DataElement::DataElement()
-    : data_(NULL), data_set_(false),
-      data_updated_(false), data_file_offset_(0), data_file_size_(0) {}
+    : data_(NULL), data_set_(false) {}
 #elif BACKEND_KMR
   DataElement::DataElement()
     : data_(NULL), data_set_(false),
-      data_updated_(false), data_file_offset_(0), data_file_size_(0),
       owner_(-1), shared_(false) {}
 #endif
 
@@ -45,8 +43,6 @@ namespace kmrnext {
     data_ = new Data(dat->value(), dat->size());
     data_->allocate();
     data_set_ = true;
-
-    data_updated_ = true;
   }
 
   void DataElement::clear() {
@@ -55,18 +51,29 @@ namespace kmrnext {
     }
     data_ = NULL;
     data_set_ = false;
-
-    data_updated_ = false;
-    data_file_offset_ = 0;
-    data_file_size_ = 0;
-
 #ifdef BACKEND_KMR
     owner_ = -1;
     shared_ = false;
 #endif
   }
 
-  void DataElement::restore(char *buf) {
+  SimpleFileDataElement::SimpleFileDataElement()
+    : DataElement(),
+      data_updated_(false), data_file_offset_(0), data_file_size_(0) {}
+
+  void SimpleFileDataElement::set_data(const Data* dat, bool overwrite) {
+    DataElement::set_data(dat, overwrite);
+    data_updated_ = true;
+  }
+
+  void SimpleFileDataElement::clear() {
+    DataElement::clear();
+    data_updated_ = false;
+    data_file_offset_ = 0;
+    data_file_size_ = 0;
+  }
+
+  void SimpleFileDataElement::restore(char *buf) {
     if (!data_set_) {
       // Skip as Data is removed
       return;
@@ -85,13 +92,13 @@ namespace kmrnext {
     data_->allocate();
   }
 
-  void DataElement::written(size_t start_pos, size_t written_siz) {
+  void SimpleFileDataElement::written(size_t start_pos, size_t written_siz) {
     data_updated_ = false;
     data_file_offset_ = start_pos;
     data_file_size_ = written_siz;
   }
 
-  void DataElement::clear_cache() {
+  void SimpleFileDataElement::clear_cache() {
     if (data_ != NULL) {
       delete data_;
       data_ = NULL;

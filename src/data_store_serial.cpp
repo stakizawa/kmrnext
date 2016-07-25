@@ -2,63 +2,45 @@
 
 namespace kmrnext {
 
-  DataStore::DataStore(size_t siz)
-    : Dimensional<size_t>(siz), dlist_(NULL), dlist_size_(0),
-    dlist_allocated_(false), map_inplace_(false), kmrnext_(NULL),
-    data_updated_(false), data_cached_(false) {}
-
   DataStore::DataStore(size_t siz, KMRNext *kn)
-    : Dimensional<size_t>(siz), dlist_(NULL), dlist_size_(0),
-    dlist_allocated_(false), map_inplace_(false), kmrnext_(kn),
-    data_updated_(false), data_cached_(false) {}
+    : Dimensional<size_t>(siz), dlist_(vector<DataElement*>()),
+    dlist_size_(0), map_inplace_(false), kmrnext_(kn) {}
 
   DataStore::~DataStore() {
-    if (dlist_allocated_) {
-      delete[] dlist_;
-    }
-    if (io_mode() == KMRNext::File) {
-      string fname = filename();
-      delete_file(fname);
+    if (dlist_size_ != 0) {
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (size_t i = 0; i < dlist_size_; i++) {
+	delete dlist_[i];
+      }
     }
   }
 
   void DataStore::add(const Key& key, const Data& data) {
     check_key_range(key);
-    if (!dlist_allocated_) {
+    if (dlist_size_ == 0) {
       set(value_);
     }
     size_t idx = key_to_index(key);
-    DataElement *de = &(dlist_[idx]);
+    DataElement *de = dlist_[idx];
     if (map_inplace_) {
       de->replace(&data);
     } else {
       de->set(&data);
     }
-    if (io_mode() == KMRNext::File) {
-      data_updated_ = true;
-    }
   }
 
   DataPack DataStore::get(const Key& key) {
     check_key_range(key);
-    if (io_mode() == KMRNext::File) {
-      load();
-    }
     size_t idx = key_to_index(key);
-    Data* dat = dlist_[idx].data();
-    DataPack dp = DataPack(key, dat, true);
-    if (io_mode() == KMRNext::File) {
-      clear_cache();
-    }
-    return dp;
+    Data* dat = dlist_[idx]->data();
+    return DataPack(key, dat, true);
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
     check_view(view);
     check_key_range(key);
-    if (io_mode() == KMRNext::File) {
-      load();
-    }
 
     vector<DataPack> *dps = new vector<DataPack>();
     for (size_t i = 0; i < dlist_size_; i++) {
@@ -71,30 +53,18 @@ namespace kmrnext {
 	}
       }
       if (push) {
-	dps->push_back(DataPack(tmpkey, dlist_[i].data(), true));
+	dps->push_back(DataPack(tmpkey, dlist_[i]->data(), true));
       }
     }
 
-    if (io_mode() == KMRNext::File) {
-      clear_cache();
-    }
     return dps;
   }
 
   DataPack DataStore::remove(const Key& key) {
     check_key_range(key);
-    if (io_mode() == KMRNext::File) {
-      load();
-    }
-
     size_t idx = key_to_index(key);
-    DataPack dp(key, dlist_[idx].data(), true);
-    dlist_[idx].clear();
-
-    if (io_mode() == KMRNext::File) {
-      data_updated_ = true;
-      clear_cache();
-    }
+    DataPack dp(key, dlist_[idx]->data(), true);
+    dlist_[idx]->clear();
     return dp;
   }
 
@@ -102,11 +72,6 @@ namespace kmrnext {
     check_map_args(view, outds);
     if (dlist_size_ == 0) {
       return;
-    }
-
-    if (io_mode() == KMRNext::File) {
-      store();
-      load();
     }
 
     size_t nkeys = 1;
@@ -118,13 +83,13 @@ namespace kmrnext {
 
     vector< vector<DataPack> > dpgroups(nkeys);
     for (size_t i = 0; i < dlist_size_; i++) {
-      if (dlist_[i].data() == NULL) {
+      if (dlist_[i]->data() == NULL) {
 	continue;
       }
       Key tmpkey = index_to_key(i);
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
-      dps.push_back(DataPack(tmpkey, dlist_[i].data()));
+      dps.push_back(DataPack(tmpkey, dlist_[i]->data()));
     }
 
     if (kmrnext_->profile()) {
@@ -155,12 +120,6 @@ namespace kmrnext {
     }
     if (outds == self_ || outds == this) {
       map_inplace_ = false;
-    }
-
-    if (io_mode() == KMRNext::File) {
-      _outds->store();
-      _outds->clear_cache();
-      clear_cache();
     }
   }
 
@@ -216,7 +175,54 @@ namespace kmrnext {
     return counter.result_;
   }
 
-  string DataStore::filename() {
+  SimpleFileDataStore::~SimpleFileDataStore() {
+    string fname = filename();
+    delete_file(fname);
+  }
+
+  void SimpleFileDataStore::add(const Key& key, const Data& data) {
+    DataStore::add(key, data);
+    data_updated_ = true;
+  }
+
+  DataPack SimpleFileDataStore::get(const Key& key) {
+    load();
+    DataPack dp = DataStore::get(key);
+    clear_cache();
+    return dp;
+  }
+
+  vector<DataPack>* SimpleFileDataStore::get(const View& view, const Key& key)
+  {
+    load();
+    vector<DataPack>* dps = DataStore::get(view, key);
+    clear_cache();
+    return dps;
+  }
+
+  DataPack SimpleFileDataStore::remove(const Key& key) {
+    load();
+    DataPack dp = DataStore::remove(key);
+    data_updated_ = true;
+    clear_cache();
+    return dp;
+  }
+
+  void SimpleFileDataStore::map(Mapper& m, const View& view, DataStore* outds)
+  {
+    store();
+    load();
+    DataStore::map(m, view, outds);
+    SimpleFileDataStore* _outds = dynamic_cast<SimpleFileDataStore*>(outds);
+    if (outds == self_ || outds == this) {
+      _outds = this;
+    }
+    _outds->store();
+    _outds->clear_cache();
+    clear_cache();
+  }
+
+  string SimpleFileDataStore::filename() {
     ostringstream os;
     os << "./" << this << ".dat";
     return os.str();

@@ -58,8 +58,13 @@ namespace kmrnext {
       value_[i] = val[i];
       dlist_size_ *= val[i];
     }
-    dlist_ = new DataElement[dlist_size_];
-    dlist_allocated_ = true;
+    dlist_.reserve(dlist_size_);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < dlist_size_; i++) {
+      dlist_[i] = new DataElement();
+    }
   }
 
   void DataStore::set_from(const vector<DataStore*>& dslist) {
@@ -92,37 +97,21 @@ namespace kmrnext {
       }
     }
 
-    value_[0] = dslist.size();
+    size_t sizes[kMaxDimensionSize];
+    sizes[0] = dslist.size();
     DataStore *ds0 = dslist.at(0);
     for (size_t i = 1; i < size_; i++) {
-      value_[i] = ds0->value_[i-1];
+      sizes[i] = ds0->value_[i-1];
     }
-
-    dlist_size_ = 1;
-    for (size_t i = 0; i < size_; i++) {
-      dlist_size_ *= value_[i];
-    }
-    dlist_ = new DataElement[dlist_size_];
-    dlist_allocated_ = true;
+    set(sizes);
 
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
       DataStore *src = dslist.at(i);
-      if (io_mode() == KMRNext::File) {
-	src->load();
-      }
       for (size_t j = 0; j < src->dlist_size_; j++) {
-	dlist_[offset + j].set(src->dlist_[j].data());
-      }
-      if (io_mode() == KMRNext::File) {
-	src->clear_cache();
+	dlist_[offset + j]->set(src->dlist_[j]->data());
       }
       offset += src->dlist_size_;
-    }
-
-    if (io_mode() == KMRNext::File) {
-      store();
-      clear_cache();
     }
   }
 
@@ -150,10 +139,6 @@ namespace kmrnext {
       }
     }
 
-    if (io_mode() == KMRNext::File) {
-      load();
-    }
-
     size_t split_dims[kMaxDimensionSize];
     for (size_t i = 1; i < size_; i++) {
       split_dims[i-1] = value_[i];
@@ -164,21 +149,19 @@ namespace kmrnext {
       DataStore *dst = dslist.at(i);
       dst->set(split_dims);
       for (size_t j = 0; j < dst->dlist_size_; j++) {
-	dst->dlist_[j].set(dlist_[offset + j].data());
-      }
-      if (io_mode() == KMRNext::File) {
-	dst->store();
-	dst->clear_cache();
+	dst->dlist_[j]->set(dlist_[offset + j]->data());
       }
       offset += dst->dlist_size_;
-    }
-
-    if (io_mode() == KMRNext::File) {
-      clear_cache();
     }
   }
 
   DataStore* DataStore::duplicate() {
+    DataStore* ds = new DataStore(size_, kmrnext_);
+    __duplicate(ds);
+    return ds;
+  }
+
+  void DataStore::__duplicate(DataStore* ds) {
     class Copier : public Mapper {
     public:
       int operator()(DataStore *inds, DataStore *outds,
@@ -194,14 +177,12 @@ namespace kmrnext {
       }
     } copier;
 
+    ds->set(value_);
     View view(size_);
     for (size_t i = 0; i < size_; i++) {
       view.set_dim(i, false);
     }
-    DataStore* ds = new DataStore(size_, kmrnext_);
-    ds->set(value_);
     map(copier, view, ds);
-    return ds;
   }
 
   KMRNext::IOMode DataStore::io_mode() {
@@ -318,7 +299,7 @@ namespace kmrnext {
 
   DataElement* DataStore::data_element_at(const Key& key) {
     size_t idx = key_to_index(key);
-    return &dlist_[idx];
+    return dlist_[idx];
   }
 
   void DataStore::check_view(const View& view) {
@@ -353,7 +334,62 @@ namespace kmrnext {
     }
   }
 
-  bool DataStore::store() {
+  void SimpleFileDataStore::set(const size_t *val) {
+    if (dlist_size_ != 0) {
+      throw runtime_error("DataStore is already initialized.");
+    }
+
+    dlist_size_ = 1;
+    for (size_t i = 0; i < size_; i++) {
+      value_[i] = val[i];
+      dlist_size_ *= val[i];
+    }
+    dlist_.reserve(dlist_size_);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < dlist_size_; i++) {
+      dlist_[i] = new SimpleFileDataElement();
+    }
+  }
+
+  void SimpleFileDataStore::set_from(const vector<DataStore*>& dslist) {
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < dslist.size(); i++) {
+      dynamic_cast<SimpleFileDataStore*>(dslist.at(i))->load();
+    }
+    DataStore::set_from(dslist);
+    store();
+    clear_cache();
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < dslist.size(); i++) {
+      dynamic_cast<SimpleFileDataStore*>(dslist.at(i))->clear_cache();
+    }
+  }
+
+  void SimpleFileDataStore::split_to(vector<DataStore*>& dslist) {
+    load();
+    DataStore::split_to(dslist);
+    for (size_t i = 0; i < dslist.size(); i++) {
+      SimpleFileDataStore *ds =
+	dynamic_cast<SimpleFileDataStore*>(dslist.at(i));
+      ds->store();
+      ds->clear_cache();
+    }
+    clear_cache();
+  }
+
+  DataStore* SimpleFileDataStore::duplicate() {
+    SimpleFileDataStore* ds = new SimpleFileDataStore(size_, kmrnext_);
+    __duplicate(ds);
+    return ds;
+  }
+
+  bool SimpleFileDataStore::store() {
     string fname = filename();
     if (file_exist(fname)) {
       if (data_updated_) {
@@ -371,10 +407,10 @@ namespace kmrnext {
     char *buf = static_cast<char*>(calloc(cur_buf_siz, sizeof(char)));
 
     for (size_t i = 0; i < dlist_size_; i++) {
-      if (!dlist_[i].is_set()) {
+      if (!dlist_[i]->is_set()) {
 	continue;
       }
-      Data *d = dlist_[i].data();
+      Data *d = dlist_[i]->data();
       size_t d_siz = d->size();
       if (d_siz == 0) {
 	continue;
@@ -388,7 +424,8 @@ namespace kmrnext {
       // TODO maybe memcpy() is not necessary
       memcpy(buf, d_val, d_siz);
       fout.write(buf, static_cast<streamsize>(buf_siz));
-      dlist_[i].written(write_offset, buf_siz);
+      dynamic_cast<SimpleFileDataElement*>(dlist_[i])-> written(write_offset,
+								buf_siz);
       write_offset += buf_siz;
     }
     free(buf);
@@ -399,7 +436,7 @@ namespace kmrnext {
     return true;
   }
 
-  bool DataStore::load() {
+  bool SimpleFileDataStore::load() {
     string fname = filename();
     if (data_cached_ && !file_exist(fname)) {
       throw runtime_error("File is not found.");
@@ -422,14 +459,14 @@ namespace kmrnext {
     #pragma omp parallel for
 #endif
     for (size_t i = 0; i < dlist_size_; i++) {
-      dlist_[i].restore(buf);
+      dynamic_cast<SimpleFileDataElement*>(dlist_[i])->restore(buf);
     }
     free(buf);
     data_cached_ = true;
     return true;
   }
 
-  void DataStore::clear_cache() {
+  void SimpleFileDataStore::clear_cache() {
     if (!data_cached_) {
       return;
     }
@@ -437,7 +474,7 @@ namespace kmrnext {
     #pragma omp parallel for
 #endif
     for (size_t i = 0; i < dlist_size_; i++) {
-      dlist_[i].clear_cache();
+      dynamic_cast<SimpleFileDataElement*>(dlist_[i])->clear_cache();
     }
     data_cached_ = false;
   }
