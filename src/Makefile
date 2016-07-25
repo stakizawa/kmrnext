@@ -2,7 +2,7 @@ include ../config.make
 
 HEADERS = kmrnext.hpp ckmrnext.h kmrnextf.f90
 LIB     = libkmrnext.a
-OBJS    = kmrnext.o basic_data.o data_store.o ckmrnext.o \
+OBJS    = kmrnext.o basic_data.o data_store.o data_element.o ckmrnext.o \
 	  api_fortran.o kmrnextf.o
 TESTS   = test00-basic test01-mng-ds test02-clang test03-fortran test04-file
 
