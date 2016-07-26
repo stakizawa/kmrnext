@@ -19,14 +19,7 @@ namespace {
 
   TEST_F(KMRNextTest, IO_mode) {
     EXPECT_EQ(kmrnext::KMRNext::Memory, gNext->io_mode());
-    kmrnext::DataStore *ds0 = gNext->create_ds(2);
-    EXPECT_EQ(kmrnext::KMRNext::Memory, ds0->io_mode());
-    delete ds0;
-
     gNext->set_io_mode(kmrnext::KMRNext::File);
     EXPECT_EQ(kmrnext::KMRNext::File, gNext->io_mode());
-    kmrnext::DataStore *ds1 = gNext->create_ds(2);
-    EXPECT_EQ(kmrnext::KMRNext::File, ds1->io_mode());
-    delete ds1;
   }
 }

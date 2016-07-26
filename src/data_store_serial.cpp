@@ -175,16 +175,6 @@ namespace kmrnext {
     return counter.result_;
   }
 
-  SimpleFileDataStore::~SimpleFileDataStore() {
-    string fname = filename();
-    delete_file(fname);
-  }
-
-  void SimpleFileDataStore::add(const Key& key, const Data& data) {
-    DataStore::add(key, data);
-    data_updated_ = true;
-  }
-
   DataPack SimpleFileDataStore::get(const Key& key) {
     load();
     DataPack dp = DataStore::get(key);
@@ -206,20 +196,6 @@ namespace kmrnext {
     data_updated_ = true;
     clear_cache();
     return dp;
-  }
-
-  void SimpleFileDataStore::map(Mapper& m, const View& view, DataStore* outds)
-  {
-    store();
-    load();
-    DataStore::map(m, view, outds);
-    SimpleFileDataStore* _outds = dynamic_cast<SimpleFileDataStore*>(outds);
-    if (outds == self_ || outds == this) {
-      _outds = this;
-    }
-    _outds->store();
-    _outds->clear_cache();
-    clear_cache();
   }
 
   string SimpleFileDataStore::filename() {

@@ -9,8 +9,7 @@ namespace kmrnext {
     : data_(NULL), data_set_(false) {}
 #elif BACKEND_KMR
   DataElement::DataElement()
-    : data_(NULL), data_set_(false),
-      owner_(-1), shared_(false) {}
+    : data_(NULL), data_set_(false), owner_(-1), shared_(false) {}
 #endif
 
   DataElement::~DataElement() {

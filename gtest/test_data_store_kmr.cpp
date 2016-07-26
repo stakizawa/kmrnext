@@ -69,7 +69,7 @@ namespace {
       ds2_owners_ = new int[4];
       init_owners(ds2_owners_, 4);
       DataLoader2D ds2_loader(ds2_array_[1]);
-      ds2_ = new kmrnext::DataStore(2, gNext);
+      ds2_ = gNext->create_ds(2);
       ds2_->set(ds2_array_);
       ds2_->load_integers(ds2_vec, ds2_loader);
 
@@ -82,7 +82,7 @@ namespace {
 	ds3_vec.push_back(i);
       }
       DataLoader3D ds3_loader(ds3_array_[1], ds3_array_[2]);
-      ds3_ = new kmrnext::DataStore(3, gNext);
+      ds3_ = gNext->create_ds(3);
       ds3_->set(ds3_array_);
       ds3_->load_integers(ds3_vec, ds3_loader);
 
@@ -125,7 +125,7 @@ namespace {
 
     // Create a DataStore <3,3,3> having '1' for all data element
     kmrnext::DataStore *create_ds3d() {
-      kmrnext::DataStore *ds3 = new kmrnext::DataStore(3, gNext);
+      kmrnext::DataStore *ds3 = gNext->create_ds(3);
       ds3->set_dim(0, 3);
       ds3->set_dim(1, 3);
       ds3->set_dim(2, 3);
@@ -195,17 +195,18 @@ namespace {
       vec0.push_back(i);
     }
     init_owners(owners, 4);
-    kmrnext::DataStore ds0(2, gNext);
-    ds0.set(ds_size);
-    ds0.load_integers(vec0, loader);
-    EXPECT_EQ(1, *static_cast<int*>(ds0.get(*k2_00_).data().value()));
-    EXPECT_EQ(2, *static_cast<int*>(ds0.get(*k2_11_).data().value()));
-    EXPECT_EQ(3, *static_cast<int*>(ds0.get(*k2_22_).data().value()));
-    EXPECT_EQ(4, *static_cast<int*>(ds0.get(*k2_33_).data().value()));
-    EXPECT_EQ(owners[0], ds0.data_element_at(*k2_00_)->owner());
-    EXPECT_EQ(owners[1], ds0.data_element_at(*k2_11_)->owner());
-    EXPECT_EQ(owners[2], ds0.data_element_at(*k2_22_)->owner());
-    EXPECT_EQ(owners[3], ds0.data_element_at(*k2_33_)->owner());
+    kmrnext::DataStore *ds0 = gNext->create_ds(2);
+    ds0->set(ds_size);
+    ds0->load_integers(vec0, loader);
+    EXPECT_EQ(1, *static_cast<int*>(ds0->get(*k2_00_).data().value()));
+    EXPECT_EQ(2, *static_cast<int*>(ds0->get(*k2_11_).data().value()));
+    EXPECT_EQ(3, *static_cast<int*>(ds0->get(*k2_22_).data().value()));
+    EXPECT_EQ(4, *static_cast<int*>(ds0->get(*k2_33_).data().value()));
+    EXPECT_EQ(owners[0], ds0->data_element_at(*k2_00_)->owner());
+    EXPECT_EQ(owners[1], ds0->data_element_at(*k2_11_)->owner());
+    EXPECT_EQ(owners[2], ds0->data_element_at(*k2_22_)->owner());
+    EXPECT_EQ(owners[3], ds0->data_element_at(*k2_33_)->owner());
+    delete ds0;
   }
 
   TEST_F(KMRDataStoreTest, Get_view) {
@@ -299,31 +300,32 @@ namespace {
 
   TEST_F(KMRDataStoreTest, Map) {
     // Check owners in case of Serial Mapper
-    kmrnext::DataStore ods0(2, gNext);
-    ods0.set(ds2_array_);
+    kmrnext::DataStore *ods0 = gNext->create_ds(2);
+    ods0->set(ds2_array_);
     Copier0 mapper0;
     kmrnext::View v0(2);
     bool flags0[2] = {true, true};
     v0.set(flags0);
-    ds2_->map(mapper0, v0, &ods0);
-    EXPECT_EQ(1, *static_cast<int*>(ods0.get(*k2_00_).data().value()));
-    EXPECT_EQ(2, *static_cast<int*>(ods0.get(*k2_11_).data().value()));
-    EXPECT_EQ(3, *static_cast<int*>(ods0.get(*k2_22_).data().value()));
-    EXPECT_EQ(4, *static_cast<int*>(ods0.get(*k2_33_).data().value()));
-    EXPECT_EQ(ds2_owners_[0], ods0.data_element_at(*k2_00_)->owner());
-    EXPECT_EQ(ds2_owners_[1], ods0.data_element_at(*k2_11_)->owner());
-    EXPECT_EQ(ds2_owners_[2], ods0.data_element_at(*k2_22_)->owner());
-    EXPECT_EQ(ds2_owners_[3], ods0.data_element_at(*k2_33_)->owner());
+    ds2_->map(mapper0, v0, ods0);
+    EXPECT_EQ(1, *static_cast<int*>(ods0->get(*k2_00_).data().value()));
+    EXPECT_EQ(2, *static_cast<int*>(ods0->get(*k2_11_).data().value()));
+    EXPECT_EQ(3, *static_cast<int*>(ods0->get(*k2_22_).data().value()));
+    EXPECT_EQ(4, *static_cast<int*>(ods0->get(*k2_33_).data().value()));
+    EXPECT_EQ(ds2_owners_[0], ods0->data_element_at(*k2_00_)->owner());
+    EXPECT_EQ(ds2_owners_[1], ods0->data_element_at(*k2_11_)->owner());
+    EXPECT_EQ(ds2_owners_[2], ods0->data_element_at(*k2_22_)->owner());
+    EXPECT_EQ(ds2_owners_[3], ods0->data_element_at(*k2_33_)->owner());
+    delete ods0;
 
     // Check owners in case of Parallel Mapper
-    kmrnext::DataStore ods1(1, gNext);
+    kmrnext::DataStore *ods1 = gNext->create_ds(1);
     size_t ods1_array[1] = {4};
-    ods1.set(ods1_array);
+    ods1->set(ods1_array);
     Summarizer0 mapper1(nprocs, ds2_owners_);
     kmrnext::View v1(2);
     bool flags1[2] = {false, true};
     v1.set(flags1);
-    ds2_->map(mapper1, v1, &ods1);
+    ds2_->map(mapper1, v1, ods1);
     kmrnext::Key k1_0(1), k1_1(1), k1_2(1), k1_3(1);
     size_t ary_k1_0[1] = {0};
     size_t ary_k1_1[1] = {1};
@@ -333,14 +335,15 @@ namespace {
     k1_1.set(ary_k1_1);
     k1_2.set(ary_k1_2);
     k1_3.set(ary_k1_3);
-    EXPECT_EQ(10, *static_cast<int*>(ods1.get(k1_0).data().value()));
-    EXPECT_EQ(10, *static_cast<int*>(ods1.get(k1_1).data().value()));
-    EXPECT_EQ(10, *static_cast<int*>(ods1.get(k1_2).data().value()));
-    EXPECT_EQ(10, *static_cast<int*>(ods1.get(k1_3).data().value()));
-    EXPECT_EQ(ds2_owners_[0], ods1.data_element_at(k1_0)->owner());
-    EXPECT_EQ(ds2_owners_[1], ods1.data_element_at(k1_1)->owner());
-    EXPECT_EQ(ds2_owners_[2], ods1.data_element_at(k1_2)->owner());
-    EXPECT_EQ(ds2_owners_[3], ods1.data_element_at(k1_3)->owner());
+    EXPECT_EQ(10, *static_cast<int*>(ods1->get(k1_0).data().value()));
+    EXPECT_EQ(10, *static_cast<int*>(ods1->get(k1_1).data().value()));
+    EXPECT_EQ(10, *static_cast<int*>(ods1->get(k1_2).data().value()));
+    EXPECT_EQ(10, *static_cast<int*>(ods1->get(k1_3).data().value()));
+    EXPECT_EQ(ds2_owners_[0], ods1->data_element_at(k1_0)->owner());
+    EXPECT_EQ(ds2_owners_[1], ods1->data_element_at(k1_1)->owner());
+    EXPECT_EQ(ds2_owners_[2], ods1->data_element_at(k1_2)->owner());
+    EXPECT_EQ(ds2_owners_[3], ods1->data_element_at(k1_3)->owner());
+    delete ods1;
   }
 
   TEST_F(KMRDataStoreTest, Set_split) {
@@ -350,11 +353,11 @@ namespace {
 
     // If a DataStore is initialized without calling load_xxx(),
     // the Split is set <T, F, ...>, by default.
-    kmrnext::DataStore ds3_0(3, gNext);
+    kmrnext::DataStore *ds3_0 = gNext->create_ds(3);
     {
-      ds3_0.set_dim(0, 2);
-      ds3_0.set_dim(1, 2);
-      ds3_0.set_dim(2, 2);
+      ds3_0->set_dim(0, 2);
+      ds3_0->set_dim(1, 2);
+      ds3_0->set_dim(2, 2);
       kmrnext::Key ds3_0_key(3);
       int ds3_0_val = 1;
       kmrnext::Data ds3_0_dat(&ds3_0_val, sizeof(int));
@@ -364,12 +367,13 @@ namespace {
 	  ds3_0_key.set_dim(1, j);
 	  for (size_t k = 0; k < 2; k++) {
 	    ds3_0_key.set_dim(2, k);
-	    ds3_0.add(ds3_0_key, ds3_0_dat);
+	    ds3_0->add(ds3_0_key, ds3_0_dat);
 	  }
 	}
       }
     }
-    EXPECT_EQ(ds3_0_dav, ds3_0.get_split());
+    EXPECT_EQ(ds3_0_dav, ds3_0->get_split());
+    delete ds3_0;
 
     kmrnext::View v3_0(3);
     bool flags3_0[3] = {true, true, false};
@@ -555,6 +559,7 @@ namespace {
       EXPECT_EQ(0, ds0->data_element_at(key012)->owner());
       EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
     }
+    delete ds0;
   }
 
 }

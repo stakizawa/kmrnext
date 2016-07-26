@@ -386,11 +386,6 @@ namespace kmrnext {
       virtual int operator()(DataStore *ds, const Type& param) = 0;
     };
 
-    /// It returns the current IO mode of this DataStore.
-    ///
-    /// \return  current IO mode
-    KMRNext::IOMode io_mode();
-
     /// It sets value of each dimension.
     ///
     /// \param[in] val an array that stores value of each dimension
@@ -676,6 +671,10 @@ namespace kmrnext {
 
     DataStore* duplicate();
 
+#ifdef BACKEND_KMR
+    virtual void collate();
+#endif
+
   private:
     // True if the data in DataStore is updated, but not written to a file
     bool data_updated_;
@@ -699,7 +698,7 @@ namespace kmrnext {
     void clear_cache();
   };
 
-    ///////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////
   /// A class that represents an element in a DataStore that uses files
   ///////////////////////////////////////////////////////////////////////////
   class SimpleFileDataElement : public DataElement {

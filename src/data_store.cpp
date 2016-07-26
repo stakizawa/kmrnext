@@ -185,13 +185,6 @@ namespace kmrnext {
     map(copier, view, ds);
   }
 
-  KMRNext::IOMode DataStore::io_mode() {
-    if (kmrnext_ == NULL) {
-      throw runtime_error("KMRNext instance should be set to a DataStore.");
-    }
-    return kmrnext_->io_mode();
-  }
-
   void DataStore::load_files(const vector<string>& files,
 			     Loader<string>& loader) {
     load_array(files, loader, kmrnext_, this, value_, size_);
@@ -334,6 +327,11 @@ namespace kmrnext {
     }
   }
 
+  SimpleFileDataStore::~SimpleFileDataStore() {
+    string fname = filename();
+    delete_file(fname);
+  }
+
   void SimpleFileDataStore::set(const size_t *val) {
     if (dlist_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
@@ -351,6 +349,11 @@ namespace kmrnext {
     for (size_t i = 0; i < dlist_size_; i++) {
       dlist_[i] = new SimpleFileDataElement();
     }
+  }
+
+  void SimpleFileDataStore::add(const Key& key, const Data& data) {
+    DataStore::add(key, data);
+    data_updated_ = true;
   }
 
   void SimpleFileDataStore::set_from(const vector<DataStore*>& dslist) {
@@ -380,6 +383,21 @@ namespace kmrnext {
       ds->store();
       ds->clear_cache();
     }
+    clear_cache();
+  }
+
+  void SimpleFileDataStore::map(Mapper& m, const View& view, DataStore* outds)
+  {
+    store();
+    load();
+    DataStore::map(m, view, outds);
+    SimpleFileDataStore* _outds = dynamic_cast<SimpleFileDataStore*>(outds);
+    if (outds == self_ || outds == this) {
+      _outds = this;
+      data_updated_ = true;
+    }
+    _outds->store();
+    _outds->clear_cache();
     clear_cache();
   }
 
