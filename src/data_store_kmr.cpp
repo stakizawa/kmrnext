@@ -753,6 +753,7 @@ namespace kmrnext {
   }
 
   DataPack SimpleFileDataStore::get(const Key& key) {
+    check_key_range(key);
     load();
     size_t idx = key_to_index(key);
     bool unset = !(dlist_[idx]->is_set());
@@ -768,6 +769,7 @@ namespace kmrnext {
 
   vector<DataPack>* SimpleFileDataStore::get(const View& view, const Key& key)
   {
+    check_key_range(key);
     load();
     vector<DataPack>* dps = DataStore::get(view, key);
     data_updated_ = true; // Though sometimes not updated.
