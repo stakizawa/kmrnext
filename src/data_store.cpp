@@ -421,8 +421,6 @@ namespace kmrnext {
     ofstream fout;
     fout.open(fname.c_str(), ios::out|ios::binary);
     size_t write_offset = 0;
-    size_t cur_buf_siz = kDefaultWriteBufferSize;
-    char *buf = static_cast<char*>(calloc(cur_buf_siz, sizeof(char)));
 
     for (size_t i = 0; i < dlist_size_; i++) {
       if (!dlist_[i]->is_set()) {
@@ -433,20 +431,12 @@ namespace kmrnext {
       if (d_siz == 0) {
 	continue;
       }
-      void  *d_val = d->value();
-      size_t buf_siz = d_siz;
-      if (buf_siz > cur_buf_siz) {
-	cur_buf_siz = buf_siz;
-	buf = static_cast<char*>(realloc(buf, cur_buf_siz));
-      }
-      // TODO maybe memcpy() is not necessary
-      memcpy(buf, d_val, d_siz);
-      fout.write(buf, static_cast<streamsize>(buf_siz));
-      dynamic_cast<SimpleFileDataElement*>(dlist_[i])-> written(write_offset,
-								buf_siz);
-      write_offset += buf_siz;
+      char *d_val = static_cast<char*>(d->value());
+      fout.write(d_val, static_cast<streamsize>(d_siz));
+      dynamic_cast<SimpleFileDataElement*>(dlist_[i])->written(write_offset,
+							       d_siz);
+      write_offset += d_siz;
     }
-    free(buf);
     fout.flush();
     fout.close();
     data_updated_ = false;
