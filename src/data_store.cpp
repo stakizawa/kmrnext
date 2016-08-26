@@ -45,6 +45,7 @@ namespace kmrnext {
   void DataStore::finalize() {
     if (DataStore::self_ != NULL) {
       delete DataStore::self_;
+      DataStore::self_ = NULL;
     }
   }
 

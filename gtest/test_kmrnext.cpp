@@ -22,4 +22,13 @@ namespace {
     gNext->set_io_mode(kmrnext::KMRNext::File);
     EXPECT_EQ(kmrnext::KMRNext::File, gNext->io_mode());
   }
+
+  TEST_F(KMRNextTest, Init) {
+    // Calling KMRNext::init twice or more returns the same KMRNext
+    // instance as gNext.
+    kmrnext::KMRNext *n0 = kmrnext::KMRNext::init();
+    EXPECT_EQ(gNext, n0);
+    kmrnext::KMRNext *n1 = kmrnext::KMRNext::init(0, NULL);
+    EXPECT_EQ(gNext, n1);
+  }
 }

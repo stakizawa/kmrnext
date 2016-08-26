@@ -4,7 +4,8 @@ HEADERS = kmrnext.hpp ckmrnext.h kmrnextf.f90
 LIB     = libkmrnext.a
 OBJS    = kmrnext.o basic_data.o data_store.o data_element.o ckmrnext.o \
 	  api_fortran.o kmrnextf.o
-TESTS   = test00-basic test01-mng-ds test02-clang test03-fortran test04-file
+TESTS   = test00-basic test01-mng-ds test02-clang test03-fortran test04-file \
+	  test05-multi
 
 ifeq ($(TARGET), KMR)
     DEPLIB += $(KMRDIR)/lib/libkmr.a
@@ -56,6 +57,9 @@ test03-fortran: test03-fortran.o test03-fortran-helper.o $(LIB)
 	$(FC) $(LDFLAGS) -o $@ $^ $(DEPLIB) $(CXXLIB)
 
 test04-file: test04-file.o $(LIB)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(DEPLIB)
+
+test05-multi: test05-multi.o $(LIB)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(DEPLIB)
 
 .update_header:

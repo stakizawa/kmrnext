@@ -4,7 +4,7 @@
 /// KMR Next Interface
 
 /// The backend runtime (SERIAL, KMR)
-#define BACKEND_KMR 1
+#define BACKEND_SERIAL 1
 
 #include <stdexcept>
 #include <sstream>
@@ -44,10 +44,17 @@ namespace kmrnext {
 
     /// It initializes the whole system.
     ///
+    /// If KMR backend is used, it also initialize MPI.
+    ///
     /// \param[in] argc The number of command line arguments.
     /// \param[in] argv The command line arguments.
     /// \return         An instance of KMRNext class or its derived class.
     static KMRNext* init(int argc, char **argv);
+
+    /// It initializes the whole system.
+    ///
+    /// \return    An instance of KMRNext class or its derived class.
+    static KMRNext* init();
 
     /// It finalizes the whole system.
     static void finalize();
@@ -102,6 +109,8 @@ namespace kmrnext {
 #ifdef BACKEND_KMR
     // MPI_Comm where the KMRNext instance belongs
     MPI_Comm world_comm_;
+    // True if MPI is initialized by KMRNext
+    bool initiate_mpi;
     // Number of processes in the MPI_Comm
     int nprocs_;
     // Rank of this process in the MPI_Comm

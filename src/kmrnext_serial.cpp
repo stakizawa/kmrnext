@@ -4,6 +4,10 @@
 namespace kmrnext {
 
   KMRNext* KMRNext::init(int argc, char **argv) {
+    return KMRNext::init();
+  }
+
+  KMRNext* KMRNext::init() {
     if (kmrnext_ == NULL) {
       kmrnext_ = new KMRNext();
     }
@@ -15,6 +19,7 @@ namespace kmrnext {
     DataStore::finalize();
     if (kmrnext_ != NULL) {
       delete kmrnext_;
+      kmrnext_ = NULL;
     }
   }
 
