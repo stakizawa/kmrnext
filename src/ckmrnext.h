@@ -34,6 +34,7 @@ typedef int (*kmrnext_mapfn_t)(void *ids, void *ods, void *key,
 typedef char* (*kmrnext_dumpfn_t)(void *dp);
 
 void *KMRNEXT_init(int argc, char **argv);
+void *KMRNEXT_init0();
 void KMRNEXT_finalize();
 
 void KMRNEXT_enable_profile(void *next);

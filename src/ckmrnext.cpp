@@ -24,6 +24,12 @@ void *KMRNEXT_init(int argc, char **argv)
   return static_cast<void*>(next);
 }
 
+void *KMRNEXT_init0()
+{
+  KMRNext *next = KMRNext::init();
+  return static_cast<void*>(next);
+}
+
 void KMRNEXT_finalize()
 {
   KMRNext::finalize();
