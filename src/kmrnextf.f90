@@ -1,5 +1,5 @@
 ! The backend runtime (SERIAL, KMR)
-#define BACKEND_SERIAL 1
+#define BACKEND_KMR 1
 
 module kmrnextf
   use iso_c_binding
@@ -31,6 +31,17 @@ module kmrnextf
        type(c_ptr), intent(in), value :: file_ptr
        !character(c_char), intent(in) :: file(:)
      end function kmrnext_loadfn
+
+#ifdef BACKEND_KMR
+     integer(c_int) function kmrnext_load_localfn(ds, rank, data, siz) bind(c)
+       use iso_c_binding
+       implicit none
+       type(c_ptr),       intent(in), value :: ds
+       integer(c_int),    intent(in), value :: rank
+       type(c_ptr),       intent(in), value :: data
+       integer(c_size_t), intent(in), value :: siz
+     end function kmrnext_load_localfn
+#endif
 
      integer(c_int) function kmrnext_mapfn(ids, ods, key, dps, env) bind(c)
        use iso_c_binding
@@ -130,6 +141,18 @@ module kmrnextf
        integer(c_size_t), intent(in), value :: nfiles
        type(c_funptr),    intent(in), value :: l
      end subroutine C_kmrnext_ds_load_files
+
+#ifdef BACKEND_KMR
+     subroutine C_kmrnext_ds_load_local_data(ds, data, siz, l) &
+          bind(c, name='KMRNEXT_ds_load_local_data')
+       use iso_c_binding
+       implicit none
+       type(c_ptr),       intent(in), value :: ds
+       type(c_ptr),       intent(in), value :: data
+       integer(c_size_t), intent(in), value :: siz
+       type(c_funptr),    intent(in), value :: l
+     end subroutine C_kmrnext_ds_load_local_data
+#endif
 
      subroutine C_kmrnext_ds_add(ds, key, dat) bind(c, name='KMRNEXT_ds_add')
        use iso_c_binding
@@ -472,6 +495,18 @@ contains
     deallocate(cstring)
     zz = 0
   end function kmrnext_ds_load_files
+
+#ifdef BACKEND_KMR
+  integer function kmrnext_ds_load_local_data(ds, data, size, l) result(zz)
+    type(c_ptr),  intent(in),        value   :: ds
+    type(c_ptr),  intent(in),        value   :: data
+    integer,      intent(in)                 :: size
+    procedure(kmrnext_load_localfn), bind(c) :: l
+    call C_kmrnext_ds_load_local_data(ds, data, int(size, c_size_t), &
+         C_FUNLOC(l))
+    zz = 0
+  end function kmrnext_ds_load_local_data
+#endif
 
   integer function kmrnext_ds_add(ds, key, dat) result(zz)
     type(c_ptr), intent(in), value :: ds

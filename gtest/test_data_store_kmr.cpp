@@ -209,6 +209,53 @@ namespace {
     delete ds0;
   }
 
+  class LocalDataLoader : public kmrnext::DataStore::Loader<long> {
+    int *data_;
+    size_t n_data_;
+  public:
+    LocalDataLoader(int *val, size_t nvals)
+      : data_(val), n_data_(nvals) {}
+
+    int operator()(kmrnext::DataStore *ds, const long& rank)
+    {
+      kmrnext::Key key(2);
+      key.set_dim(0, rank);
+      for (size_t i = 0; i < n_data_; i++) {
+	key.set_dim(1, i);
+	kmrnext::Data data(static_cast<void*>(&data_[i]), sizeof(long));
+	ds->add(key, data);
+      }
+      return 0;
+    }
+  };
+
+  TEST_F(KMRDataStoreTest, Load_local_data) {
+    int data[4] = {rank, rank, rank, rank};
+    LocalDataLoader loader(data, 4);
+
+    size_t ds2_size[2] = {static_cast<size_t>(nprocs), 4};
+    kmrnext::DataStore* ds0 = gNext->create_ds(2);
+    ds0->set(ds2_size);
+    ds0->load_local_data(loader);
+    if (nprocs >= 1) {
+      EXPECT_EQ(0, *static_cast<int*>(ds0->get(*k2_00_).data().value()));
+      EXPECT_EQ(0, ds0->data_element_at(*k2_00_)->owner());
+    }
+    if (nprocs >= 2) {
+      EXPECT_EQ(1, *static_cast<int*>(ds0->get(*k2_11_).data().value()));
+      EXPECT_EQ(1, ds0->data_element_at(*k2_11_)->owner());
+    }
+    if (nprocs >= 3) {
+      EXPECT_EQ(2, *static_cast<int*>(ds0->get(*k2_22_).data().value()));
+      EXPECT_EQ(2, ds0->data_element_at(*k2_22_)->owner());
+    }
+    if (nprocs >= 4) {
+      EXPECT_EQ(3, *static_cast<int*>(ds0->get(*k2_33_).data().value()));
+      EXPECT_EQ(3, ds0->data_element_at(*k2_33_)->owner());
+    }
+    delete ds0;
+  }
+
   TEST_F(KMRDataStoreTest, Get_view) {
     // Check owners when View<T, F> is given.
     kmrnext::View v0(2);

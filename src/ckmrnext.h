@@ -3,7 +3,7 @@
 /* \file KMR Next Interface for C */
 
 /* The backend runtime (SERIAL, KMR) */
-#define BACKEND_SERIAL 1
+#define BACKEND_KMR 1
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -29,6 +29,8 @@ typedef struct {
 } mapenv;
 
 typedef int (*kmrnext_loadfn_t)(void *ds, const char *file);
+typedef int (*kmrnext_load_localfn_t)(void *ds, int rank, const void *data,
+				      size_t siz);
 typedef int (*kmrnext_mapfn_t)(void *ids, void *ods, void *key,
 			       datapacks dps, mapenv env);
 typedef char* (*kmrnext_dumpfn_t)(void *dp);
@@ -51,6 +53,8 @@ void KMRNEXT_free_ds(void *ds);
 void KMRNEXT_ds_set_size(void *ds, size_t *val);
 void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
 			   kmrnext_loadfn_t l);
+void KMRNEXT_ds_load_local_data(void *ds, void *data, size_t siz,
+				kmrnext_load_localfn_t l);
 void KMRNEXT_ds_add(void *ds, void *key, void *data);
 void *KMRNEXT_ds_get(void *ds, void *key);
 datapacks KMRNEXT_ds_get_view(void *ds, void *key, void *view);

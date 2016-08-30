@@ -752,6 +752,80 @@ namespace kmrnext {
     return collated_;
   }
 
+  void DataStore::load_local_data(Loader<long>& loader) {
+    // Create a 1D DataStore that stores ranks
+    DataStore* ds0 = new DataStore(1, kmrnext_);
+    ds0->set_dim(0, kmrnext_->nprocs());
+    Key key(1);
+    for (long i = 0; i < kmrnext_->nprocs(); i++) {
+      key.set_dim(0, i);
+      Data dat(&i, sizeof(long));
+      ds0->add(key, dat);
+    }
+
+    // Use Split <T> so that each process loads an array element.
+    View split_ds0(1);
+    split_ds0.set_dim(0, true);
+    ds0->set_split(split_ds0);
+
+    // Define a mapper for the loader
+    class WrappedLoader : public DataStore::Mapper {
+    public:
+      DataStore::Loader<long>& loader_;
+      KMRNext* kmrnext_;
+
+      WrappedLoader(DataStore::Loader<long>& ldr, KMRNext* next)
+	: loader_(ldr), kmrnext_(next) {}
+      int operator()(DataStore *inds, DataStore *outds,
+		     Key& k, vector<DataPack>& dps,
+		     DataStore::MapEnvironment& env)
+      {
+	if (dps.size() != 1) {
+	  throw runtime_error("System error: Unexpected shuffle behavior.");
+	}
+	long *dsval = static_cast<long*>(dps[0].data().value());
+	if (*dsval != kmrnext_->rank()) {
+	  throw runtime_error("System error: Unexpected shuffle behavior.");
+	}
+	loader_(outds, *dsval);
+	return 0;
+      }
+    } wloader(loader, kmrnext_);
+
+    // Run the mapper
+    View v(1);
+    v.set_dim(0, true);
+    ds0->map(wloader, v, this);
+    delete ds0;
+
+    // Set the default split
+    View split_ds(size_);
+    long nproc_dim = -1;
+    {
+      for (size_t i = 0; i < size_; i++) {
+	split_ds.set_dim(i, false);
+      }
+      for (size_t i = 0; i < size_; i++) {
+	if (value_[i] == static_cast<size_t>(kmrnext_->nprocs())) {
+	  nproc_dim = i;
+	  break;
+	}
+      }
+    }
+    if (nproc_dim != -1) {
+      // Use Split <F*, T, F*>, where True is the dimension in the DataStore
+      // whose size is equals to the number of processes, so that data
+      // elements will be consumed without distribution when the first map()
+      // is called.
+      split_ds.set_dim(nproc_dim, true);
+    } else {
+      // Use Split <T, F, ..> and data elements will be split and stored on
+      // processes by the first dimension
+      split_ds.set_dim(0, true);
+    }
+    set_split(split_ds);
+  }
+
   DataPack SimpleFileDataStore::get(const Key& key) {
     check_key_range(key);
     load();

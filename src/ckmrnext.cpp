@@ -107,6 +107,24 @@ void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
   _ds->load_files(filevec, loader);
 }
 
+void KMRNEXT_ds_load_local_data(void *ds, void *data, size_t siz,
+				kmrnext_load_localfn_t l)
+{
+  class WrappedLoader : public DataStore::Loader<long> {
+    void *dat_;
+    size_t siz_;
+    kmrnext_load_localfn_t fn_;
+  public:
+    WrappedLoader(void *data, size_t siz, kmrnext_load_localfn_t fn)
+      : dat_(data), siz_(siz), fn_(fn) {}
+    int operator()(DataStore* _ds, const long& rank) {
+      return fn_(static_cast<void*>(_ds), static_cast<int>(rank), dat_, siz_);
+    }
+  } loader(data, siz, l);
+  DataStore* _ds = static_cast<DataStore*>(ds);
+  _ds->load_local_data(loader);
+}
+
 void KMRNEXT_ds_add(void *ds, void *key, void *data)
 {
   DataStore *_ds = static_cast<DataStore*>(ds);
