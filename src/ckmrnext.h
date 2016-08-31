@@ -75,7 +75,8 @@ void *KMRNEXT_ds_duplicate(void *ds);
 void *KMRNEXT_create_key(size_t siz);
 void KMRNEXT_free_key(void *key);
 void KMRNEXT_key_set_size(void *key, size_t *val);
-void KMRNEXT_key_set(void *key, size_t dim, size_t value);
+void KMRNEXT_key_set_dim(void *key, size_t dim, size_t value);
+size_t KMRNEXT_key_get_dim(void *key, size_t dim);
 char *KMRNEXT_key_string(void *key);
 
 void *KMRNEXT_create_data(void *val, size_t siz);

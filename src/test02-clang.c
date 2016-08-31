@@ -172,11 +172,11 @@ loader(void *ds, const char *file)
 {
     void *key = KMRNEXT_create_key(kDimension3);
     for (size_t i = 0; i < kDim3_0; i++) {
-	KMRNEXT_key_set(key, 0, i);
+	KMRNEXT_key_set_dim(key, 0, i);
 	for (size_t j = 0; j < kDim3_1; j++) {
-	    KMRNEXT_key_set(key, 1, j);
+	    KMRNEXT_key_set_dim(key, 1, j);
 	    for (size_t k = 0; k < kDim3_2; k++) {
-		KMRNEXT_key_set(key, 2, k);
+		KMRNEXT_key_set_dim(key, 2, k);
 		long val = (long)(i*j*k);
 		void *d = KMRNEXT_create_data(&val, sizeof(long));
 		KMRNEXT_ds_add(ds, key, d);

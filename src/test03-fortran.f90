@@ -86,11 +86,11 @@ contains
 
     key = kmrnext_create_key(kDimension3)
     do i = 1, kDim3_0
-       ierr = kmrnext_key_set(key, 1, int(i,kind=c_long))
+       ierr = kmrnext_key_set_dim(key, 1, int(i,kind=c_long))
        do j = 1, kDim3_1
-          ierr = kmrnext_key_set(key, 2, int(j,kind=c_long))
+          ierr = kmrnext_key_set_dim(key, 2, int(j,kind=c_long))
           do k = 1, kDim3_2
-             ierr = kmrnext_key_set(key, 3, int(k,kind=c_long))
+             ierr = kmrnext_key_set_dim(key, 3, int(k,kind=c_long))
              val = (i-1) * (j-1) * (k-1)
              ! 8 is sizeof(c_long)
              d = kmrnext_create_data(C_LOC(val), int(8,kind=c_long))

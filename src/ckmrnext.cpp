@@ -297,10 +297,16 @@ void KMRNEXT_key_set_size(void *key, size_t *val)
   _key->set(val);
 }
 
-void KMRNEXT_key_set(void *key, size_t dim, size_t value)
+void KMRNEXT_key_set_dim(void *key, size_t dim, size_t value)
 {
   Key *_key = static_cast<Key*>(key);
   _key->set_dim(dim, value);
+}
+
+size_t KMRNEXT_key_get_dim(void *key, size_t dim)
+{
+  Key *_key = static_cast<Key*>(key);
+  return _key->dim(dim);
 }
 
 char *KMRNEXT_key_string(void *key)

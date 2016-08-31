@@ -280,14 +280,22 @@ module kmrnextf
        type(c_ptr), intent(in), value :: size
      end subroutine C_kmrnext_key_set_size
 
-     subroutine C_kmrnext_key_set(key, dim, val) &
-          bind(c, name='KMRNEXT_key_set')
+     subroutine C_kmrnext_key_set_dim(key, dim, val) &
+          bind(c, name='KMRNEXT_key_set_dim')
        use iso_c_binding
        implicit none
        type(c_ptr),       intent(in), value :: key
        integer(c_size_t), intent(in), value :: dim
        integer(c_size_t), intent(in), value :: val
-     end subroutine C_kmrnext_key_set
+     end subroutine C_kmrnext_key_set_dim
+
+     integer(c_size_t) function C_kmrnext_key_get_dim(key, dim) &
+          bind(c, name='KMRNEXT_key_get_dim')
+       use iso_c_binding
+       implicit none
+       type(c_ptr),       intent(in), value :: key
+       integer(c_size_t), intent(in), value :: dim
+     end function C_kmrnext_key_get_dim
 
      type(c_ptr) function C_kmrnext_key_string(key) &
           bind(c, name='KMRNEXT_key_string')
@@ -618,15 +626,24 @@ contains
     zz = 0
   end function kmrnext_key_set_size
 
-  integer function kmrnext_key_set(key, dim, val) result(zz)
+  integer function kmrnext_key_set_dim(key, dim, val) result(zz)
     type(c_ptr),       intent(in), value :: key
     integer,           intent(in), value :: dim
     integer(c_size_t), intent(in), value :: val
     integer(c_size_t) :: dim8
     dim8 = dim - 1
-    call C_kmrnext_key_set(key, dim8, val-1)
+    call C_kmrnext_key_set_dim(key, dim8, val-1)
     zz = 0
-  end function kmrnext_key_set
+  end function kmrnext_key_set_dim
+
+  integer function kmrnext_key_get_dim(key, dim) result(zz)
+    type(c_ptr),       intent(in), value :: key
+    integer,           intent(in), value :: dim
+    integer(c_size_t) :: dim8, zz_c
+    dim8 = dim - 1
+    zz_c = C_kmrnext_key_get_dim(key, dim8)
+    zz = int(zz_c, 4) + 1
+  end function kmrnext_key_get_dim
 
   subroutine kmrnext_key_string(key, ostring)
     type(c_ptr),       intent(in),  value   :: key
