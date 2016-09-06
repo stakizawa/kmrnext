@@ -81,6 +81,7 @@ install: all
 	install -d $(INCDIR)
 	install -m 644 kmrnext.hpp $(INCDIR)
 	install -m 644 ckmrnext.h $(INCDIR)
+	install -m 644 kmrnextf.mod $(INCDIR)
 	install -m 644 $(LIB) $(LIBDIR)
 
 .PHONY: clean
