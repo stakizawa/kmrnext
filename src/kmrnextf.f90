@@ -8,7 +8,16 @@ module kmrnextf
 #endif
   implicit none
 
+  ! Maximum dimensions of a multi-dimantion data
   integer(8), parameter :: Max_Dimension_Size = 8
+
+  ! Constant number that indicates that elements in the specified dimension
+  ! are split.
+  integer(8), parameter :: Split_All          = -1
+
+  ! Constant number that indicates that elements in the specified dimension
+  ! are grouped.
+  integer(8), parameter :: Split_None         = 0
 
   type, bind(c) :: datapacks
      integer(c_size_t) :: count
@@ -712,7 +721,7 @@ contains
 
   integer function kmrnext_view_set(view, val) result(zz)
     type(c_ptr),     intent(in), value  :: view
-    logical(c_bool), intent(in), target :: val(Max_Dimension_Size)
+    integer(c_long), intent(in), target :: val(Max_Dimension_Size)
     call C_kmrnext_view_set(view, C_LOC(val))
     zz = 0
   end function kmrnext_view_set

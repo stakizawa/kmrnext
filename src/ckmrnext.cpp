@@ -378,7 +378,7 @@ void KMRNEXT_free_view(void *view)
   delete _view;
 }
 
-void KMRNEXT_view_set(void *view, bool *val)
+void KMRNEXT_view_set(void *view, long *val)
 {
   View *_view = static_cast<View*>(view);
   _view->set(val);

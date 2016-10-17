@@ -114,7 +114,8 @@ main(int argc, char **argv) {
 
   ///////////  Get multiple data from the DataStore
   kmrnext::View v0(kDim2);
-  bool v0flag[kDim2] = {true, false};
+  long v0flag[kDim2] = { kmrnext::View::SplitAll,
+			 kmrnext::View::SplitNone };
   v0.set(v0flag);
   vector<kmrnext::DataPack> *dpvec0 = ds0->get(v0, key0);
   if (kPrint) {
@@ -125,7 +126,8 @@ main(int argc, char **argv) {
   }
   delete dpvec0;
   kmrnext::View v1(kDim2);
-  bool v1flag[kDim2] = {false, true};
+  long v1flag[kDim2] = { kmrnext::View::SplitNone,
+			 kmrnext::View::SplitAll };
   v1.set(v1flag);
   vector<kmrnext::DataPack> *dpvec1 = ds0->get(v1, key1);
   if (kPrint) {
@@ -194,7 +196,8 @@ main(int argc, char **argv) {
 
   ///////////  Map the DataStore in-place
   kmrnext::View v2(kDim2);
-  bool v2flag[kDim2] = {true, true};
+  long v2flag[kDim2] = { kmrnext::View::SplitAll,
+			 kmrnext::View::SplitAll };
   v2.set(v2flag);
   OneSetter oner;
   ds1->map(oner, v2);

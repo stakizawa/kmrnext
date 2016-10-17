@@ -181,7 +181,7 @@ namespace kmrnext {
     ds->set(value_);
     View view(size_);
     for (size_t i = 0; i < size_; i++) {
-      view.set_dim(i, false);
+      view.set_dim(i, View::SplitNone);
     }
     map(copier, view, ds);
   }
@@ -228,10 +228,10 @@ namespace kmrnext {
     // It returns column-ordered index
     size_t idx = 0;
     for (long i = static_cast<long>(size_) - 1; i >= 0; i--) {
-      if (view.dim(i)) {
+      if (view.dim(i) == View::SplitAll) {
 	size_t offset = 1;
 	for (long j = i-1; j >= 0; j--) {
-	  if (view.dim(j)) {
+	  if (view.dim(j) == View::SplitAll) {
 	    offset *= value_[j];
 	  }
 	}
@@ -243,10 +243,10 @@ namespace kmrnext {
     // It returns row-ordered index
     size_t idx = 0;
     for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i)) {
+      if (view.dim(i) == View::SplitAll) {
 	size_t offset = 1;
 	for (size_t j = i+1; j < size_; j++) {
-	  if (view.dim(j)) {
+	  if (view.dim(j) == View::SplitAll) {
 	    offset *= value_[j];
 	  }
 	}
@@ -260,7 +260,7 @@ namespace kmrnext {
   Key DataStore::key_to_viewed_key(const Key& key, const View& view) {
     size_t viewed_key_size = 0;
     for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i)) {
+      if (view.dim(i) == View::SplitAll) {
 	viewed_key_size += 1;
       }
     }
@@ -268,7 +268,7 @@ namespace kmrnext {
     Key viewed_key(viewed_key_size);
     size_t viewed_key_idx = 0;
     for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i)) {
+      if (view.dim(i) == View::SplitAll) {
 	viewed_key.set_dim(viewed_key_idx, key.dim(i));
 	viewed_key_idx += 1;
       }
@@ -281,7 +281,7 @@ namespace kmrnext {
   Key DataStore::key_to_viewed_key(const Key& key, const View& view) {
     Key viewed_key(size_);
     for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i)) {
+      if (view.dim(i) == View::SplitAll) {
 	viewed_key.set_dim(i, key.dim(i));
       } else {
 	viewed_key.set_dim(i, 0);
@@ -531,7 +531,7 @@ namespace {
 #ifdef BACKEND_KMR
     // Use Split <T> so that each process loads an array element.
     View split_ds0(1);
-    split_ds0.set_dim(0, true);
+    split_ds0.set_dim(0, View::SplitAll);
     ds0->set_split(split_ds0);
 #endif
 
@@ -555,29 +555,29 @@ namespace {
     } wloader(loader);
 
     View v(1);
-    v.set_dim(0, true);
+    v.set_dim(0, View::SplitAll);
     ds0->map(wloader, v, ds);
     delete ds0;
 
 #ifdef BACKEND_KMR
     View split_ds(ds_dims_siz);
     if (array.size() == 1) {
-      // Use Split <T, F, ..> so that data will be distributed to nodes
+      // Use Split <All, None, ..> so that data will be distributed to nodes
       // whose count is the top most dimension of the DataStore.
-      split_ds.set_dim(0, true);
+      split_ds.set_dim(0, View::SplitAll);
       for (size_t i = 1; i < ds_dims_siz; i++) {
-	split_ds.set_dim(i, false);
+	split_ds.set_dim(i, View::SplitNone);
       }
     } else {
-      // Use Split <T, .., T, F, ..> so that each node stores
+      // Use Split <All, .., All, None, ..> so that each node stores
       // the contents of each array element.
-      bool vval = true;
+      long vval = View::SplitAll;
       size_t remain = array.size();
       for (size_t i = 0; i < ds_dims_siz; i++) {
 	split_ds.set_dim(i, vval);
 	remain /= ds->dim(i);
 	if (remain == 1) {
-	  vval = false;
+	  vval = View::SplitNone;
 	}
       }
     }

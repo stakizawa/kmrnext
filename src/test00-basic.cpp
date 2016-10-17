@@ -97,10 +97,18 @@ main(int argc, char **argv) {
   kmrnext::View v2(kDimension3);
   kmrnext::View v3(kDimension3);
   kmrnext::View v4(kDimension3);
-  bool flags1[kDimension3] = {true, true, true};
-  bool flags2[kDimension3] = {true, false, true};
-  bool flags3[kDimension3] = {true, false, false};
-  bool flags4[kDimension3] = {false, false, false};
+  long flags1[kDimension3] = { kmrnext::View::SplitAll,
+			       kmrnext::View::SplitAll,
+			       kmrnext::View::SplitAll };
+  long flags2[kDimension3] = { kmrnext::View::SplitAll,
+			       kmrnext::View::SplitNone,
+			       kmrnext::View::SplitAll };
+  long flags3[kDimension3] = { kmrnext::View::SplitAll,
+			       kmrnext::View::SplitNone,
+			       kmrnext::View::SplitNone };
+  long flags4[kDimension3] = { kmrnext::View::SplitNone,
+			       kmrnext::View::SplitNone,
+			       kmrnext::View::SplitNone };
   v1.set(flags1);
   v2.set(flags2);
   v3.set(flags3);

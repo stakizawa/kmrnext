@@ -15,6 +15,9 @@
 extern "C" {
 #endif
 
+const long SPLIT_ALL = -1;
+const long SPLIT_NONE = 0;
+
 typedef struct {
     size_t count;
     void **data;
@@ -91,7 +94,7 @@ void *KMRNEXT_dp_data(void *dp);
 
 void *KMRNEXT_create_view(size_t siz);
 void KMRNEXT_free_view(void *view);
-void KMRNEXT_view_set(void *view, bool *val);
+void KMRNEXT_view_set(void *view, long *val);
 char *KMRNEXT_view_string(void *view);
 
 void KMRNEXT_free_datapacks(datapacks dps);

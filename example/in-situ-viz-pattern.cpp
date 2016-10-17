@@ -223,12 +223,12 @@ void run_simulation(DataStore* ds, Time& time)
   time.sim_invoke = gettime();
 #ifdef BACKEND_KMR
   View split(kDimSpace);
-  bool split_flag[3] = {true, true, false};
+  long split_flag[3] = { View::SplitAll, View::SplitAll, View::SplitNone };
   split.set(split_flag);
   ds->set_split(split);
 #endif
   View view(kDimSpace);
-  bool view_flag[3] = {false, false, false};
+  long view_flag[3] = { View::SplitNone, View::SplitNone, View::SplitNone };
   view.set(view_flag);
   ds->map(mapper, view);
   time.sim_cleanup = gettime();
@@ -278,7 +278,7 @@ void run_viz(DataStore* ds, Time& time)
   // As task runs on each point, any Split is OK.
 #endif
   View view(kDimSpace);
-  bool view_flag[3] = {true, true, true};
+  long view_flag[3] = { View::SplitAll, View::SplitAll, View::SplitAll };
   view.set(view_flag);
   ds->map(mapper, view);
   time.viz_cleanup = gettime();

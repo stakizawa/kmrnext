@@ -218,7 +218,7 @@ namespace kmrnext {
       Key tmpkey = index_to_key(i);
       bool match = true;
       for (size_t j = 0; j < size_; j++) {
-	if (view.dim(j) && key.dim(j) != tmpkey.dim(j)) {
+	if (view.dim(j) == View::SplitAll && key.dim(j) != tmpkey.dim(j)) {
 	  match = false;
 	  break;
 	}
@@ -280,7 +280,7 @@ namespace kmrnext {
     {
       bool is_same_view = true;
       for (size_t i = 0; i < size_; i++) {
-	if (view.dim(i)) {
+	if (view.dim(i) == View::SplitAll) {
 	  nkeys *= value_[i];
 	} else {
 	  is_local = false;
@@ -410,9 +410,9 @@ namespace kmrnext {
       split_ = new View(size_);
       for (size_t i = 0; i < size_; i++) {
 	if (i == 0) {
-	  split_->set_dim(i, true);
+	  split_->set_dim(i, View::SplitAll);
 	} else {
-	  split_->set_dim(i, false);
+	  split_->set_dim(i, View::SplitNone);
 	}
       }
     }
@@ -465,7 +465,7 @@ namespace kmrnext {
 
     View view(size_);
     for (size_t i = 0; i < size_; i++) {
-      view.set_dim(i, false);
+      view.set_dim(i, View::SplitNone);
     }
     map(dmpr, view);
     // find master
@@ -504,7 +504,7 @@ namespace kmrnext {
 
     View view(size_);
     for (size_t i = 0; i < size_; i++) {
-      view.set_dim(i, false);
+      view.set_dim(i, View::SplitNone);
     }
     map(counter, view);
     long result;
@@ -520,10 +520,10 @@ namespace kmrnext {
     // It returns column-ordered index
     size_t idx = 0;
     for (long i = static_cast<long>(size_) - 1; i >= 0; i--) {
-      if (view.dim(i)) {
+      if (view.dim(i) == View::SplitAll) {
 	size_t offset = 1;
 	for (long j = i-1; j >= 0; j--) {
-	  if (view.dim(j)) {
+	  if (view.dim(j) == View::SplitAll) {
 	    offset *= value_[j];
 	  }
 	}
@@ -535,10 +535,10 @@ namespace kmrnext {
     // It returns row-ordered index
     size_t idx = 0;
     for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i)) {
+      if (view.dim(i) == View::SplitAll) {
 	size_t offset = 1;
 	for (size_t j = i+1; j < size_; j++) {
-	  if (view.dim(j)) {
+	  if (view.dim(j) == View::SplitAll) {
 	    offset *= value_[j];
 	  }
 	}
@@ -571,7 +571,7 @@ namespace kmrnext {
       // Element count of each data
       size_t each_cnt = 1;
       for (size_t i = 0; i < size_; i++) {
-	if (split.dim(i)) {
+	if (split.dim(i) == View::SplitAll) {
 	  ndata *= value_[i];
 	} else {
 	  each_cnt *= value_[i];
@@ -765,7 +765,7 @@ namespace kmrnext {
 
     // Use Split <T> so that each process loads an array element.
     View split_ds0(1);
-    split_ds0.set_dim(0, true);
+    split_ds0.set_dim(0, View::SplitAll);
     ds0->set_split(split_ds0);
 
     // Define a mapper for the loader
@@ -794,7 +794,7 @@ namespace kmrnext {
 
     // Run the mapper
     View v(1);
-    v.set_dim(0, true);
+    v.set_dim(0, View::SplitAll);
     ds0->map(wloader, v, this);
     delete ds0;
 
@@ -803,7 +803,7 @@ namespace kmrnext {
     long nproc_dim = -1;
     {
       for (size_t i = 0; i < size_; i++) {
-	split_ds.set_dim(i, false);
+	split_ds.set_dim(i, View::SplitNone);
       }
       for (size_t i = 0; i < size_; i++) {
 	if (value_[i] == static_cast<size_t>(kmrnext_->nprocs())) {
@@ -813,15 +813,15 @@ namespace kmrnext {
       }
     }
     if (nproc_dim != -1) {
-      // Use Split <F*, T, F*>, where True is the dimension in the DataStore
-      // whose size is equals to the number of processes, so that data
-      // elements will be consumed without distribution when the first map()
-      // is called.
-      split_ds.set_dim(nproc_dim, true);
+      // Use Split <None*, All, None*>, where All is the dimension in the
+      // DataStore whose size is equals to the number of processes, so that
+      // data elements will be consumed without distribution when the first
+      // map() is called.
+      split_ds.set_dim(nproc_dim, View::SplitAll);
     } else {
-      // Use Split <T, F, ..> and data elements will be split and stored on
-      // processes by the first dimension
-      split_ds.set_dim(0, true);
+      // Use Split <All, None, ..> and data elements will be split and
+      // stored on processes by the first dimension
+      split_ds.set_dim(0, View::SplitAll);
     }
     set_split(split_ds);
   }

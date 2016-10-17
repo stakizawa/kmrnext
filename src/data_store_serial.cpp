@@ -47,7 +47,7 @@ namespace kmrnext {
       Key tmpkey = index_to_key(i);
       bool push = true;
       for (size_t j = 0; j < size_; j++) {
-	if (view.dim(j) && key.dim(j) != tmpkey.dim(j)) {
+	if (view.dim(j) == View::SplitAll && key.dim(j) != tmpkey.dim(j)) {
 	  push = false;
 	  break;
 	}
@@ -76,7 +76,7 @@ namespace kmrnext {
 
     size_t nkeys = 1;
     for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i)) {
+      if (view.dim(i) == View::SplitAll) {
 	nkeys *= value_[i];
       }
     }
@@ -146,7 +146,7 @@ namespace kmrnext {
 
     View view(size_);
     for (size_t i = 0; i < size_; i++) {
-      view.set_dim(i, false);
+      view.set_dim(i, View::SplitNone);
     }
 
     map(dmpr, view);
@@ -169,7 +169,7 @@ namespace kmrnext {
 
     View view(size_);
     for (size_t i = 0; i < size_; i++) {
-      view.set_dim(i, false);
+      view.set_dim(i, View::SplitNone);
     }
     map(counter, view);
     return counter.result_;

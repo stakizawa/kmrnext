@@ -237,13 +237,13 @@ void run_nicam(DataStore* ds, Time& time)
   PseudoNICAM mapper(time);
 #ifdef BACKEND_KMR
   View split(kDimEnsembleData);
-  bool split_flag[3] = {true, true, false};
+  long split_flag[3] = { View::SplitAll, View::SplitAll, View::SplitNone };
   split.set(split_flag);
   ds->set_split(split);
 #endif
   time.nicam_invoke = gettime();
   View view(kDimEnsembleData);
-  bool view_flag[3] = {true, false, false};
+  long view_flag[3] = { View::SplitAll, View::SplitNone, View::SplitNone };
   view.set(view_flag);
   ds->map(mapper, view);
   time.nicam_cleanup = gettime();
@@ -308,20 +308,20 @@ void run_letkf(DataStore* ds, Time& time)
   if (kLETKFRegion) {
 #ifdef BACKEND_KMR
     View split(kDimEnsembleData);
-    bool split_flag[3] = {true, true, false};
+    long split_flag[3] = { View::SplitAll, View::SplitAll, View::SplitNone };
     split.set(split_flag);
     ds->set_split(split);
 #endif
-    bool view_flag[3] = {false, true, false};
+    long view_flag[3] = { View::SplitNone, View::SplitAll, View::SplitNone };
     view.set(view_flag);
   } else {
 #ifdef BACKEND_KMR
     View split(kDimEnsembleData);
-    bool split_flag[3] = {false, true, true};
+    long split_flag[3] = { View::SplitNone, View::SplitAll, View::SplitAll };
     split.set(split_flag);
     ds->set_split(split);
 #endif
-    bool view_flag[3] = {false, true, true};
+    long view_flag[3] = { View::SplitNone, View::SplitAll, View::SplitAll };
     view.set(view_flag);
   }
   ds->map(mapper, view);

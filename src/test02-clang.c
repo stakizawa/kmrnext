@@ -86,10 +86,10 @@ main(int argc, char **argv)
     void *v2 = KMRNEXT_create_view(kDimension3);
     void *v3 = KMRNEXT_create_view(kDimension3);
     void *v4 = KMRNEXT_create_view(kDimension3);
-    bool flags1[kDimension3] = {true, true, true};
-    bool flags2[kDimension3] = {true, false, true};
-    bool flags3[kDimension3] = {true, false, false};
-    bool flags4[kDimension3] = {false, false, false};
+    long flags1[kDimension3] = { SPLIT_ALL,  SPLIT_ALL,  SPLIT_ALL };
+    long flags2[kDimension3] = { SPLIT_ALL,  SPLIT_NONE, SPLIT_ALL };
+    long flags3[kDimension3] = { SPLIT_ALL,  SPLIT_NONE, SPLIT_NONE };
+    long flags4[kDimension3] = { SPLIT_NONE, SPLIT_NONE, SPLIT_NONE };
     KMRNEXT_view_set(v1, flags1);
     KMRNEXT_view_set(v2, flags2);
     KMRNEXT_view_set(v3, flags3);

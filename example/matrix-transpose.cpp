@@ -150,7 +150,7 @@ void transpose(DataStore* ids, DataStore* ods)
 {
   Transposer mapper;
   View view(kDimMatrix);
-  bool view_flag[kDimMatrix] = {true, true};
+  long view_flag[kDimMatrix] = { View::SplitAll, View::SplitAll };
   view.set(view_flag);
   ids->map(mapper, view, ods);
 }
@@ -160,7 +160,7 @@ void transpose_reallocate_row(DataStore* ids, DataStore* ods)
 {
   Transposer mapper;
   View split(kDimMatrix);
-  bool split_flag[kDimMatrix] = {true, false};
+  long split_flag[kDimMatrix] = { View::SplitAll, View::SplitNone };
   split.set(split_flag);
   ids->set_split(split);
   transpose(ids, ods);
@@ -169,7 +169,7 @@ void transpose_reallocate_row(DataStore* ids, DataStore* ods)
 void transpose_reallocate_column(DataStore* ids, DataStore* ods)
 {
   View split(kDimMatrix);
-  bool split_flag[kDimMatrix] = {false, true};
+  long split_flag[kDimMatrix] = { View::SplitNone, View::SplitAll };
   split.set(split_flag);
   ids->set_split(split);
   transpose(ids, ods);

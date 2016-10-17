@@ -312,13 +312,13 @@ void run_nicam(DataStore* inds, DataStore* outds, Time& time)
 
   if (kSetSplit) {
     View split(kDimEnsembleData);
-    bool split_flag[3] = {true, true, false};
+    long split_flag[3] = {View::SplitAll, View::SplitAll, View::SplitNone};
     split.set(split_flag);
     inds->set_split(split);
   }
 
   View view(kDimEnsembleData);
-  bool view_flag[3] = {true, false, false};
+  long view_flag[3] = {View::SplitAll, View::SplitNone, View::SplitNone};
   view.set(view_flag);
   inds->map(mapper, view, outds);
 
@@ -374,13 +374,13 @@ void run_letkf(DataStore* inds, DataStore* outds, Time& time)
 
   if (kSetSplit) {
     View split(kDimEnsembleData);
-    bool split_flag[3] = {false, true, true};
+    long split_flag[3] = {View::SplitNone, View::SplitAll, View::SplitAll};
     split.set(split_flag);
     inds->set_split(split);
   }
 
   View view(kDimEnsembleData);
-  bool view_flag[3] = {false, true, true};
+  long view_flag[3] = {View::SplitNone, View::SplitAll, View::SplitAll};
   view.set(view_flag);
   inds->map(mapper, view, outds);
 
