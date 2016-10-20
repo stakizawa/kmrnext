@@ -138,12 +138,14 @@ void session(kmrnext::KMRNext *next, long *vals, size_t nvals) {
     Summarizer mapper(nprocs);
 #ifdef BACKEND_KMR
     kmrnext::View split(kDim2);
-    bool split_flag[kDim2] = {false, true};
+    long split_flag[kDim2] = { kmrnext::View::SplitNone,
+			       kmrnext::View::SplitAll };
     split.set(split_flag);
     ds0->set_split(split);
 #endif
     kmrnext::View view(kDim2);
-    bool view_flag[kDim2] = {false, true};
+    long view_flag[kDim2] = { kmrnext::View::SplitNone,
+			      kmrnext::View::SplitAll };
     view.set(view_flag);
     ds0->map(mapper, view, ds1);
   }
@@ -155,12 +157,12 @@ void session(kmrnext::KMRNext *next, long *vals, size_t nvals) {
     Copier mapper(&val, 1);
 #ifdef BACKEND_KMR
     kmrnext::View split(kDim1);
-    bool split_flag[kDim1] = {true};
+    long split_flag[kDim1] = { kmrnext::View::SplitAll };
     split.set(split_flag);
     ds1->set_split(split);
 #endif
     kmrnext::View view(kDim1);
-    bool view_flag[kDim1] = {true};
+    long view_flag[kDim1] = { kmrnext::View::SplitAll };
     view.set(view_flag);
     ds1->map(mapper, view);
   }

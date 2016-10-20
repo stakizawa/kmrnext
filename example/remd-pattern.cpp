@@ -230,12 +230,12 @@ void run_md(DataStore* ds, Time& time)
   time.md_invoke = gettime();
 #ifdef BACKEND_KMR
   View split(kNumDimensions);
-  bool split_flag[3] = {true, true, false};
+  long split_flag[3] = { View::SplitAll, View::SplitAll, View::SplitNone };
   split.set(split_flag);
   ds->set_split(split);
 #endif
   View view(kNumDimensions);
-  bool view_flag[3] = {true, false, false};
+  long view_flag[3] = { View::SplitAll, View::SplitNone, View::SplitNone };
   view.set(view_flag);
   ds->map(mapper, view);
   time.md_cleanup = gettime();
@@ -289,13 +289,13 @@ void run_ex(DataStore* ds, Time& time)
   PseudoEX mapper(time);
 #ifdef BACKEND_KMR
   View split(kNumDimensions);
-  bool split_flag[3] = {false, true, false};
+  long split_flag[3] = { View::SplitNone, View::SplitAll, View::SplitNone };
   split.set(split_flag);
   ds->set_split(split);
 #endif
   time.ex_invoke = gettime();
   View view(kNumDimensions);
-  bool view_flag[3] = {false, true, false};
+  long view_flag[3] = { View::SplitNone, View::SplitAll, View::SplitNone };
   view.set(view_flag);
   ds->map(mapper, view);
   time.ex_cleanup = gettime();

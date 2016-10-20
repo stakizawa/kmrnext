@@ -191,7 +191,7 @@ namespace kmrnext {
     }
 
     /// It returns a string representation of an instance of this class.
-    string to_string() const {
+    virtual string to_string() const {
       ostringstream os;
       os << '<';
       for (size_t i = 0; i < size_; i++) {
@@ -232,9 +232,19 @@ namespace kmrnext {
   ///////////////////////////////////////////////////////////////////////////
   /// A class that defines view of a DataStore
   ///////////////////////////////////////////////////////////////////////////
-  class View : public Dimensional<bool> {
+  class View : public Dimensional<long> {
   public:
-    explicit View(size_t siz) : Dimensional<bool>(siz) {}
+    /// A pre-defined constant number that indicates that elements in the
+    /// specified dimension are split.
+    static const long SplitAll  = -1;
+
+    /// A pre-defined constant number that indicates that elements in the
+    /// specified dimension are grouped into one.
+    static const long SplitNone = 0;
+
+    explicit View(size_t siz) : Dimensional<long>(siz) {}
+
+    string to_string() const;
   };
 
   ///////////////////////////////////////////////////////////////////////////

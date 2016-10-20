@@ -232,7 +232,7 @@ setup(int argc, int* rankp, int* nprocsp)
 
 static void
 eval_dimension_once(string description, KMRNext* next, int rank, int ndim,
-		    size_t* dim_ary, bool* view_ary,
+		    size_t* dim_ary, long* view_ary,
 		    vector<long>& datalist, DataLoader& loader)
 {
   DataStore *ds = next->create_ds(ndim);
@@ -284,13 +284,20 @@ eval_dimension(KMRNext* next, int rank, int nprocs)
   size_t ary8[8] = {kNumProcs, 10, 5, 2, 5, 2, 5, 2};
 #endif
 
-  bool   aryv2[2] = {true, false};
-  bool   aryv3[3] = {true, false, false};
-  bool   aryv4[4] = {true, false, false, false};
-  bool   aryv5[5] = {true, false, false, false, false};
-  bool   aryv6[6] = {true, false, false, false, false, false};
-  bool   aryv7[7] = {true, false, false, false, false, false, false};
-  bool   aryv8[8] = {true, false, false, false, false, false, false, false};
+  long   aryv2[2] = {View::SplitAll,  View::SplitNone};
+  long   aryv3[3] = {View::SplitAll,  View::SplitNone, View::SplitNone};
+  long   aryv4[4] = {View::SplitAll,  View::SplitNone, View::SplitNone,
+		     View::SplitNone };
+  long   aryv5[5] = {View::SplitAll,  View::SplitNone, View::SplitNone,
+		     View::SplitNone, View::SplitNone };
+  long   aryv6[6] = {View::SplitAll,  View::SplitNone, View::SplitNone,
+		     View::SplitNone, View::SplitNone, View::SplitNone };
+  long   aryv7[7] = {View::SplitAll,  View::SplitNone, View::SplitNone,
+		     View::SplitNone, View::SplitNone, View::SplitNone,
+		     View::SplitNone };
+  long   aryv8[8] = {View::SplitAll,  View::SplitNone, View::SplitNone,
+		     View::SplitNone, View::SplitNone, View::SplitNone,
+		     View::SplitNone, View::SplitNone };
 
   vector<long> datalist;
   for (size_t i = 0; i < kNumProcs; i++) {
@@ -316,7 +323,7 @@ eval_dimension(KMRNext* next, int rank, int nprocs)
 
 static void
 eval_view_once(string description, int rank, DataStore* _ds,
-	       bool* view_ary)
+	       long* view_ary)
 {
   DataStore *ds = _ds->duplicate();
   View view(ds->size());
@@ -353,14 +360,15 @@ eval_view(KMRNext* next, int rank, int nprocs)
   size_t ary3[3] = {kNumProcs, 100, 100};
 #endif
 
-  bool fff[3] = {false, false, false};
-  bool fft[3] = {false, false, true };
-  bool ftf[3] = {false, true,  false};
-  bool ftt[3] = {false, true,  true };
-  bool tff[3] = {true,  false, false};
-  bool tft[3] = {true,  false, true };
-  bool ttf[3] = {true,  true,  false};
-  bool ttt[3] = {true,  true,  true };
+  long fff[3] = {View::SplitNone, View::SplitNone, View::SplitNone};
+  long fft[3] = {View::SplitNone, View::SplitNone, View::SplitAll };
+  long ftf[3] = {View::SplitNone, View::SplitAll,  View::SplitNone};
+  long ftt[3] = {View::SplitNone, View::SplitAll,  View::SplitAll };
+  long tff[3] = {View::SplitAll,  View::SplitNone, View::SplitNone};
+  long tft[3] = {View::SplitAll,  View::SplitNone, View::SplitAll };
+  long ttf[3] = {View::SplitAll,  View::SplitAll,  View::SplitNone};
+  long ttt[3] = {View::SplitAll,  View::SplitAll,  View::SplitAll };
+
 
   vector<long> datalist;
   for (size_t i = 0; i < kNumProcs; i++) {
@@ -429,16 +437,16 @@ eval_count(KMRNext* next, int rank, int nprocs)
     cout << "Data Count Test" << endl;
   }
 
-  bool ary_ff[2] = {false, false};
+  long ary_ff[2] = {View::SplitNone, View::SplitNone};
   View vff(2);
   vff.set(ary_ff);
-  bool ary_ft[2] = {false, true};
+  long ary_ft[2] = {View::SplitNone, View::SplitAll};
   View vft(2);
   vft.set(ary_ft);
-  bool ary_tf[2] = {true,  false};
+  long ary_tf[2] = {View::SplitAll,  View::SplitNone};
   View vtf(2);
   vtf.set(ary_tf);
-  bool ary_tt[2] = {true,  true};
+  long ary_tt[2] = {View::SplitAll,  View::SplitAll};
   View vtt(2);
   vtt.set(ary_tt);
 
@@ -505,16 +513,16 @@ eval_size(KMRNext* next, int rank, int nprocs)
     cout << "Data Size Test" << endl;
   }
 
-  bool ary_ff[2] = {false, false};
+  long ary_ff[2] = {View::SplitNone, View::SplitNone};
   View vff(2);
   vff.set(ary_ff);
-  bool ary_ft[2] = {false, true};
+  long ary_ft[2] = {View::SplitNone, View::SplitAll};
   View vft(2);
   vft.set(ary_ft);
-  bool ary_tf[2] = {true,  false};
+  long ary_tf[2] = {View::SplitAll,  View::SplitNone};
   View vtf(2);
   vtf.set(ary_tf);
-  bool ary_tt[2] = {true,  true};
+  long ary_tt[2] = {View::SplitAll,  View::SplitAll};
   View vtt(2);
   vtt.set(ary_tt);
 
@@ -533,9 +541,9 @@ void
 collate_ds(DataStore* ds, View& view)
 {
   View split(view.size());
-  split.set_dim(0, true);
+  split.set_dim(0, View::SplitAll);
   for (size_t i = 1; i < split.size(); i++) {
-    split.set_dim(1, false);
+    split.set_dim(i, View::SplitNone);
   }
   ds->set_split(split);
   ds->collate();

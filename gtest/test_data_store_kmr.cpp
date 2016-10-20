@@ -259,7 +259,8 @@ namespace {
   TEST_F(KMRDataStoreTest, Get_view) {
     // Check owners when View<T, F> is given.
     kmrnext::View v0(2);
-    bool flags0[2] = {true, false};
+    long flags0[2] = { kmrnext::View::SplitAll,
+		       kmrnext::View::SplitNone };
     v0.set(flags0);
     std::vector<kmrnext::DataPack> *vec0 = ds2_->get(v0, *k2_00_);
     EXPECT_EQ(4, static_cast<int>(vec0->size()));
@@ -351,7 +352,8 @@ namespace {
     ods0->set(ds2_array_);
     Copier0 mapper0;
     kmrnext::View v0(2);
-    bool flags0[2] = {true, true};
+    long flags0[2] = { kmrnext::View::SplitAll,
+		       kmrnext::View::SplitAll };
     v0.set(flags0);
     ds2_->map(mapper0, v0, ods0);
     EXPECT_EQ(1, *static_cast<int*>(ods0->get(*k2_00_).data().value()));
@@ -370,7 +372,8 @@ namespace {
     ods1->set(ods1_array);
     Summarizer0 mapper1(nprocs, ds2_owners_);
     kmrnext::View v1(2);
-    bool flags1[2] = {false, true};
+    long flags1[2] = { kmrnext::View::SplitNone,
+		       kmrnext::View::SplitAll };
     v1.set(flags1);
     ds2_->map(mapper1, v1, ods1);
     kmrnext::Key k1_0(1), k1_1(1), k1_2(1), k1_3(1);
@@ -395,7 +398,9 @@ namespace {
 
   TEST_F(KMRDataStoreTest, Set_split) {
     kmrnext::View ds3_0_dav(3);
-    bool flags3_0_dav[3] = {true, false, false};
+    long flags3_0_dav[3] = { kmrnext::View::SplitAll,
+			     kmrnext::View::SplitNone,
+			     kmrnext::View::SplitNone, };
     ds3_0_dav.set(flags3_0_dav);
 
     // If a DataStore is initialized without calling load_xxx(),
@@ -423,16 +428,23 @@ namespace {
     delete ds3_0;
 
     kmrnext::View v3_0(3);
-    bool flags3_0[3] = {true, true, false};
+    long flags3_0[3] = { kmrnext::View::SplitAll,
+			 kmrnext::View::SplitAll,
+			 kmrnext::View::SplitNone };
     v3_0.set(flags3_0);
     kmrnext::View v3_1(3);
-    bool flags3_1[3] = {false, true, true};
+    long flags3_1[3] = { kmrnext::View::SplitNone,
+			 kmrnext::View::SplitAll,
+			 kmrnext::View::SplitAll };
     v3_1.set(flags3_1);
     kmrnext::View v3_2(3);
-    bool flags3_2[3] = {false, false, true};
+    long flags3_2[3] = { kmrnext::View::SplitNone,
+			 kmrnext::View::SplitNone,
+			 kmrnext::View::SplitAll };
     v3_2.set(flags3_2);
     kmrnext::View v2(2);
-    bool flags2[2] = {true, true};
+    long flags2[2] = { kmrnext::View::SplitAll,
+		       kmrnext::View::SplitAll };
     v2.set(flags2);
 
     // If a DataStore is initialized by calling load_xxx(),
@@ -526,7 +538,9 @@ namespace {
     }
 
     kmrnext::View aviewFTT(3);
-    bool _avFTT[3] = {false, true, true};
+    long _avFTT[3] = { kmrnext::View::SplitNone,
+		       kmrnext::View::SplitAll,
+		       kmrnext::View::SplitAll };
     aviewFTT.set(_avFTT);
 
     // By changing the Split, calling collate() makes change of data

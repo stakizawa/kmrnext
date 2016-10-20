@@ -44,10 +44,18 @@ namespace {
       v1_ = new kmrnext::View(ds_size_);
       v2_ = new kmrnext::View(ds_size_);
       v3_ = new kmrnext::View(ds_size_);
-      bool ary_v0[3] = {true, true, true};
-      bool ary_v1[3] = {true, false, true};
-      bool ary_v2[3] = {true, false, false};
-      bool ary_v3[3] = {false, false, false};
+      long ary_v0[3] = { kmrnext::View::SplitAll,
+			 kmrnext::View::SplitAll,
+			 kmrnext::View::SplitAll };
+      long ary_v1[3] = { kmrnext::View::SplitAll,
+			 kmrnext::View::SplitNone,
+			 kmrnext::View::SplitAll };
+      long ary_v2[3] = { kmrnext::View::SplitAll,
+			 kmrnext::View::SplitNone,
+			 kmrnext::View::SplitNone };
+      long ary_v3[3] = { kmrnext::View::SplitNone,
+			 kmrnext::View::SplitNone,
+			 kmrnext::View::SplitNone };
       v0_->set(ary_v0);
       v1_->set(ary_v1);
       v2_->set(ary_v2);

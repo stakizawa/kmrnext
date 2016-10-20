@@ -198,18 +198,18 @@ evaluate(KMRNext* next, int rank, int nprocs)
   ds0->set(dim_ary);
   ds0->load_integers(datalist, loader);
 
-  bool ary_ff[2] = {false, false};
+  long ary_ff[2] = {View::SplitNone, View::SplitNone};
   View vff(2);
   vff.set(ary_ff);
-  bool ary_ft[2] = {false, true};
+  long ary_ft[2] = {View::SplitNone, View::SplitAll};
   View vft(2);
   vft.set(ary_ft);
-  bool ary_tf[2] = {true,  false};
+  long ary_tf[2] = {View::SplitAll,  View::SplitNone};
   View vtf(2);
   vtf.set(ary_tf);
-  bool ary_tt[2] = {true,  true};
+  long ary_tt[2] = {View::SplitAll,  View::SplitAll};
   View vtt(2);
-  vtf.set(ary_tt);
+  vtt.set(ary_tt);
 
   Timer timer_ff;
   DataStore *ds = ds0->duplicate();
@@ -284,8 +284,8 @@ void
 collate_ds(DataStore* ds)
 {
   View split(2);
-  split.set_dim(0, true);
-  split.set_dim(1, false);
+  split.set_dim(0, View::SplitAll);
+  split.set_dim(1, View::SplitNone);
   ds->set_split(split);
   ds->collate();
 }

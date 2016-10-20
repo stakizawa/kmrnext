@@ -183,7 +183,8 @@ main(int argc, char **argv)
       FieldC_Calculator calculator_c;
       // TODO check if view is appropriate
       View c_calc_view(kDimSize);
-      bool flags[kDimSize] = {false, false, false, false};
+      long flags[kDimSize] = { View::SplitNone, View::SplitNone,
+			       View::SplitNone, View::SplitNone };
       c_calc_view.set(flags);
       // TODO set split
       dsG->map(calculator_c, c_calc_view, dsC);
@@ -200,7 +201,9 @@ main(int argc, char **argv)
     {
       Inv_Calculator calculator_inv(dsC);
       View inv_calc_view(kDimSize + 1);
-      bool flags[kDimSize + 1] = {true, false, false, false, false};
+      long flags[kDimSize + 1] = { View::SplitAll, View::SplitNone,
+				   View::SplitNone, View::SplitNone,
+				   View::SplitNone };
       inv_calc_view.set(flags);
       // TODO set split
       dsF0->map(calculator_inv, inv_calc_view, dsF1);
@@ -214,7 +217,8 @@ main(int argc, char **argv)
       FieldP_Updater updater_p(dsC, dsG, dsF1);
       // TODO check if view is appropriate
       View p_update_view(kDimSize);
-      bool flags[kDimSize] = {false, false, false, false};
+      long flags[kDimSize] = { View::SplitNone, View::SplitNone,
+			       View::SplitNone, View::SplitNone };
       p_update_view.set(flags);
       // TODO set split
       dsP->map(updater_p, p_update_view);
@@ -228,7 +232,8 @@ main(int argc, char **argv)
       FieldG_Updater updater_g(dsP);
       // TODO check if view is appropriate
       View g_update_view(kDimSize);
-      bool flags[kDimSize] = {false, false, false, false};
+      long flags[kDimSize] = { View::SplitNone, View::SplitNone,
+			       View::SplitNone, View::SplitNone };
       g_update_view.set(flags);
       // TODO set split
       dsG->map(updater_g, g_update_view);

@@ -42,12 +42,18 @@ namespace kmrnext {
     check_view(view);
     check_key_range(key);
 
+    size_t* blk_sizs = new size_t[size_];
+    for (size_t i = 0; i < size_; i++) {
+      blk_sizs[i] = (view.dim(i) > 0)? (value_[i] / view.dim(i)) : 1;
+    }
+
     vector<DataPack> *dps = new vector<DataPack>();
     for (size_t i = 0; i < dlist_size_; i++) {
       Key tmpkey = index_to_key(i);
       bool push = true;
       for (size_t j = 0; j < size_; j++) {
-	if (view.dim(j) && key.dim(j) != tmpkey.dim(j)) {
+	if ((view.dim(j) == View::SplitAll && key.dim(j) != tmpkey.dim(j)) ||
+	    (view.dim(j) > 0 && key.dim(j) != tmpkey.dim(j) / blk_sizs[j])) {
 	  push = false;
 	  break;
 	}
@@ -57,6 +63,7 @@ namespace kmrnext {
       }
     }
 
+    delete[] blk_sizs;
     return dps;
   }
 
@@ -76,8 +83,10 @@ namespace kmrnext {
 
     size_t nkeys = 1;
     for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i)) {
+      if (view.dim(i) == View::SplitAll) {
 	nkeys *= value_[i];
+      } else if (view.dim(i) > 0) { // split count is specified
+	nkeys *= view.dim(i);
       }
     }
 
@@ -146,7 +155,7 @@ namespace kmrnext {
 
     View view(size_);
     for (size_t i = 0; i < size_; i++) {
-      view.set_dim(i, false);
+      view.set_dim(i, View::SplitNone);
     }
 
     map(dmpr, view);
@@ -169,7 +178,7 @@ namespace kmrnext {
 
     View view(size_);
     for (size_t i = 0; i < size_; i++) {
-      view.set_dim(i, false);
+      view.set_dim(i, View::SplitNone);
     }
     map(counter, view);
     return counter.result_;

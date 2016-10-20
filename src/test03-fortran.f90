@@ -270,10 +270,10 @@ program main
   integer(c_size_t)          :: kval2(Max_Dimension_Size)
   type(c_ptr)                :: dp1, dp2
   type(c_ptr)                :: v1, v2, v3, v4
-  logical(c_bool)            :: flags1(Max_Dimension_Size)
-  logical(c_bool)            :: flags2(Max_Dimension_Size)
-  logical(c_bool)            :: flags3(Max_Dimension_Size)
-  logical(c_bool)            :: flags4(Max_Dimension_Size)
+  integer(c_long)            :: flags1(Max_Dimension_Size)
+  integer(c_long)            :: flags2(Max_Dimension_Size)
+  integer(c_long)            :: flags3(Max_Dimension_Size)
+  integer(c_long)            :: flags4(Max_Dimension_Size)
   type(datapacks)            :: dps1, dps2, dps3, dps4, dps5, dps6, dps7, dps8
 
   character(c_char), pointer :: str(:)
@@ -283,14 +283,14 @@ program main
   data files/'dummy1'/
   data kval1/2,2,2,0,0,0,0,0/
   data kval2/2,2,3,0,0,0,0,0/
-  data flags1/.TRUE., .TRUE., .TRUE., &
-       .FALSE., .FALSE., .FALSE., .FALSE., .FALSE./
-  data flags2/.TRUE., .FALSE., .TRUE., &
-       .FALSE., .FALSE., .FALSE., .FALSE., .FALSE./
-  data flags3/.TRUE., .FALSE., .FALSE., &
-       .FALSE., .FALSE., .FALSE., .FALSE., .FALSE./
-  data flags4/.FALSE., .FALSE., .FALSE., &
-       .FALSE., .FALSE., .FALSE., .FALSE., .FALSE./
+  data flags1/Split_All, Split_All, Split_All, &
+       Split_None, Split_None, Split_None, Split_None, Split_None/
+  data flags2/Split_All, Split_None, Split_All, &
+       Split_None, Split_None, Split_None, Split_None, Split_None/
+  data flags3/Split_All, Split_None, Split_None, &
+       Split_None, Split_None, Split_None, Split_None, Split_None/
+  data flags4/Split_None, Split_None, Split_None, &
+       Split_None, Split_None, Split_None, Split_None, Split_None/
 
   !---------------------------------------------------------------------------
 

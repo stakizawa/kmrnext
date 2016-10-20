@@ -107,6 +107,7 @@ void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
   _ds->load_files(filevec, loader);
 }
 
+#ifdef BACKEND_KMR
 void KMRNEXT_ds_load_local_data(void *ds, void *data, size_t siz,
 				kmrnext_load_localfn_t l)
 {
@@ -124,6 +125,7 @@ void KMRNEXT_ds_load_local_data(void *ds, void *data, size_t siz,
   DataStore* _ds = static_cast<DataStore*>(ds);
   _ds->load_local_data(loader);
 }
+#endif
 
 void KMRNEXT_ds_add(void *ds, void *key, void *data)
 {
@@ -378,7 +380,7 @@ void KMRNEXT_free_view(void *view)
   delete _view;
 }
 
-void KMRNEXT_view_set(void *view, bool *val)
+void KMRNEXT_view_set(void *view, long *val)
 {
   View *_view = static_cast<View*>(view);
   _view->set(val);
