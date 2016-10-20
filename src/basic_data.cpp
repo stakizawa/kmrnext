@@ -6,6 +6,25 @@
 
 namespace kmrnext {
 
+  string View::to_string() const {
+    ostringstream os;
+    os << '<';
+    for (size_t i = 0; i < size_; i++) {
+      if (value_[i] == SplitAll) {
+	os << "All";
+      } else if (value_[i] == SplitNone) {
+	os << "None";
+      } else {
+	os << value_[i];
+      }
+      if (i < size_ - 1) {
+	os << ',';
+      }
+    }
+    os << '>';
+    return os.str();
+  }
+
   Data::Data(const Data& obj)
     : value_(obj.value_), value_size_(obj.value_size_),
       value_allocated_(false) {}

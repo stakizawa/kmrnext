@@ -191,7 +191,7 @@ namespace kmrnext {
     }
 
     /// It returns a string representation of an instance of this class.
-    string to_string() const {
+    virtual string to_string() const {
       ostringstream os;
       os << '<';
       for (size_t i = 0; i < size_; i++) {
@@ -243,6 +243,8 @@ namespace kmrnext {
     static const long SplitNone = 0;
 
     explicit View(size_t siz) : Dimensional<long>(siz) {}
+
+    string to_string() const;
   };
 
   ///////////////////////////////////////////////////////////////////////////

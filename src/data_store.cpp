@@ -228,14 +228,22 @@ namespace kmrnext {
     // It returns column-ordered index
     size_t idx = 0;
     for (long i = static_cast<long>(size_) - 1; i >= 0; i--) {
-      if (view.dim(i) == View::SplitAll) {
+      if (view.dim(i) == View::SplitAll || view.dim(i) != View::SplitNone) {
+	size_t key_idx = key.dim(i);
+	if (view.dim(i) > 0) { // split count is specified
+	  size_t blk_i = value_[i] / view.dim(i);
+	  key_idx = key_idx / blk_i;
+	}
+
 	size_t offset = 1;
 	for (long j = i-1; j >= 0; j--) {
 	  if (view.dim(j) == View::SplitAll) {
 	    offset *= value_[j];
+	  } else if (view.dim(j) > 0) {
+	    offset *= view.dim(j);
 	  }
 	}
-	idx += key.dim(i) * offset;
+	idx += key_idx * offset;
       }
     }
     return idx;
@@ -243,14 +251,22 @@ namespace kmrnext {
     // It returns row-ordered index
     size_t idx = 0;
     for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i) == View::SplitAll) {
+      if (view.dim(i) == View::SplitAll || view.dim(i) != View::SplitNone) {
+	size_t key_idx = key.dim(i);
+	if (view.dim(i) > 0) { // split count is specified
+	  size_t blk_i = value_[i] / view.dim(i);
+	  key_idx = key_idx / blk_i;
+	}
+
 	size_t offset = 1;
 	for (size_t j = i+1; j < size_; j++) {
 	  if (view.dim(j) == View::SplitAll) {
 	    offset *= value_[j];
+	  } else if (view.dim(j) > 0) {
+	    offset *= view.dim(j);
 	  }
 	}
-	idx += key.dim(i) * offset;
+	idx += key_idx * offset;
       }
     }
     return idx;
@@ -260,7 +276,7 @@ namespace kmrnext {
   Key DataStore::key_to_viewed_key(const Key& key, const View& view) {
     size_t viewed_key_size = 0;
     for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i) == View::SplitAll) {
+      if (view.dim(i) != View::SplitNone) {
 	viewed_key_size += 1;
       }
     }
@@ -270,6 +286,10 @@ namespace kmrnext {
     for (size_t i = 0; i < size_; i++) {
       if (view.dim(i) == View::SplitAll) {
 	viewed_key.set_dim(viewed_key_idx, key.dim(i));
+	viewed_key_idx += 1;
+      } else if (view.dim(i) > 0) {  // split size is specified
+	size_t blk_siz = value_[i] / view.dim(i);
+	viewed_key.set_dim(viewed_key_idx, key.dim(i) / blk_siz);
 	viewed_key_idx += 1;
       }
     }
@@ -283,6 +303,9 @@ namespace kmrnext {
     for (size_t i = 0; i < size_; i++) {
       if (view.dim(i) == View::SplitAll) {
 	viewed_key.set_dim(i, key.dim(i));
+      } else if (view.dim(i) > 0) {  // split size is specified
+	size_t blk_siz = value_[i] / view.dim(i);
+	viewed_key.set_dim(i, key.dim(i) / blk_siz);
       } else {
 	viewed_key.set_dim(i, 0);
       }
@@ -300,6 +323,15 @@ namespace kmrnext {
     if (size_ != view.size()) {
       throw runtime_error("Dimension size of the DataStore and view "
 			  "should be same.");
+    }
+    for (size_t i = 0; i < size_; i++) {
+      if (!(view.dim(i) == View::SplitAll || view.dim(i) == View::SplitNone)) {
+	if (value_[i] % view.dim(i) != 0) {
+	  ostringstream os;
+	  os << "View/Split could not divide the DataStore." << to_string();
+	  throw runtime_error(os.str());
+	}
+      }
     }
   }
 
@@ -325,6 +357,15 @@ namespace kmrnext {
     if (size_ != view.size()) {
       throw runtime_error("Dimension size of the input DataStore and "
 			  "view should be same.");
+    }
+    for (size_t i = 0; i < size_; i++) {
+      if (!(view.dim(i) == View::SplitAll || view.dim(i) == View::SplitNone)) {
+	if (value_[i] % view.dim(i) != 0) {
+	  ostringstream os;
+	  os << "View could not divide the input DataStore." << to_string();
+	  throw runtime_error(os.str());
+	}
+      }
     }
   }
 

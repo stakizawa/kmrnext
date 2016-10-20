@@ -204,6 +204,11 @@ namespace kmrnext {
     check_key_range(key);
     vector<DataPack> *dps = new vector<DataPack>();
 
+    size_t* blk_sizs = new size_t[size_];
+    for (size_t i = 0; i < size_; i++) {
+      blk_sizs[i] = (view.dim(i) > 0)? (value_[i] / view.dim(i)) : 1;
+    }
+
     KMR_KVS *snd = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
     KMR_KVS *rcv = kmr_create_kvs(kmrnext_->kmr(),
@@ -218,7 +223,8 @@ namespace kmrnext {
       Key tmpkey = index_to_key(i);
       bool match = true;
       for (size_t j = 0; j < size_; j++) {
-	if (view.dim(j) == View::SplitAll && key.dim(j) != tmpkey.dim(j)) {
+	if ((view.dim(j) == View::SplitAll && key.dim(j) != tmpkey.dim(j)) ||
+	    (view.dim(j) > 0 && key.dim(j) != tmpkey.dim(j) / blk_sizs[j])) {
 	  match = false;
 	  break;
 	}
@@ -254,6 +260,7 @@ namespace kmrnext {
     param_mapper_get_view param = { this, dlist_, dps };
     kmr_map(rcv, NULL, (void*)&param, kmr_noopt, mapper_get_view);
 
+    delete[] blk_sizs;
     return dps;
   }
 
@@ -282,15 +289,15 @@ namespace kmrnext {
       for (size_t i = 0; i < size_; i++) {
 	if (view.dim(i) == View::SplitAll) {
 	  nkeys *= value_[i];
-	} else {
-	  is_local = false;
+	} else if (view.dim(i) > 0) { // split count is specified
+	  nkeys *= view.dim(i);
 	}
 	if (view.dim(i) != split.dim(i)) {
 	  is_same_view = false;
 	}
       }
-      if (is_same_view) {
-	is_local = true;
+      if (!is_same_view) {
+	is_local = false;
       }
     }
 
@@ -520,14 +527,22 @@ namespace kmrnext {
     // It returns column-ordered index
     size_t idx = 0;
     for (long i = static_cast<long>(size_) - 1; i >= 0; i--) {
-      if (view.dim(i) == View::SplitAll) {
+      if (view.dim(i) == View::SplitAll || view.dim(i) != View::SplitNone) {
+	size_t key_idx = key.dim(i);
+	if (view.dim(i) > 0) { // split count is specified
+	  size_t blk_i = value_[i] / view.dim(i);
+	  key_idx = key_idx / blk_i;
+	}
+
 	size_t offset = 1;
 	for (long j = i-1; j >= 0; j--) {
 	  if (view.dim(j) == View::SplitAll) {
 	    offset *= value_[j];
+	  } else if (view.dim(j) > 0) {
+	    offset *= view.dim(j);
 	  }
 	}
-	idx += key.dim(i) * offset;
+	idx += key_idx * offset;
       }
     }
     return idx;
@@ -535,14 +550,22 @@ namespace kmrnext {
     // It returns row-ordered index
     size_t idx = 0;
     for (size_t i = 0; i < size_; i++) {
-      if (view.dim(i) == View::SplitAll) {
+      if (view.dim(i) == View::SplitAll || view.dim(i) != View::SplitNone) {
+	size_t key_idx = key.dim(i);
+	if (view.dim(i) > 0) { // split count is specified
+	  size_t blk_i = value_[i] / view.dim(i);
+	  key_idx = key_idx / blk_i;
+	}
+
 	size_t offset = 1;
 	for (size_t j = i+1; j < size_; j++) {
 	  if (view.dim(j) == View::SplitAll) {
 	    offset *= value_[j];
+	  } else if (view.dim(j) > 0) {
+	    offset *= view.dim(j);
 	  }
 	}
-	idx += key.dim(i) * offset;
+	idx += key_idx * offset;
       }
     }
     return idx;
@@ -573,8 +596,13 @@ namespace kmrnext {
       for (size_t i = 0; i < size_; i++) {
 	if (split.dim(i) == View::SplitAll) {
 	  ndata *= value_[i];
-	} else {
+	} else if (split.dim(i) == View::SplitNone) {
 	  each_cnt *= value_[i];
+	} else {
+	  // Split count is specified
+	  assert(value_[i] % split.dim(i) == 0);
+	  ndata *= split.dim(i);
+	  each_cnt *= (value_[i] / split.dim(i));
 	}
       }
 
