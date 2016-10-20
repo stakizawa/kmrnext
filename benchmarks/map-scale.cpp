@@ -209,7 +209,7 @@ evaluate(KMRNext* next, int rank, int nprocs)
   vtf.set(ary_tf);
   long ary_tt[2] = {View::SplitAll,  View::SplitAll};
   View vtt(2);
-  vtf.set(ary_tt);
+  vtt.set(ary_tt);
 
   Timer timer_ff;
   DataStore *ds = ds0->duplicate();

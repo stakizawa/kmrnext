@@ -543,7 +543,7 @@ collate_ds(DataStore* ds, View& view)
   View split(view.size());
   split.set_dim(0, View::SplitAll);
   for (size_t i = 1; i < split.size(); i++) {
-    split.set_dim(1, View::SplitNone);
+    split.set_dim(i, View::SplitNone);
   }
   ds->set_split(split);
   ds->collate();
