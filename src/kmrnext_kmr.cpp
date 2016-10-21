@@ -55,6 +55,19 @@ namespace kmrnext {
     }
   }
 
+  void KMRNext::abort(int errorcode) {
+    DataStore::finalize();
+    if (kmrnext_ != NULL) {
+      bool fin_mpi = (kmrnext_->initiate_mpi)? true : false;
+      delete kmrnext_;
+      kmrnext_ = NULL;
+      kmr_fin();
+      if (fin_mpi) {
+	MPI_Abort(MPI_COMM_WORLD, errorcode);
+      }
+    }
+  }
+
   KMRNext::KMRNext() {
     world_comm_ = MPI_COMM_WORLD;
     initiate_mpi = false;

@@ -59,6 +59,9 @@ namespace kmrnext {
     /// It finalizes the whole system.
     static void finalize();
 
+    /// It aborts the whole system.
+    static void abort(int errorcode);
+
     /// It enables profiling option.
     void enable_profile();
 

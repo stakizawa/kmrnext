@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "../config.hpp"
 #include "kmrnext.hpp"
 
@@ -21,6 +22,11 @@ namespace kmrnext {
       delete kmrnext_;
       kmrnext_ = NULL;
     }
+  }
+
+  void KMRNext::abort(int errorcode) {
+    finalize();
+    exit(errorcode);
   }
 
   KMRNext::KMRNext() : profile_(false), iomode_(KMRNext::Memory) {}
