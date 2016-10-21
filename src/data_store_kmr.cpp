@@ -521,9 +521,8 @@ namespace kmrnext {
   }
 
   size_t DataStore::key_to_split_index(const Key& key, const View& view) {
-    // The implementation is the same as key_to_viewed_index(), except that
-    // it returns row-ordered index.
-#if 0
+    // The implementation is the same as key_to_viewed_index().
+#if 1
     // It returns column-ordered index
     size_t idx = 0;
     for (long i = static_cast<long>(size_) - 1; i >= 0; i--) {

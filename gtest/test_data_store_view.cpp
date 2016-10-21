@@ -95,6 +95,19 @@ namespace {
       if (nprocs > 2 && nprocs % 2 == 0) {
 	blk[0] = 4;       // 2 * nprocs / ary[0]
 	blk[1] = nprocs;  // 2 * nprocs / 2
+#if 1
+	// The following is the case of column-ordered index
+	size_t block_i = dim_siz / blk[0];
+	for (size_t i = 0; i < dim_siz; i++) {
+	  size_t chnk_i = i / blk[0];
+	  for (size_t j = 0; j < dim_siz; j++) {
+	    size_t chnk_j = j / blk[1];
+	    int owner = static_cast<int>(chnk_j * block_i + chnk_i);
+	    owners[j * dim_siz + i] = owner;
+	  }
+	}
+#else
+	// The following is the case of row-ordered index
 	size_t block_j = dim_siz / blk[1];
 	for (size_t i = 0; i < dim_siz; i++) {
 	  size_t chnk_i = i / blk[0];
@@ -104,6 +117,7 @@ namespace {
 	    owners[j * dim_siz + i] = owner;
 	  }
 	}
+#endif
       } else {
 	blk[0] = 2 * nprocs;  // as do not split
 	blk[1] = 2;           // n * nprocs / ary[1]
@@ -274,7 +288,9 @@ namespace {
     }
 
     ds_->collate();
-    EXPECT_TRUE(ds_->collated());
+    if (nprocs > 1) {
+      EXPECT_TRUE(ds_->collated());
+    }
 
     // As the default Split is <All, None>, each process has data elements
     // in two rows as a result of data relocation
@@ -294,7 +310,9 @@ namespace {
 
     ds_->set_split(*split_);
     ds_->collate();
-    EXPECT_TRUE(ds_->collated());
+    if (nprocs > 1) {
+      EXPECT_TRUE(ds_->collated());
+    }
 
     // As a detail split is set, data elements are grouped and stored on
     // different processes
@@ -314,7 +332,9 @@ namespace {
     }
 
     ds_->collate();
-    EXPECT_FALSE(ds_->collated());
+    if (nprocs > 1) {
+      EXPECT_FALSE(ds_->collated());
+    }
   }
 
   class MapTestMapper1 : public kmrnext::DataStore::Mapper {
@@ -377,18 +397,24 @@ namespace {
     }
     MapTestMapper1 mapper0(nprocs, nprocs_task);
     ds_->map(mapper0, *view_);
-    EXPECT_TRUE(ds_->collated());
+    if (nprocs > 1) {
+      EXPECT_TRUE(ds_->collated());
+    }
 
     // As the View and Split is same, each task runs on a process.
     nprocs_task = 1;
     MapTestMapper1 mapper1(nprocs, nprocs_task);
     ds_->set_split(*split_);
     ds_->map(mapper1, *view_);
-    EXPECT_TRUE(ds_->collated());
+    if (nprocs > 1) {
+      EXPECT_TRUE(ds_->collated());
+    }
 
     // As using the same view, data relocation does not happen.
     ds_->map(mapper1, *view_);
-    EXPECT_FALSE(ds_->collated());
+    if (nprocs > 1) {
+      EXPECT_FALSE(ds_->collated());
+    }
   }
 #endif
 

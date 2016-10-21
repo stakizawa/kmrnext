@@ -522,7 +522,9 @@ namespace {
     ds0->get(key000);
     ds0->get(key111);
     ds0->get(key222);
-    EXPECT_FALSE(ds0->collated());
+    if (nprocs > 1) {
+      EXPECT_FALSE(ds0->collated());
+    }
     if (nprocs >= 3) {
       EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
       EXPECT_EQ(1, ds0->data_element_at(key111)->owner());
@@ -542,6 +544,89 @@ namespace {
 		       kmrnext::View::SplitAll,
 		       kmrnext::View::SplitAll };
     aviewFTT.set(_avFTT);
+
+#if 1
+    // The following is the case of column-ordered index
+
+    // By changing the Split, calling collate() makes change of data
+    // allocation.
+    // The resultant viewed keys by applying this Split is listed below
+    // and each of them has 3 data.
+    //
+    //        Keys  nprocs 1  2  3  4  5  6  7  8  9
+    //   <*, 0, 0>         0  0  0  0  0  0  0  0  0
+    //   <*, 0, 1>         0  0  1  1  1  1  1  2  3
+    //   <*, 0, 2>         0  1  2  2  3  3  4  5  6
+    //   <*, 1, 0>         0  0  0  0  0  0  0  0  1
+    //   <*, 1, 1>         0  0  1  1  2  2  2  3  4
+    //   <*, 1, 2>         0  1  2  3  3  4  5  6  7
+    //   <*, 2, 0>         0  0  0  0  1  1  1  1  2
+    //   <*, 2, 1>         0  1  1  2  2  2  3  4  5
+    //   <*, 2, 2>         0  1  2  3  4  5  6  7  8
+    ds0->set_split(aviewFTT);
+    ds0->collate();
+    ds0->get(key000);
+    ds0->get(key111);
+    ds0->get(key222);
+    ds0->get(key012);
+    ds0->get(key210);
+    if (nprocs >= 9) {
+      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
+      EXPECT_EQ(4, ds0->data_element_at(key111)->owner());
+      EXPECT_EQ(8, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(7, ds0->data_element_at(key012)->owner());
+      EXPECT_EQ(1, ds0->data_element_at(key210)->owner());
+    } else if (nprocs == 8) {
+      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
+      EXPECT_EQ(3, ds0->data_element_at(key111)->owner());
+      EXPECT_EQ(7, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(6, ds0->data_element_at(key012)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+    } else if (nprocs == 7) {
+      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
+      EXPECT_EQ(2, ds0->data_element_at(key111)->owner());
+      EXPECT_EQ(6, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(5, ds0->data_element_at(key012)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+    } else if (nprocs == 6) {
+      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
+      EXPECT_EQ(2, ds0->data_element_at(key111)->owner());
+      EXPECT_EQ(5, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(4, ds0->data_element_at(key012)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+    } else if (nprocs == 5) {
+      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
+      EXPECT_EQ(2, ds0->data_element_at(key111)->owner());
+      EXPECT_EQ(4, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(3, ds0->data_element_at(key012)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+    } else if (nprocs == 4) {
+      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
+      EXPECT_EQ(1, ds0->data_element_at(key111)->owner());
+      EXPECT_EQ(3, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(3, ds0->data_element_at(key012)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+    } else if (nprocs == 3) {
+      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
+      EXPECT_EQ(1, ds0->data_element_at(key111)->owner());
+      EXPECT_EQ(2, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(2, ds0->data_element_at(key012)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+    } else if (nprocs == 2) {
+      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
+      EXPECT_EQ(1, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(1, ds0->data_element_at(key012)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+    } else {  // nprocs == 1
+      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key012)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+    }
+#else
+    // The following is the case of row-ordered index
 
     // By changing the Split, calling collate() makes change of data
     // allocation.
@@ -620,6 +705,7 @@ namespace {
       EXPECT_EQ(0, ds0->data_element_at(key012)->owner());
       EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
     }
+#endif
     delete ds0;
   }
 
