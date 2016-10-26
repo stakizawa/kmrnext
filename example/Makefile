@@ -6,6 +6,7 @@ PROGS = nicam-letkf-pattern in-situ-viz-pattern remd-pattern \
 
 ifeq ($(TARGET), KMR)
     DEPLIB += $(KMRDIR)/lib/libkmr.a
+    PROGS  += bqcd-pattern
 endif
 
 .Phony: all
@@ -24,6 +25,9 @@ matrix-transpose: matrix-transpose.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 qcdmd-pattern: qcdmd-pattern.o
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
+
+bqcd-pattern: bqcd-pattern.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIB) $(DEPLIB)
 
 .cpp.o:
