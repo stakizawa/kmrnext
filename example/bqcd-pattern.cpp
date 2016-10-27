@@ -17,35 +17,19 @@ const size_t kEnsembleProc[kDimSize] = {1, 2, 1, 1};
 
 void check_configuration(int nprocs, int rank);
 void zeroize_ds(DataStore* ds);
-void calc_region(const int rank, const size_t siz, size_t* head, size_t* tail,
-		 const size_t *grid, const size_t *split);
 void check_data_location_4d(DataStore* ds);
 void check_data_location_5d(DataStore* ds);
 void print_ds(DataStore* ds);
 
 class LoadDataMapper : public DataStore::Mapper {
-  size_t* heads_;
-  size_t* tails_;
-  size_t  size_;
-  long    value_;
+  long rank_;
 public:
-  LoadDataMapper(size_t* heads, size_t* tails, size_t siz, long data)
-    : heads_(heads), tails_(tails), size_(siz), value_(data) {}
+  LoadDataMapper(long rank) : rank_(rank) {}
 
   int operator()(DataStore* inds, DataStore* outds,
 		 Key& key, vector<DataPack>& dps,
 		 DataStore::MapEnvironment& env)
   {
-    // Check data count
-    size_t expected = 1;
-    for (size_t i = 0; i < size_; i++) {
-      expected *= tails_[i] - heads_[i];
-    }
-    if (expected != dps.size()) {
-      cerr << "Data count is not correct." << endl;
-      KMRNext::abort(1);
-    }
-
     // Check number of processes
     int nprocs;
     MPI_Comm_size(env.mpi_comm, &nprocs);
@@ -54,13 +38,41 @@ public:
       KMRNext::abort(1);
     }
 
-    Data data(&value_, sizeof(long));
+    // Check data count
+    size_t expected_data_count = 1;
+    size_t blocks[kDimSize];
+    for (size_t i = 0; i < kDimSize; i++) {
+      blocks[i] = kGrid[i] / kProc[i];
+      expected_data_count *= blocks[i];
+    }
+    if (expected_data_count != dps.size()) {
+      cerr << "Data count is not correct." << endl;
+      KMRNext::abort(1);
+    }
+
+    // Calculate region
+    size_t heads[kDimSize];
+    size_t tails[kDimSize];
+    // Order: x, y, z, t
+    for (size_t i = 0; i < kDimSize; i++) {
+      size_t prod_prev = 1;
+      for (long j = i - 1; j >= 0; j--) {
+	prod_prev *= kProc[j];
+      }
+      heads[i] = (rank_ / prod_prev) % kProc[i];
+    }
+    for (size_t i = 0; i < kDimSize; i++) {
+      heads[i] *= blocks[i];
+      tails[i] = heads[i] + blocks[i];
+    }
+
+    Data data(&rank_, sizeof(long));
     for (vector<DataPack>::iterator itr = dps.begin(); itr != dps.end();
 	 itr++) {
       // Check key range
-      for (size_t i = 0; i < size_; i++) {
+      for (size_t i = 0; i < kDimSize; i++) {
 	size_t key_idx = itr->key().dim(i);
-	if (!(heads_[i] <= key_idx && key_idx < tails_[i])) {
+	if (!(heads[i] <= key_idx && key_idx < tails[i])) {
 	  cerr << "Key is out of range." << endl;
 	  KMRNext::abort(1);
 	}
@@ -235,42 +247,18 @@ main(int argc, char **argv)
 
   check_configuration(nprocs, rank);
 
-  // Calculate the region in the gird this process takes care
-  // TODO move renge calculation to LoadMapper
-  size_t *reg_heads = new size_t[kDimSize];
-  size_t *reg_tails = new size_t[kDimSize];
-  calc_region(rank, kDimSize, reg_heads, reg_tails, kGrid, kProc);
-#if 0  // for debug
-  if (rank == 0) {
-    for (int i = 0; i < nprocs; i++) {
-      calc_region(i, kDimSize, reg_heads, reg_tails, kGrid, kProc);
-      cout << i << ": ";
-      for (size_t j = 0; j < kDimSize; j++) {
-	cout << "(" << reg_heads[j] << ":" << reg_tails[j] << ") ";
-      }
-      cout << endl;
-    }
-  }
-#endif
-
   // Create a DS and set data on each process
   DataStore* ds0 = next->create_ds(kDimSize);
   ds0->set(kGrid);
   zeroize_ds(ds0);
   View load_split = View(kDimSize);
-  View load_view = View(kDimSize);
   {
     load_split.set(reinterpret_cast<long*>(const_cast<size_t*>(kProc)));
-    load_view.set(reinterpret_cast<long*>(const_cast<size_t*>(kProc)));
   }
-#if 0 // TODO use copy constructor
   View load_view = load_split;
-#endif
-  LoadDataMapper ldm(reg_heads, reg_tails, kDimSize, rank);
+  LoadDataMapper ldm(rank);
   ds0->set_split(load_split);
   ds0->map(ldm, load_view);
-  delete[] reg_heads;
-  delete[] reg_tails;
   check_data_location_4d(ds0);
 
   // Create a DS for ensemble
@@ -411,31 +399,6 @@ void zeroize_ds(DataStore* ds)
   vector<long> dlst;
   dlst.push_back(0);
   ds->load_integers(dlst, zl);
-}
-
-void calc_region(const int rank, const size_t siz, size_t* head, size_t* tail,
-		 const size_t *grid, const size_t *split)
-{
-  size_t rank_s = static_cast<size_t>(rank);
-  // Order: x, y, z, t
-  for (size_t i = 0; i < siz; i++) {
-    size_t prod_prev = 1;
-    for (long j = i - 1; j >= 0; j--) {
-      prod_prev *= split[j];
-    }
-    head[i] = (rank_s / prod_prev) % split[i];
-  }
-
-  size_t *blocks = new size_t[siz];
-  for (size_t i = 0; i < siz; i++) {
-    blocks[i] = grid[i] / split[i];
-  }
-
-  for (size_t i = 0; i < siz; i++) {
-    head[i] *= blocks[i];
-    tail[i] = head[i] + blocks[i];
-  }
-  delete[] blocks;
 }
 
 int calc_owner(const size_t *idx, const size_t *grid, size_t siz)
