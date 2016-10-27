@@ -11,8 +11,6 @@ namespace {
   using namespace std;
   using namespace kmrnext;
 
-  const size_t kDefaultWriteBufferSize = 1048576;
-
   template <typename T>
   void load_array(const vector<T>& array, DataStore::Loader<T>& loader,
 		  KMRNext* next, DataStore* ds,
