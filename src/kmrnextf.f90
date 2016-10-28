@@ -72,10 +72,10 @@ module kmrnextf
   end interface
 
   interface
-     type(c_ptr) function C_kmrnext_init() bind(c, name='KMRNEXT_init_ff')
+     type(c_ptr) function C_kmrnext_init0() bind(c, name='KMRNEXT_init0')
        use iso_c_binding
        implicit none
-     end function C_kmrnext_init
+     end function C_kmrnext_init0
 
      subroutine C_kmrnext_finalize() bind(c, name='KMRNEXT_finalize')
        use iso_c_binding
@@ -436,7 +436,7 @@ module kmrnextf
 contains
 
   type(c_ptr) function kmrnext_init() result(zz)
-    zz = C_kmrnext_init()
+    zz = C_kmrnext_init0()
   end function kmrnext_init
 
   integer function kmrnext_finalize() result(zz)
