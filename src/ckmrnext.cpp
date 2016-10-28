@@ -86,6 +86,12 @@ void KMRNEXT_ds_set_size(void *ds, size_t *val)
   _ds->set(val);
 }
 
+void KMRNEXT_ds_zeroize(void *ds)
+{
+  DataStore *_ds = static_cast<DataStore*>(ds);
+  _ds->zeroize();
+}
+
 void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
 			   kmrnext_loadfn_t l)
 {

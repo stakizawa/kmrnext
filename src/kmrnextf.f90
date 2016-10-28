@@ -141,6 +141,12 @@ module kmrnextf
        type(c_ptr), intent(in), value :: size
      end subroutine C_kmrnext_ds_set_size
 
+     subroutine C_kmrnext_ds_zeroize(ds)  bind(c, name='KMRNEXT_ds_zeroize')
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: ds
+     end subroutine C_kmrnext_ds_zeroize
+
      subroutine C_kmrnext_ds_load_files(ds, files, nfiles, l) &
           bind(c, name='KMRNEXT_ds_load_files')
        use iso_c_binding
@@ -483,6 +489,12 @@ contains
     call C_kmrnext_ds_set_size(ds, C_LOC(size))
     zz = 0
   end function kmrnext_ds_set_size
+
+  integer function kmrnext_ds_zeroize(ds) result(zz)
+    type(c_ptr),     intent(in), value  :: ds
+    call C_kmrnext_ds_zeroize(ds)
+    zz = 0
+  end function kmrnext_ds_zeroize
 
   integer function kmrnext_ds_load_files(ds, files, nfiles, l) result(zz)
     type(c_ptr),  intent(in),  value   :: ds

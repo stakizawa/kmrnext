@@ -54,6 +54,7 @@ long KMRNEXT_rank(void *next);
 void *KMRNEXT_create_ds(void *next, size_t siz);
 void KMRNEXT_free_ds(void *ds);
 void KMRNEXT_ds_set_size(void *ds, size_t *val);
+void KMRNEXT_ds_zeroize(void *ds);
 void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
 			   kmrnext_loadfn_t l);
 void KMRNEXT_ds_load_local_data(void *ds, void *data, size_t siz,

@@ -11,11 +11,35 @@ namespace {
   using namespace std;
   using namespace kmrnext;
 
+  // A data loader class that sets long integer 0 to all data elements.
+  class Zeroizer : public DataStore::Loader<long> {
+  public:
+    int operator()(DataStore* ds, const long& num)
+    {
+      Key key(ds->size());
+      set_data(ds, key, 0, ds->size());
+      return 0;
+    }
+  private:
+    void set_data(DataStore* ds, Key& key, size_t cur_depth, size_t max_depth)
+    {
+      if (cur_depth < max_depth) {
+	for (size_t i = 0; i < ds->dim(cur_depth); i++) {
+	  key.set_dim(cur_depth, i);
+	  set_data(ds, key, cur_depth + 1, max_depth);
+	}
+      } else {
+	long val = 0;
+	Data data(&val, sizeof(long));
+	ds->add(key, data);
+      }
+    }
+  };
+
   template <typename T>
   void load_array(const vector<T>& array, DataStore::Loader<T>& loader,
 		  KMRNext* next, DataStore* ds,
 		  size_t* ds_dims, size_t ds_dims_siz);
-
 
   // It serializes a string.
   void serialize(const string& str, char** buf, size_t* buf_siz);
@@ -71,6 +95,13 @@ namespace kmrnext {
       throw runtime_error("DataStore is already initialized.");
     }
     base::set_dim(idx, siz);
+  }
+
+  void DataStore::zeroize() {
+    Zeroizer zero;
+    vector<long> dlst;
+    dlst.push_back(0);
+    load_integers(dlst, zero);
   }
 
   void DataStore::set_from(const vector<DataStore*>& dslist) {

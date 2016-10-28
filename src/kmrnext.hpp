@@ -426,6 +426,10 @@ namespace kmrnext {
     /// \param[in] siz the dimension size
     virtual void set_dim(const size_t idx, const size_t siz);
 
+    /// It sets ZERO data (long interger 0) to all the data elements in
+    /// this DataStore.
+    void zeroize();
+
     /// It adds a data to this DataStore.
     ///
     /// \param[in] key  Key in this DataStore where the Data is stored

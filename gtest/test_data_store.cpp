@@ -196,6 +196,26 @@ namespace {
     delete ds;
   }
 
+  TEST_F(DataStoreTest, Zeroize) {
+    kmrnext::DataStore *ds = gNext->create_ds(ds_size_);
+    ds->set(array_ds0_);
+    ds->zeroize();
+    kmrnext::Key key(ds_size_);
+    for (size_t i = 0; i < array_ds0_[0]; i++) {
+      for (size_t j = 0; j < array_ds0_[1]; j++) {
+	for (size_t k = 0; k < array_ds0_[2]; k++) {
+	  key.set_dim(0, i);
+	  key.set_dim(1, j);
+	  key.set_dim(2, k);
+	  std::cerr << key.to_string() << std::endl;
+	  kmrnext::DataPack dp = ds->get(key);
+	  EXPECT_EQ(0, *static_cast<long*>(dp.data().value()));
+	  EXPECT_EQ(sizeof(long), dp.data().size());
+	}
+      }
+    }
+  }
+
   TEST_F(DataStoreTest, Add) {
     // assume that ds.get() works fine
     kmrnext::DataStore *ds = gNext->create_ds(ds_size_);

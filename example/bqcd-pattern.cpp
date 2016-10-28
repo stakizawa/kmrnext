@@ -16,7 +16,6 @@ const size_t kEnsembles = 2;
 const size_t kEnsembleProc[kDimSize] = {1, 2, 1, 1};
 
 void check_configuration(int nprocs, int rank);
-void zeroize_ds(DataStore* ds);
 void check_data_location_4d(DataStore* ds);
 void check_data_location_5d(DataStore* ds);
 void print_ds(DataStore* ds);
@@ -250,7 +249,7 @@ main(int argc, char **argv)
   // Create a DS and set data on each process
   DataStore* ds0 = next->create_ds(kDimSize);
   ds0->set(kGrid);
-  zeroize_ds(ds0);
+  ds0->zeroize();
   View load_split = View(kDimSize);
   {
     load_split.set(reinterpret_cast<long*>(const_cast<size_t*>(kProc)));
@@ -367,38 +366,6 @@ void check_configuration(int nprocs, int rank)
       MPI_Barrier(MPI_COMM_WORLD);
       KMRNext::abort(1);
   }
-}
-
-class ZeroLoader : public DataStore::Loader<long> {
-public:
-  int operator()(DataStore* ds, const long& num)
-  {
-    Key key(ds->size());
-    set_data(ds, key, 0, ds->size());
-    return 0;
-  }
-private:
-  void set_data(DataStore* ds, Key& key, size_t cur_depth, size_t max_depth)
-  {
-    if (cur_depth < max_depth) {
-      for (size_t i = 0; i < ds->dim(cur_depth); i++) {
-	key.set_dim(cur_depth, i);
-	set_data(ds, key, cur_depth + 1, max_depth);
-      }
-    } else {
-      long val = 0;
-      Data data(&val, sizeof(long));
-      ds->add(key, data);
-    }
-  }
-};
-
-void zeroize_ds(DataStore* ds)
-{
-  ZeroLoader zl;
-  vector<long> dlst;
-  dlst.push_back(0);
-  ds->load_integers(dlst, zl);
 }
 
 int calc_owner(const size_t *idx, const size_t *grid, size_t siz)
