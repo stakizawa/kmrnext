@@ -66,6 +66,13 @@ namespace kmrnext {
     }
   }
 
+  void DataStore::set_dim(const size_t idx, const size_t siz) {
+    if (dlist_size_ != 0) {
+      throw runtime_error("DataStore is already initialized.");
+    }
+    base::set_dim(idx, siz);
+  }
+
   void DataStore::set_from(const vector<DataStore*>& dslist) {
     if (dslist.size() == 0) {
       throw runtime_error("There should be at least one DataStore.");

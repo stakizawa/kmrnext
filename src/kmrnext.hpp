@@ -141,7 +141,7 @@ namespace kmrnext {
     /// \return        A new instance of Dimensional class
     /// \exception std::runtime_error
     ///                When siz exceeds the maximum dimension size
-    explicit Dimensional(size_t siz) : size_(siz) {
+    explicit Dimensional(const size_t siz) : size_(siz) {
       if (size_ > kMaxDimensionSize) {
 	ostringstream os;
 	os << "Dimension size should be less than " << (kMaxDimensionSize + 1);
@@ -169,7 +169,7 @@ namespace kmrnext {
     /// \return        Value of the dimension
     /// \exception std::runtime_error
     ///                When idx exceeds the maximum dimension size
-    T dim(size_t idx) const {
+    T dim(const size_t idx) const {
       if (idx >= size_) {
 	ostringstream os;
 	os << "Index should be less than dimension size: " << size_;
@@ -184,7 +184,7 @@ namespace kmrnext {
     /// \param[in] val Value to be set
     /// \exception std::runtime_error
     ///                When idx exceeds the maximum dimension size
-    void set_dim(size_t idx, T val) {
+    virtual void set_dim(const size_t idx, const T val) {
       if (idx >= size_) {
 	ostringstream os;
 	os << "Index should be less than dimension size: " << size_;
@@ -229,7 +229,7 @@ namespace kmrnext {
   ///////////////////////////////////////////////////////////////////////////
   class Key : public Dimensional<size_t> {
   public:
-    explicit Key(size_t siz) : Dimensional<size_t>(siz) {}
+    explicit Key(const size_t siz) : Dimensional<size_t>(siz) {}
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -245,7 +245,7 @@ namespace kmrnext {
     /// specified dimension are grouped into one.
     static const long SplitNone = 0;
 
-    explicit View(size_t siz) : Dimensional<long>(siz) {}
+    explicit View(const size_t siz) : Dimensional<long>(siz) {}
 
     string to_string() const;
   };
@@ -347,12 +347,17 @@ namespace kmrnext {
   /// A class that stores data
   ///////////////////////////////////////////////////////////////////////////
   class DataStore : public Dimensional<size_t> {
+    typedef Dimensional<size_t> base;
+
   public:
     /// It creates a new DataStore.
     ///
+    /// Size of each dimension should be set by DataStore.set() function
+    /// before using this DataStore.
+    ///
     /// \param[in] size number of dimensions of this DataStore.
     /// \param[in] kn   an instance of KMRNext context
-    DataStore(size_t siz, KMRNext *kn);
+    DataStore(const size_t siz, KMRNext *kn);
 
     virtual ~DataStore();
 
@@ -408,10 +413,18 @@ namespace kmrnext {
       virtual int operator()(DataStore *ds, const Type& param) = 0;
     };
 
-    /// It sets value of each dimension.
+    /// It sets size of each dimension.
+    ///
+    /// This DataStore is ready to use after calling this function.
     ///
     /// \param[in] val an array that stores value of each dimension
     virtual void set(const size_t *val);
+
+    /// It sets size of a specified dimension of this DataStore.
+    ///
+    /// \param[in] idx  index of the dimension
+    /// \param[in] siz the dimension size
+    virtual void set_dim(const size_t idx, const size_t siz);
 
     /// It adds a data to this DataStore.
     ///
@@ -633,7 +646,7 @@ namespace kmrnext {
     Data* data() { return data_; }
 
     /// It returns true if a Data is set to the DataElement.
-    bool is_set() { return data_set_; }
+    bool is_set() const { return data_set_; }
 
     /// It clears all attribute of the Data.
     virtual void clear();
@@ -682,13 +695,15 @@ namespace kmrnext {
   /// A class that stores data in a file
   ///////////////////////////////////////////////////////////////////////////
   class SimpleFileDataStore : public DataStore {
+    typedef DataStore base;
+
   public:
     /// It creates a new SimpleFileDataStore.
     ///
     /// \param[in] size number of dimensions of this DataStore.
     /// \param[in] kn   an instance of KMRNext context
-    SimpleFileDataStore(size_t siz, KMRNext *kn)
-      : DataStore(siz, kn), data_updated_(false), data_cached_(false) {}
+    SimpleFileDataStore(const size_t siz, KMRNext *kn)
+      : base(siz, kn), data_updated_(false), data_cached_(false) {}
 
     virtual ~SimpleFileDataStore();
 

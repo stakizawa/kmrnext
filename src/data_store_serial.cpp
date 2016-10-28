@@ -3,7 +3,7 @@
 namespace kmrnext {
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
-    : Dimensional<size_t>(siz), dlist_(vector<DataElement*>()),
+    : base(siz), dlist_(vector<DataElement*>()),
     dlist_size_(0), map_inplace_(false), kmrnext_(kn) {}
 
   DataStore::~DataStore() {
