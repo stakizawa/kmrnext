@@ -81,31 +81,31 @@ struct Time {
   double del1_finish;
 
   double loop() {
-    return (loop_finish - loop_start) / 10E9;
+    return (loop_finish - loop_start) / 1E9;
   }
   double nicam() {
-    return (nicam_finish - nicam_start) / 10E9;
+    return (nicam_finish - nicam_start) / 1E9;
   }
   double letkf() {
-    return (letkf_finish - letkf_start) / 10E9;
+    return (letkf_finish - letkf_start) / 1E9;
   }
   double nicam_launch() {
-    return (nicam_cleanup - nicam_invoke) / 10E9;
+    return (nicam_cleanup - nicam_invoke) / 1E9;
   }
   double letkf_launch() {
-    return (letkf_cleanup - letkf_invoke) / 10E9;
+    return (letkf_cleanup - letkf_invoke) / 1E9;
   }
   double alc0() {
-    return (alc0_finish - alc0_start) / 10E9;
+    return (alc0_finish - alc0_start) / 1E9;
   }
   double alc1() {
-    return (alc1_finish - alc1_start) / 10E9;
+    return (alc1_finish - alc1_start) / 1E9;
   }
   double del0() {
-    return (del0_finish - del0_start) / 10E9;
+    return (del0_finish - del0_start) / 1E9;
   }
   double del1() {
-    return (del1_finish - del1_start) / 10E9;
+    return (del1_finish - del1_start) / 1E9;
   }
 };
 
@@ -474,7 +474,7 @@ double gettime() {
   MPI_Barrier(MPI_COMM_WORLD);
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return (static_cast<double>(ts.tv_sec) * 10E9 +
+  return (static_cast<double>(ts.tv_sec) * 1E9 +
 	  static_cast<double>(ts.tv_nsec));
 }
 
@@ -482,7 +482,7 @@ double gettime(DataStore::MapEnvironment& env) {
   MPI_Barrier(env.mpi_comm);
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return (static_cast<double>(ts.tv_sec) * 10E9 +
+  return (static_cast<double>(ts.tv_sec) * 1E9 +
 	  static_cast<double>(ts.tv_nsec));
 }
 

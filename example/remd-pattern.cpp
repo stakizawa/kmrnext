@@ -62,19 +62,19 @@ struct Time {
   double ex_cleanup;
 
   double loop() {
-    return (loop_finish - loop_start) / 10E9;
+    return (loop_finish - loop_start) / 1E9;
   }
   double md() {
-    return (md_finish - md_start) / 10E9;
+    return (md_finish - md_start) / 1E9;
   }
   double ex() {
-    return (ex_finish - ex_start) / 10E9;
+    return (ex_finish - ex_start) / 1E9;
   }
   double md_launch() {
-    return (md_cleanup - md_invoke) / 10E9;
+    return (md_cleanup - md_invoke) / 1E9;
   }
   double ex_launch() {
-    return (ex_cleanup - ex_invoke) / 10E9;
+    return (ex_cleanup - ex_invoke) / 1E9;
   }
 };
 
@@ -318,7 +318,7 @@ double gettime() {
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return (static_cast<double>(ts.tv_sec) * 10E9 +
+  return (static_cast<double>(ts.tv_sec) * 1E9 +
 	  static_cast<double>(ts.tv_nsec));
 }
 
@@ -328,7 +328,7 @@ double gettime(DataStore::MapEnvironment& env) {
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return (static_cast<double>(ts.tv_sec) * 10E9 +
+  return (static_cast<double>(ts.tv_sec) * 1E9 +
 	  static_cast<double>(ts.tv_nsec));
 }
 

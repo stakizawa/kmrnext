@@ -62,19 +62,19 @@ struct Time {
   double viz_cleanup;
 
   double whole() {
-    return (main_finish - main_start) / 10E9;
+    return (main_finish - main_start) / 1E9;
   }
   double sim() {
-    return (sim_finish - sim_start) / 10E9;
+    return (sim_finish - sim_start) / 1E9;
   }
   double viz() {
-    return (viz_finish - viz_start) / 10E9;
+    return (viz_finish - viz_start) / 1E9;
   }
   double sim_launch() {
-    return (sim_cleanup - sim_invoke) / 10E9;
+    return (sim_cleanup - sim_invoke) / 1E9;
   }
   double viz_launch() {
-    return (viz_cleanup - viz_invoke) / 10E9;
+    return (viz_cleanup - viz_invoke) / 1E9;
   }
 };
 
@@ -301,7 +301,7 @@ double gettime() {
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return (static_cast<double>(ts.tv_sec) * 10E9 +
+  return (static_cast<double>(ts.tv_sec) * 1E9 +
 	  static_cast<double>(ts.tv_nsec));
 }
 
@@ -311,7 +311,7 @@ double gettime(DataStore::MapEnvironment& env) {
 #endif
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  return (static_cast<double>(ts.tv_sec) * 10E9 +
+  return (static_cast<double>(ts.tv_sec) * 1E9 +
 	  static_cast<double>(ts.tv_nsec));
 }
 

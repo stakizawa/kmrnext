@@ -81,7 +81,7 @@ class Timer {
     MPI_Barrier(MPI_COMM_WORLD);
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
-    return (static_cast<double>(ts.tv_sec) * 10E9 +
+    return (static_cast<double>(ts.tv_sec) * 1E9 +
 	    static_cast<double>(ts.tv_nsec));
   }
 

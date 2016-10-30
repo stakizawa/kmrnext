@@ -372,7 +372,7 @@ namespace kmrnext {
 
       if (kmrnext_->profile()) {
 	timestamp[1] = gettime(kmrnext_->kmr()->comm);
-	double total_time = (timestamp[1] - timestamp[0]) / 10E9;
+	double total_time = (timestamp[1] - timestamp[0]) / 1E9;
 	ostringstream os;
 	os << "timing of map locally: total_exec="
 	   << fixed << total_time << " each_exec="
