@@ -1,3 +1,9 @@
+// This program will take very long time to complete when the size of grid
+// (defined by kGrid) becomes bigger, because it iterates all data elements
+// in the grid.
+//
+// The number of processes run this program should be the multiple of all
+// elements in kProc.  The default is 4.
 #include <iostream>
 #include <mpi.h>
 #include "kmrnext.hpp"
@@ -19,6 +25,7 @@ void check_configuration(int nprocs, int rank);
 void check_data_location_4d(DataStore* ds);
 void check_data_location_5d(DataStore* ds);
 void print_ds(DataStore* ds);
+void print(const char* str);
 
 class LoadDataMapper : public DataStore::Mapper {
   long rank_;
@@ -238,6 +245,7 @@ int
 main(int argc, char **argv)
 {
   KMRNext *next = KMRNext::init(argc, argv);
+  //next->enable_profile();
 
   int nprocs;
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -259,6 +267,7 @@ main(int argc, char **argv)
   ds0->set_split(load_split);
   ds0->map(ldm, load_view);
   check_data_location_4d(ds0);
+  print("DONE: Create Initial DataStore");
 
   // Create a DS for ensemble
   DataStore* ds1 = next->create_ds(kDimSize + 1);
@@ -279,6 +288,7 @@ main(int argc, char **argv)
   }
   ds0->map(copy, copy_view, ds1);
   check_data_location_5d(ds1);
+  print("DONE: Copy Data");
 
   // Run Dirac caluculation
   DiracMapper dirac(nprocs);
@@ -294,6 +304,8 @@ main(int argc, char **argv)
   }
   ds1->set_split(dirac_split);
   ds1->map(dirac, dirac_view);
+  // TODO it is better to check data location here
+  print("DONE: Calculating Dirac Formula");
 
   // Restore to the original data layout
   MoveMapper move(nprocs);
@@ -310,6 +322,8 @@ main(int argc, char **argv)
   }
   ds1->set_split(move_split);
   ds1->map(move, move_view);
+  check_data_location_5d(ds1);
+  print("DONE: Data Restore");
 
   KMRNext::finalize();
   return 0;
@@ -476,4 +490,13 @@ void print_ds(DataStore* ds) {
   if (rank == 0) {
     cout << str << endl;
   }
+}
+
+void print(const char* str) {
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0) {
+    cout << str << endl << flush;
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
 }
