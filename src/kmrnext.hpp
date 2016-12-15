@@ -543,10 +543,10 @@ namespace kmrnext {
     /// It loads process local data, such as array, to the DataStore on
     /// each process in parallel.
     ///
-    /// The data to be loaded should be passed to the loader class.
-    /// The operator() method in the loader class receives rank number of
-    /// the process in long integer as the second parameter.  The prameter
-    /// can be used to specify Key.
+    /// The data to be loaded should be passed to the loader class as
+    /// constructor parameters.  The operator() method in the loader class
+    /// receives rank number of the process in long integer as the second
+    /// parameter.  The parameter can be used to specify Key.
     ///
     /// \param[in] loader the mapper function object used to load the data
     /// \exception std::runtime_error

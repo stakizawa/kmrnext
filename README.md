@@ -37,4 +37,15 @@ script.  The default backend is "serial".
         $ make
         $ make install
 
+By default, this software is installed with OpenMP enabled if the compiler
+supports OpenMP.  If you want to disable OpenMP, specify `--disable-openmp`
+option to the configure script.
+
 To enable DEBUG mode, specify `--enable-debug` option to the configure script.
+
+Thread Safety
+-------------
+
+This software is not designed to be thread safe.  Users should use some lock
+libraries to protect a Datastore not to be inconsistent state when accessing
+it from multiple threads at the same time.
