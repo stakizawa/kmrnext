@@ -465,6 +465,8 @@ namespace kmrnext {
     for (size_t i = 0; i < dlist_size_; i++) {
       dlist_[i] = new SimpleFileDataElement();
     }
+
+    icache_.initialize(value_, dlist_size_, size_);
   }
 
   void SimpleFileDataStore::add(const Key& key, const Data& data) {
