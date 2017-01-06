@@ -578,10 +578,31 @@ namespace kmrnext {
     static void finalize();
 
   protected:
+    /////////////////////////////////////////////////////////////////////////
+    // A class that caches data for calculating indice and keys.
+    /////////////////////////////////////////////////////////////////////////
+    class IndexCache {
+    public:
+      IndexCache();
+      void initialize(const size_t* sizes, const size_t i2k_len,
+		      const size_t dim_siz);
+
+      // It returns a key associated with the specified index.
+      Key i2k(const size_t index) const;
+
+      // It returns dimension offset of the specified dimension.
+      size_t dim_offset(const size_t dim) const;
+    private:
+      vector<Key> i2k_table_;
+      vector<size_t> doffset_table_;
+    };
+
     // Pointer to stored DataElements
     vector<DataElement*> dlist_;
     // Size of dlist_
     size_t dlist_size_;
+    // Index cache
+    IndexCache icache_;
     // True if the input and output DataStore of map function is same
     bool map_inplace_;
     // A KMRNext object that stores execution status

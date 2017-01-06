@@ -102,8 +102,8 @@ namespace kmrnext {
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
     : base(siz), dlist_(vector<DataElement*>()),
-    dlist_size_(0), map_inplace_(false), kmrnext_(kn),
-    parallel_(false), split_(NULL), collated_(false) {}
+      dlist_size_(0), icache_(IndexCache()), map_inplace_(false), kmrnext_(kn),
+      parallel_(false), split_(NULL), collated_(false) {}
 
   DataStore::~DataStore() {
     if (split_ != NULL) {

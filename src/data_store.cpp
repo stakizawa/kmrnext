@@ -90,6 +90,8 @@ namespace kmrnext {
     for (size_t i = 0; i < dlist_size_; i++) {
       dlist_[i] = new DataElement();
     }
+
+    icache_.initialize(value_, dlist_size_, size_);
   }
 
   void DataStore::set_dim(const size_t idx, const size_t siz) {
@@ -243,27 +245,13 @@ namespace kmrnext {
   size_t DataStore::key_to_index(const Key& key) {
     size_t idx = 0;
     for (size_t i = 0; i < size_; i++) {
-      size_t offset = 1;
-      for (size_t j = i+1; j < size_; j++) {
-	offset *= value_[j];
-      }
-      idx += key.dim(i) * offset;
+      idx += key.dim(i) * icache_.dim_offset(i);
     }
     return idx;
   }
 
   Key DataStore::index_to_key(const size_t index) {
-    Key key(size_);
-    size_t _index = index;
-    for (size_t i = 0; i < size_; i++) {
-      size_t length = 1;
-      for (size_t j = i+1; j < size_; j++) {
-	length *= value_[j];
-      }
-      key.set_dim(i, _index / length);
-      _index %= length;
-    }
-    return key;
+    return icache_.i2k(index);
   }
 
   size_t DataStore::key_to_viewed_index(const Key& key, const View& view) {
@@ -411,6 +399,41 @@ namespace kmrnext {
 	}
       }
     }
+  }
+
+  DataStore::IndexCache::IndexCache() : i2k_table_(vector<Key>()),
+					doffset_table_(vector<size_t>()) {}
+
+  void DataStore::IndexCache::initialize(const size_t* sizes,
+					 const size_t i2k_len,
+					 const size_t dim_siz) {
+    doffset_table_.reserve(dim_siz);
+    for (size_t i = 0; i < dim_siz; i++) {
+      doffset_table_[i] = 1;
+      for (size_t j = i+1; j < dim_siz; j++) {
+	doffset_table_[i] *= sizes[j];
+      }
+    }
+
+    i2k_table_.reserve(i2k_len);
+    // TODO omp parallel
+    for (size_t index = 0; index < i2k_len; index++) {
+      Key key(dim_siz);
+      size_t _index = index;
+      for (size_t i = 0; i < dim_siz; i++) {
+	key.set_dim(i, _index / doffset_table_[i]);
+	_index %= doffset_table_[i];
+      }
+      i2k_table_.push_back(key);
+    }
+  }
+
+  Key DataStore::IndexCache::i2k(const size_t index) const {
+    return i2k_table_[index];
+  }
+
+  size_t DataStore::IndexCache::dim_offset(const size_t dim) const {
+    return doffset_table_[dim];
   }
 
   SimpleFileDataStore::~SimpleFileDataStore() {
