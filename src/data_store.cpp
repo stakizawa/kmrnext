@@ -416,7 +416,9 @@ namespace kmrnext {
     }
 
     i2k_table_.reserve(i2k_len);
-    // TODO omp parallel
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (size_t index = 0; index < i2k_len; index++) {
       Key key(dim_siz);
       size_t _index = index;
@@ -424,7 +426,10 @@ namespace kmrnext {
 	key.set_dim(i, _index / doffset_table_[i]);
 	_index %= doffset_table_[i];
       }
-      i2k_table_.push_back(key);
+#ifdef _OPENMP
+      #pragma omp critical
+#endif
+      i2k_table_[index] = key;
     }
   }
 

@@ -207,7 +207,6 @@ namespace {
 	  key.set_dim(0, i);
 	  key.set_dim(1, j);
 	  key.set_dim(2, k);
-	  std::cerr << key.to_string() << std::endl;
 	  kmrnext::DataPack dp = ds->get(key);
 	  EXPECT_EQ(0, *static_cast<long*>(dp.data().value()));
 	  EXPECT_EQ(sizeof(long), dp.data().size());

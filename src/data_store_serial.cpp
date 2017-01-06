@@ -3,8 +3,8 @@
 namespace kmrnext {
 
   DataStore::DataStore(size_t siz, KMRNext *kn)
-    : base(siz), dlist_(vector<DataElement*>()),
-    dlist_size_(0), map_inplace_(false), kmrnext_(kn) {}
+    : base(siz), dlist_(vector<DataElement*>()), dlist_size_(0),
+      icache_(IndexCache()), map_inplace_(false), kmrnext_(kn) {}
 
   DataStore::~DataStore() {
     if (dlist_size_ != 0) {
