@@ -72,9 +72,11 @@ namespace kmrnext {
   }
 
   void DataStore::set(const size_t *val) {
+#if VALIDATION
     if (dlist_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
     }
+#endif
 
     dlist_size_ = 1;
     for (size_t i = 0; i < size_; i++) {
@@ -91,9 +93,11 @@ namespace kmrnext {
   }
 
   void DataStore::set_dim(const size_t idx, const size_t siz) {
+#if VALIDATION
     if (dlist_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
     }
+#endif
     base::set_dim(idx, siz);
   }
 
@@ -105,6 +109,7 @@ namespace kmrnext {
   }
 
   void DataStore::set_from(const vector<DataStore*>& dslist) {
+#if VALIDATION
     if (dslist.size() == 0) {
       throw runtime_error("There should be at least one DataStore.");
     }
@@ -133,6 +138,7 @@ namespace kmrnext {
 	}
       }
     }
+#endif
 
     size_t sizes[kMaxDimensionSize];
     sizes[0] = dslist.size();
@@ -153,6 +159,7 @@ namespace kmrnext {
   }
 
   void DataStore::split_to(vector<DataStore*>& dslist) {
+#if VALIDATION
     if (dlist_size_ == 0) {
       throw runtime_error("Data should be set.");
     }
@@ -175,6 +182,7 @@ namespace kmrnext {
 	}
       }
     }
+#endif
 
     size_t split_dims[kMaxDimensionSize];
     for (size_t i = 1; i < size_; i++) {
@@ -411,9 +419,11 @@ namespace kmrnext {
   }
 
   void SimpleFileDataStore::set(const size_t *val) {
+#if VALIDATION
     if (dlist_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
     }
+#endif
 
     dlist_size_ = 1;
     for (size_t i = 0; i < size_; i++) {
@@ -579,6 +589,7 @@ namespace {
   void load_array(const vector<T>& array, DataStore::Loader<T>& loader,
 		  KMRNext* next, DataStore* ds,
 		  size_t* ds_dims, size_t ds_dims_siz) {
+#if VALIDATION
     // Check if the size of array is same as the multiple of dimension.
     {
       size_t prod = 1;
@@ -593,6 +604,7 @@ namespace {
 			    "product of dimension sizes of the DataStore.");
       }
     }
+#endif
 
     DataStore* ds0 = new DataStore(1, next);
     ds0->set_dim(0, array.size());

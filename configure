@@ -696,6 +696,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_debug
+enable_validation
 with_backend
 with_kmr
 '
@@ -1326,6 +1327,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-debug          turn on debugging [default=no]
+  --enable-validation     turn on validation [default=yes]
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -5177,6 +5179,25 @@ else
     CXXFLAGS="$OPTIMFLAGS $CXXFLAGS"
     FCFLAGS="$OPTIMFLAGS $FCFLAGS"
 fi
+
+# Checks validation option
+# Check whether --enable-validation was given.
+if test "${enable_validation+set}" = set; then :
+  enableval=$enable_validation;
+else
+  enable_validation=yes
+fi
+
+if test "$enable_validation" = "yes"; then
+
+$as_echo "#define VALIDATION 1" >>confdefs.h
+
+else
+
+$as_echo "#define VALIDATION 0" >>confdefs.h
+
+fi
+
 
 # Checks the backend library
 

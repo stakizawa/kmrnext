@@ -104,6 +104,20 @@ else
     FCFLAGS="$OPTIMFLAGS $FCFLAGS"
 fi
 
+# Checks validation option
+AC_ARG_ENABLE([validation],
+	      [AS_HELP_STRING([--enable-validation],
+			      [turn on validation [default=yes]])],
+	      [], [enable_validation=yes])
+if test "$enable_validation" = "yes"; then
+    AC_DEFINE([VALIDATION], [1],
+              [Define to 1 if validation of user input is enabled])
+else
+    AC_DEFINE([VALIDATION], [0],
+              [Define to 0 if validation of user input is disabled])
+fi
+
+
 # Checks the backend library
 AC_ARG_WITH([backend],
 	    [AS_HELP_STRING([--with-backend=@<:@serial/kmr@:>@],

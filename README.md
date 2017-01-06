@@ -43,6 +43,12 @@ option to the configure script.
 
 To enable DEBUG mode, specify `--enable-debug` option to the configure script.
 
+To disable the validation checking of user inputs to API, specify
+`--disable-validation` option to the configuration script.  Although this may
+help improving performance, the program may perform an unexected behavior if
+it contains misuse of the API.  The test codes in gtest directory will fail
+when this option is specified.  Be careful to specify this option.
+
 Thread Safety
 -------------
 

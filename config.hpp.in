@@ -63,5 +63,8 @@
 /* Define if system is K computer of FX10 */
 #undef SYSENV_K_FX
 
+/* Define to 0 if validation of user input is disabled */
+#undef VALIDATION
+
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t

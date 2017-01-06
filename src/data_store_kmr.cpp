@@ -120,7 +120,9 @@ namespace kmrnext {
   }
 
   void DataStore::add(const Key& key, const Data& data) {
+#if VALIDATION
     check_key_range(key);
+#endif
     if (dlist_size_ == 0) {
       set(value_);
     }
@@ -145,7 +147,9 @@ namespace kmrnext {
   }
 
   DataPack DataStore::get(const Key& key) {
+#if VALIDATION
     check_key_range(key);
+#endif
 
     size_t idx = key_to_index(key);
     if (dlist_[idx]->is_shared()) {
@@ -175,10 +179,12 @@ namespace kmrnext {
     kmr_replicate(snd, rcv, kmr_noopt);
     long local_count;
     kmr_local_element_count(rcv, &local_count);
+#ifdef DEBUG
     if (local_count > 1) {
       kmr_free_kvs(rcv);
       throw runtime_error("There are too many data.");
     }
+#endif
     if (local_count == 1) {
       struct kmr_kv_box kv;
       kmr_take_one(rcv, &kv);
@@ -200,8 +206,10 @@ namespace kmrnext {
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
+#if VALIDATION
     check_view(view);
     check_key_range(key);
+#endif
     vector<DataPack> *dps = new vector<DataPack>();
 
     size_t* blk_sizs = new size_t[size_];
@@ -274,7 +282,9 @@ namespace kmrnext {
   }
 
   void DataStore::map(Mapper& m, const View& view, DataStore* outds) {
+#if VALIDATION
     check_map_args(view, outds);
+#endif
     if (dlist_size_ == 0) {
       return;
     }
@@ -403,7 +413,9 @@ namespace kmrnext {
   }
 
   void DataStore::set_split(const View& view) {
+#if VALIDATION
     check_view(view);
+#endif
     if (split_ == NULL) {
       split_ = new View(view.size());
     }
@@ -807,13 +819,17 @@ namespace kmrnext {
 		     Key& k, vector<DataPack>& dps,
 		     DataStore::MapEnvironment& env)
       {
+#ifdef DEBUG
 	if (dps.size() != 1) {
 	  throw runtime_error("System error: Unexpected shuffle behavior.");
 	}
+#endif
 	long *dsval = static_cast<long*>(dps[0].data().value());
+#ifdef DEBUG
 	if (*dsval != kmrnext_->rank()) {
 	  throw runtime_error("System error: Unexpected shuffle behavior.");
 	}
+#endif
 	loader_(outds, *dsval);
 	return 0;
       }
@@ -854,7 +870,9 @@ namespace kmrnext {
   }
 
   DataPack SimpleFileDataStore::get(const Key& key) {
+#if VALIDATION
     check_key_range(key);
+#endif
     load();
     size_t idx = key_to_index(key);
     bool unset = !(dlist_[idx]->is_set());
@@ -870,7 +888,9 @@ namespace kmrnext {
 
   vector<DataPack>* SimpleFileDataStore::get(const View& view, const Key& key)
   {
+#if VALIDATION
     check_key_range(key);
+#endif
     load();
     vector<DataPack>* dps = DataStore::get(view, key);
     data_updated_ = true; // Though sometimes not updated.
@@ -1047,18 +1067,24 @@ namespace {
     size_t rem = count % nprocs;
     size_t idx_max = 0;
     size_t result;
+#ifdef DEBUG
     size_t fset = false;
+#endif
     for (size_t i = 0; i < nprocs; i++) {
       idx_max += (i < rem)? avg + 1 : avg;
       if (index < idx_max) {
 	result = i;
+#ifdef DEBUG
 	fset = true;
+#endif
 	break;
       }
     }
+#ifdef DEBUG
     if (!fset) {
       throw runtime_error("Logical error at calc_send_target().");
     }
+#endif
     return result;
   }
 

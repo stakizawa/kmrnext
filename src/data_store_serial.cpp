@@ -18,7 +18,9 @@ namespace kmrnext {
   }
 
   void DataStore::add(const Key& key, const Data& data) {
+#if VALIDATION
     check_key_range(key);
+#endif
     if (dlist_size_ == 0) {
       set(value_);
     }
@@ -32,15 +34,19 @@ namespace kmrnext {
   }
 
   DataPack DataStore::get(const Key& key) {
+#if VALIDATION
     check_key_range(key);
+#endif
     size_t idx = key_to_index(key);
     Data* dat = dlist_[idx]->data();
     return DataPack(key, dat, true);
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
+#if VALIDATION
     check_view(view);
     check_key_range(key);
+#endif
 
     size_t* blk_sizs = new size_t[size_];
     for (size_t i = 0; i < size_; i++) {
@@ -68,7 +74,9 @@ namespace kmrnext {
   }
 
   DataPack DataStore::remove(const Key& key) {
+#if VALIDATION
     check_key_range(key);
+#endif
     size_t idx = key_to_index(key);
     DataPack dp(key, dlist_[idx]->data(), true);
     dlist_[idx]->clear();
@@ -76,7 +84,9 @@ namespace kmrnext {
   }
 
   void DataStore::map(Mapper& m, const View& view, DataStore* outds) {
+#if VALIDATION
     check_map_args(view, outds);
+#endif
     if (dlist_size_ == 0) {
       return;
     }

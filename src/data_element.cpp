@@ -35,9 +35,11 @@ namespace kmrnext {
 	delete data_;
       }
     } else {
+#if VALIDATION
       if (data_set_) {
 	throw runtime_error("Data is already set value.");
       }
+#endif
     }
     data_ = new Data(dat->value(), dat->size());
     data_->allocate();
