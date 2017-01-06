@@ -52,6 +52,7 @@ gcc)
     CFLAGS=""
     CXXFLAGS=""
     FCFLAGS="-cpp"
+    OPTIMFLAGS="-O2"
     STD_CC="-std=gnu99"
     STD_CXX="-std=c++98"
     STD_FORT="-std=gnu"
@@ -65,9 +66,10 @@ gcc)
               [Define if system is gnu-linux])
     ;;
 fccpx)
-    CFLAGS="-Kfast,preex -Xg"
-    CXXFLAGS="-Kfast,preex -Xg"
-    FCFLAGS="-Kfast,preex -Cpp"
+    CFLAGS="-Xg"
+    CXXFLAGS="-Xg"
+    FCFLAGS="-Cpp"
+    OPTIMFLAGS="-Kfast,preex"
     STD_CC="-std=gnu99"
     STD_CXX="-std=gnu++98"
     STD_FORT=""
@@ -82,9 +84,9 @@ fccpx)
     ;;
 esac
 
-CFLAGS="-g $CFLAGS $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
-CXXFLAGS="-g $CXXFLAGS $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
-FCFLAGS="-g $FCFLAGS $WARN_FORT $STD_FORT $OPENMP_FFLAGS"
+CFLAGS="$CFLAGS $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
+CXXFLAGS="$CXXFLAGS $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
+FCFLAGS="$FCFLAGS $WARN_FORT $STD_FORT $OPENMP_FFLAGS"
 LDFLAGS="$OPENMP_CXXFLAGS"
 
 # Checks debug option
@@ -93,13 +95,13 @@ AC_ARG_ENABLE([debug],
 			      [turn on debugging [default=no]])],
 	      [], [enable_debug=no])
 if test "$enable_debug" = "yes"; then
-    CFLAGS="-DDEBUG -O0 $CFLAGS"
-    CXXFLAGS="-DDEBUG -O0 $CXXFLAGS"
-    FCFLAGS="-DDEBUG -O0 $FCFLAGS"
+    CFLAGS="-DDEBUG -O0 -g $CFLAGS"
+    CXXFLAGS="-DDEBUG -O0 -g $CXXFLAGS"
+    FCFLAGS="-DDEBUG -O0 -g $FCFLAGS"
 else
-    CFLAGS="-O2 $CFLAGS"
-    CXXFLAGS="-O2 $CXXFLAGS"
-    FCFLAGS="-O2 $FCFLAGS"
+    CFLAGS="$OPTIMFLAGS $CFLAGS"
+    CXXFLAGS="$OPTIMFLAGS $CXXFLAGS"
+    FCFLAGS="$OPTIMFLAGS $FCFLAGS"
 fi
 
 # Checks the backend library
