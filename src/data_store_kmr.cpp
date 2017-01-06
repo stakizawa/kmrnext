@@ -611,7 +611,9 @@ namespace kmrnext {
 	  each_cnt *= value_[i];
 	} else {
 	  // Split count is specified
+#ifdef DEBUG
 	  assert(value_[i] % split.dim(i) == 0);
+#endif
 	  ndata *= split.dim(i);
 	  each_cnt *= (value_[i] / split.dim(i));
 	}
