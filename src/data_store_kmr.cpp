@@ -361,7 +361,7 @@ namespace kmrnext {
     param_mapper_map param = { m, this, _outds, view, env, dpgroups,
 			       is_local };
     if (is_local) {
-      double timestamp[2];
+      double timestamp[2] = {0, 0};
       long task_count;
       kmr_local_element_count(ikvs, &task_count);
       if (kmrnext_->profile()) {
@@ -572,7 +572,7 @@ namespace kmrnext {
   }
 
   void DataStore::collate() {
-    double time_collate_start, time_collate_finish;
+    double time_collate_start = 0, time_collate_finish = 0;
     if (kmrnext_->profile()) {
       time_collate_start = gettime(kmrnext_->kmr()->comm);
     }
