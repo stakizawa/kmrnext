@@ -11,6 +11,7 @@ typedef struct {
 typedef int (*kmrnext_mapfn_t_ff)(void *ids, void *ods, void *key,
 				  datapacks dps, mapenvf env);
 
+void *KMRNEXT_init_ff(void);
 void KMRNEXT_ds_map_ff(void *ids, void *ods, void *view,
 		       kmrnext_mapfn_t_ff mf, void *p);
 #if 0
@@ -18,6 +19,12 @@ void print_string(char *str);
 void print_strings(char **strs, size_t n);
 #endif
 
+
+void *
+KMRNEXT_init_ff()
+{
+    return KMRNEXT_init(0, NULL);
+}
 
 typedef struct {
     kmrnext_mapfn_t_ff m;

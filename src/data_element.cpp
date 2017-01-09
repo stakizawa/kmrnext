@@ -59,7 +59,7 @@ namespace kmrnext {
   }
 
   SimpleFileDataElement::SimpleFileDataElement()
-    : DataElement(),
+    : base(),
       data_updated_(false), data_file_offset_(0), data_file_size_(0) {}
 
   void SimpleFileDataElement::set_data(const Data* dat, bool overwrite) {

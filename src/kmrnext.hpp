@@ -273,6 +273,7 @@ namespace kmrnext {
     /// Copy constructor
     ///
     /// The copy constructor do not allocate memory for value.
+    // TODO delete this constructor
     Data(const Data* obj);
 
     ~Data();
@@ -584,6 +585,8 @@ namespace kmrnext {
     class IndexCache {
     public:
       IndexCache();
+
+      // It initializes private members.
       void initialize(const size_t* sizes, const size_t i2k_len,
 		      const size_t dim_siz);
 
@@ -593,7 +596,9 @@ namespace kmrnext {
       // It returns dimension offset of the specified dimension.
       size_t dim_offset(const size_t dim) const;
     private:
+      // index to key conversion table
       vector<Key> i2k_table_;
+      // dimension offset table
       vector<size_t> doffset_table_;
     };
 
@@ -781,10 +786,12 @@ namespace kmrnext {
   /// A class that represents an element in a DataStore that uses files
   ///////////////////////////////////////////////////////////////////////////
   class SimpleFileDataElement : public DataElement {
+    typedef DataElement base;
+
   public:
     SimpleFileDataElement();
 
-    ~SimpleFileDataElement() {}
+    virtual ~SimpleFileDataElement() {}
 
     /// It clears all attribute of the Data.
     void clear();
