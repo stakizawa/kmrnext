@@ -12,7 +12,9 @@ namespace kmrnext {
       #pragma omp parallel for
 #endif
       for (size_t i = 0; i < dlist_size_; i++) {
-	delete dlist_[i];
+	if (dlist_[i] != NULL) {
+	  delete dlist_[i];
+	}
       }
     }
   }
@@ -25,11 +27,13 @@ namespace kmrnext {
       set(value_);
     }
     size_t idx = key_to_index(key);
-    DataElement *de = dlist_[idx];
+    if (dlist_[idx] == NULL) {
+      dlist_[idx] = __create_de();
+    }
     if (map_inplace_) {
-      de->replace(&data);
+      dlist_[idx]->replace(&data);
     } else {
-      de->set(&data);
+      dlist_[idx]->set(&data);
     }
   }
 
@@ -38,8 +42,12 @@ namespace kmrnext {
     check_key_range(key);
 #endif
     size_t idx = key_to_index(key);
-    Data* dat = dlist_[idx]->data();
-    return DataPack(key, dat, true);
+    if (dlist_[idx] != NULL) {
+      Data* dat = dlist_[idx]->data();
+      return DataPack(key, dat, true);
+    } else {
+      return DataPack(key, Data(NULL, 0), false);
+    }
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
@@ -64,7 +72,7 @@ namespace kmrnext {
 	  break;
 	}
       }
-      if (push) {
+      if (push && dlist_[i] != NULL) {
 	dps->push_back(DataPack(tmpkey, dlist_[i]->data(), true));
       }
     }
@@ -78,9 +86,13 @@ namespace kmrnext {
     check_key_range(key);
 #endif
     size_t idx = key_to_index(key);
-    DataPack dp(key, dlist_[idx]->data(), true);
-    dlist_[idx]->clear();
-    return dp;
+    if (dlist_[idx] != NULL) {
+      DataPack dp(key, dlist_[idx]->data(), true);
+      dlist_[idx]->clear();
+      return dp;
+    } else {
+      return DataPack(key, Data(NULL, 0), false);
+    }
   }
 
   void DataStore::map(Mapper& m, const View& view, DataStore* outds) {
@@ -102,7 +114,7 @@ namespace kmrnext {
 
     vector< vector<DataPack> > dpgroups(nkeys);
     for (size_t i = 0; i < dlist_size_; i++) {
-      if (dlist_[i]->data() == NULL) {
+      if (dlist_[i] == NULL || dlist_[i]->data() == NULL) {
 	continue;
       }
       Key tmpkey = index_to_key(i);

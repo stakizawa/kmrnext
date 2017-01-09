@@ -114,7 +114,9 @@ namespace kmrnext {
       #pragma omp parallel for
 #endif
       for (size_t i = 0; i < dlist_size_; i++) {
-	delete dlist_[i];
+	if (dlist_[i] != NULL) {
+	  delete dlist_[i];
+	}
       }
     }
   }
@@ -128,12 +130,14 @@ namespace kmrnext {
     }
     if (parallel_ || kmrnext_->rank() == 0) {
       size_t idx = key_to_index(key);
-      DataElement *de = dlist_[idx];
+      if (dlist_[idx] == NULL) {
+	dlist_[idx] = __create_de();
+      }
       try {
 	if (map_inplace_) {
-	  de->replace(&data);
+	  dlist_[idx]->replace(&data);
 	} else {
-	  de->set(&data);
+	  dlist_[idx]->set(&data);
 	}
       }
       catch (runtime_error& e) {
@@ -142,7 +146,7 @@ namespace kmrnext {
 	     << "on Rank" << kmrnext_->rank() << "." << endl;
 	throw e;
       }
-      de->set_owner(kmrnext_->rank());
+      dlist_[idx]->set_owner(kmrnext_->rank());
     }
   }
 
@@ -152,6 +156,9 @@ namespace kmrnext {
 #endif
 
     size_t idx = key_to_index(key);
+    if (dlist_[idx] == NULL) {
+      dlist_[idx] = __create_de();
+    }
     if (dlist_[idx]->is_shared()) {
       return DataPack(key, dlist_[idx]->data(), true);
     }
@@ -210,6 +217,17 @@ namespace kmrnext {
     check_view(view);
     check_key_range(key);
 #endif
+
+    // Allocate all DataElement beforehand
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < dlist_size_; i++) {
+      if (dlist_[i] == NULL) {
+	dlist_[i] = __create_de();
+      }
+    }
+
     vector<DataPack> *dps = new vector<DataPack>();
 
     size_t* blk_sizs = new size_t[size_];
@@ -316,7 +334,8 @@ namespace kmrnext {
     #pragma omp parallel for
 #endif
     for (size_t i = 0; i < dlist_size_; i++) {
-      if (dlist_[i]->data() == NULL ||
+      if (dlist_[i] == NULL ||
+	  dlist_[i]->data() == NULL ||
 	  (dlist_[i]->is_shared() && dlist_[i]->owner() != kmrnext_->rank())) {
 	continue;
       }
@@ -403,6 +422,9 @@ namespace kmrnext {
       #pragma omp parallel for
 #endif
       for (size_t i = 0; i < dlist_size_; i++) {
+	if (dlist_[i] == NULL) {
+	  continue;
+	}
 	if (dlist_[i]->is_shared() && dlist_[i]->owner() != kmrnext_->rank()) {
 	  dlist_[i]->clear();
 	  continue;
@@ -648,7 +670,8 @@ namespace kmrnext {
         #pragma omp parallel for
 #endif
 	for (size_t i = 0; i < dlist_size_; i++) {
-	  if (dlist_[i]->data() == NULL ||
+	  if (dlist_[i] == NULL ||
+	      dlist_[i]->data() == NULL ||
 	      (dlist_[i]->is_shared() &&
 	       dlist_[i]->owner() != kmrnext_->rank())) {
 	    continue;
@@ -714,7 +737,7 @@ namespace kmrnext {
       #pragma omp parallel for
 #endif
       for (size_t i = 0; i < dlist_size_; i++) {
-	if (!dlist_[i]->is_set()) {
+	if (dlist_[i] == NULL || !dlist_[i]->is_set()) {
 	  continue;
 	}
 	if (dlist_[i]->is_shared() && dlist_[i]->owner() != kmrnext_->rank()) {
@@ -877,6 +900,9 @@ namespace kmrnext {
 #endif
     load();
     size_t idx = key_to_index(key);
+    if (dlist_[idx] == NULL) {
+      dlist_[idx] = __create_de();
+    }
     bool unset = !(dlist_[idx]->is_set());
     DataPack dp = DataStore::get(key);
     if (unset) {

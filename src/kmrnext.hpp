@@ -273,7 +273,6 @@ namespace kmrnext {
     /// Copy constructor
     ///
     /// The copy constructor do not allocate memory for value.
-    // TODO delete this constructor
     Data(const Data* obj);
 
     ~Data();
@@ -628,6 +627,8 @@ namespace kmrnext {
     // It is a real implementation of duplicate().
     void __duplicate(DataStore* ds);
 
+    virtual DataElement* __create_de();
+
     // It returns the index of Data calculated from the specified Key.
     size_t key_to_index(const Key& key);
 
@@ -737,8 +738,6 @@ namespace kmrnext {
 
     virtual ~SimpleFileDataStore();
 
-    void set(const size_t *val);
-
     void add(const Key& key, const Data& data);
 
     DataPack get(const Key& key);
@@ -764,6 +763,8 @@ namespace kmrnext {
     bool data_updated_;
     // True if the Data in a file is cached in memory
     bool data_cached_;
+
+    DataElement* __create_de();
 
     // It returns name of file that stores data elements of the DataStore.
     string filename();
