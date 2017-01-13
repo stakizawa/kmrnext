@@ -11,6 +11,9 @@ AC_CONFIG_MACRO_DIR([m4/])
 m4_include([m4/ax_mpi.m4])
 m4_include([m4/ax_openmp.m4])
 
+# Default compiler is C++
+AC_LANG([C++])
+
 # Checks compiler
 AC_PROG_CC
 AC_PROG_CXX
@@ -23,18 +26,19 @@ if test "$fujitsu_env" -eq "1"; then
 fi
 
 # Checks MPI and OpenMP
-AC_LANG(C)
+# Test C compiler
+AC_LANG_PUSH([C])
 AC_CHECK_HEADER_STDBOOL
 AC_TYPE_SIZE_T
 AX_MPI
-AX_OPENMP([OPENMP_CFLAGS=$ax_cv_c_openmp])
-AC_LANG(C++)
+AC_LANG_POP([C])
+# Test C++ compiler
 AC_TYPE_SIZE_T
 AX_MPI
-AX_OPENMP([OPENMP_CXXFLAGS=$ax_cv_cxx_openmp])
-AC_LANG(Fortran)
+# Test Fortran compiler
+AC_LANG_PUSH([Fortran])
 AX_MPI
-AX_OPENMP([OPENMP_FFLAGS=$ax_cv_fc_openmp])
+AC_LANG_POP([Fortran])
 
 # Checks other compiler flags
 AC_SUBST(SYSENV)
@@ -84,10 +88,23 @@ fccpx)
     ;;
 esac
 
-CFLAGS="$CFLAGS $WARN_CC $STD_CC $OPENMP_CFLAGS -MD"
-CXXFLAGS="$CXXFLAGS $WARN_CXX $STD_CXX $OPENMP_CXXFLAGS -MD"
-FCFLAGS="$FCFLAGS $WARN_FORT $STD_FORT $OPENMP_FFLAGS"
-LDFLAGS="$OPENMP_CXXFLAGS"
+# Check OpenMP option
+AC_ARG_ENABLE([openmp],
+	      [AS_HELP_STRING([--enable-openmp],
+			      [turn on OpenMP [default=yes]])],
+	      [], [enable_openmp=yes])
+if test "$enable_openmp" = "yes"; then
+    # Set C compiler
+    AC_LANG_PUSH([C])
+    AX_OPENMP([OPENMP_CFLAGS=$ax_cv_c_openmp])
+    AC_LANG_POP([C])
+    # Set C++ compiler
+    AX_OPENMP([OPENMP_CXXFLAGS=$ax_cv_cxx_openmp])
+    # Set Fortran compiler
+    AC_LANG_PUSH([Fortran])
+    AX_OPENMP([OPENMP_FFLAGS=$ax_cv_fc_openmp])
+    AC_LANG_POP([Fortran])
+fi
 
 # Checks debug option
 AC_ARG_ENABLE([debug],
@@ -95,13 +112,7 @@ AC_ARG_ENABLE([debug],
 			      [turn on debugging [default=no]])],
 	      [], [enable_debug=no])
 if test "$enable_debug" = "yes"; then
-    CFLAGS="-DDEBUG -O0 -g $CFLAGS"
-    CXXFLAGS="-DDEBUG -O0 -g $CXXFLAGS"
-    FCFLAGS="-DDEBUG -O0 -g $FCFLAGS"
-else
-    CFLAGS="$OPTIMFLAGS $CFLAGS"
-    CXXFLAGS="$OPTIMFLAGS $CXXFLAGS"
-    FCFLAGS="$OPTIMFLAGS $FCFLAGS"
+    OPTIMFLAGS="-DDEBUG -O0 -g"
 fi
 
 # Checks validation option
@@ -145,5 +156,11 @@ AC_ARG_WITH([kmr],
 	    [KMRDIR=$withval],
 	    [KMRDIR=/usr/local])
 AC_SUBST(KMRDIR)
+
+# Set variables
+CFLAGS="$CFLAGS $WARN_CC $OPTIMFLAGS $STD_CC $OPENMP_CFLAGS -MD"
+CXXFLAGS="$CXXFLAGS $WARN_CXX $OPTIMFLAGS $STD_CXX $OPENMP_CXXFLAGS -MD"
+FCFLAGS="$FCFLAGS $WARN_FORT $OPTIMFLAGS $STD_FORT $OPENMP_FFLAGS"
+LDFLAGS="$OPENMP_CXXFLAGS"
 
 AC_OUTPUT
