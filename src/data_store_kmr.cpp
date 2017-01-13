@@ -111,7 +111,7 @@ namespace kmrnext {
     }
     if (dlist_size_ != 0) {
 #ifdef _OPENMP
-      #pragma omp parallel for
+      #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
 #endif
       for (size_t i = 0; i < dlist_size_; i++) {
 	if (dlist_[i] != NULL) {
@@ -220,7 +220,7 @@ namespace kmrnext {
 
     // Allocate all DataElement beforehand
 #ifdef _OPENMP
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
 #endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (dlist_[i] == NULL) {
@@ -240,7 +240,7 @@ namespace kmrnext {
     KMR_KVS *rcv = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
 #ifdef _OPENMP
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
 #endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (!dlist_[i]->is_set()) {
@@ -331,7 +331,7 @@ namespace kmrnext {
 
     vector< vector<DataPack> > dpgroups(nkeys);
 #ifdef _OPENMP
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
 #endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (dlist_[i] == NULL ||
@@ -419,7 +419,7 @@ namespace kmrnext {
       map_inplace_ = false;
       // unshare all data
 #ifdef _OPENMP
-      #pragma omp parallel for
+      #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
 #endif
       for (size_t i = 0; i < dlist_size_; i++) {
 	if (dlist_[i] == NULL) {
@@ -667,7 +667,7 @@ namespace kmrnext {
 	size_t range_start = indices[0];
 	size_t range_end   = indices[indices_cnt - 1];
 #ifdef _OPENMP
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
 #endif
 	for (size_t i = 0; i < dlist_size_; i++) {
 	  if (dlist_[i] == NULL ||
@@ -734,7 +734,7 @@ namespace kmrnext {
       size_t range_start = (indices_cnt > 0)? indices[0] : 0;
       size_t range_end   = (indices_cnt > 0)? indices[indices_cnt - 1] : 0;
 #ifdef _OPENMP
-      #pragma omp parallel for
+      #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
 #endif
       for (size_t i = 0; i < dlist_size_; i++) {
 	if (dlist_[i] == NULL || !dlist_[i]->is_set()) {
@@ -973,9 +973,9 @@ namespace {
     }
     param->dlist[idx]->shared();
 #ifdef _OPENMP
-    #pragma omp critical
     // As a KMR map function is run in parallel by OpenMP, shared resources
     // should be modified in critical regions.
+    #pragma omp critical
 #endif
     param->dps->push_back(DataPack(key, param->dlist[idx]->data(), true));
     return MPI_SUCCESS;

@@ -7,6 +7,10 @@
 #include <cstdlib>
 #include "util.hpp"
 
+#ifdef _OPENMP
+#define OMP_FOR_CHUNK_SIZE 4
+#endif
+
 namespace {
   using namespace std;
   using namespace kmrnext;
@@ -445,9 +449,6 @@ namespace kmrnext {
 	key.set_dim(i, _index / doffset_table_[i]);
 	_index %= doffset_table_[i];
       }
-#ifdef _OPENMP
-      #pragma omp critical
-#endif
       i2k_table_[index] = key;
     }
   }
@@ -582,7 +583,7 @@ namespace kmrnext {
     fin.close();
 
 #ifdef _OPENMP
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
 #endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (dlist_[i] == NULL) {
@@ -600,7 +601,7 @@ namespace kmrnext {
       return;
     }
 #ifdef _OPENMP
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
 #endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (dlist_[i] == NULL) {
