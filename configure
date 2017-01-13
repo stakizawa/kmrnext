@@ -4996,7 +4996,7 @@ fccpx)
     CFLAGS="-Xg"
     CXXFLAGS="-Xg"
     FCFLAGS="-Cpp"
-    OPTIMFLAGS="-Kfast,preex"
+    OPTIMFLAGS="-Kfast,preex,stl_fast_new"
     STD_CC="-std=gnu99"
     STD_CXX="-std=gnu++98"
     STD_FORT=""
