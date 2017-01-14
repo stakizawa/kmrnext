@@ -1090,11 +1090,13 @@ namespace {
     de->set_owner(owner);
   }
 
+#define DUMMY_TARGET 1000000
+
   inline size_t calc_send_target(size_t index, size_t count, size_t nprocs) {
     size_t avg = count / nprocs;
     size_t rem = count % nprocs;
     size_t idx_max = 0;
-    size_t result = 1000000;
+    size_t result = DUMMY_TARGET;
     for (size_t i = 0; i < nprocs; i++) {
       idx_max += (i < rem)? avg + 1 : avg;
       if (index < idx_max) {
@@ -1103,7 +1105,7 @@ namespace {
       }
     }
 #ifdef DEBUG
-    if (result == -1) {
+    if (result == DUMMY_TARGET) {
       throw runtime_error("Logical error at calc_send_target().");
     }
 #endif

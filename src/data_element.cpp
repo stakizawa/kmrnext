@@ -1,38 +1,42 @@
 #include "../config.hpp"
 
+#include <cstdlib>
+#include <cstring>
 #include "kmrnext.hpp"
 
 namespace kmrnext {
 
 #ifdef BACKEND_SERIAL
   DataElement::DataElement()
-    : data_(NULL), data_set_(false) {}
+    : value_(NULL), value_size_(0), data_set_(false) {}
 #elif BACKEND_KMR
   DataElement::DataElement()
-    : data_(NULL), data_set_(false), owner_(-1), shared_(false) {}
+    : value_(NULL), value_size_(0), data_set_(false),
+      owner_(-1), shared_(false) {}
 #endif
 
   DataElement::~DataElement() {
     if (data_set_) {
-      delete data_;
+      free(value_); // TODO delete[]?
     }
   }
 
-  void DataElement::set(const Data* dat) {
-    set_data(dat);
+  void DataElement::set(const void* data_value, const size_t data_size) {
+    set_data(data_value, data_size);
   }
 
-  void DataElement::replace(const Data* dat) {
-    set_data(dat, true);
+  void DataElement::replace(const void* data_value, const size_t data_size) {
+    set_data(data_value, data_size, true);
   }
 
-  void DataElement::set_data(const Data* dat, bool overwrite) {
-    if (dat == NULL) {
+  void DataElement::set_data(const void* val, const size_t siz,
+			     bool overwrite) {
+    if (val == NULL) {
       return;
     }
     if (overwrite) {
       if (data_set_) {
-	delete data_;
+	free(value_);  // TODO delete[]?
       }
     } else {
 #if VALIDATION
@@ -41,16 +45,18 @@ namespace kmrnext {
       }
 #endif
     }
-    data_ = new Data(dat->value(), dat->size());
-    data_->allocate();
+    value_size_ = siz;
+    value_ = static_cast<void*>(calloc(value_size_, sizeof(char)));
+    memcpy(value_, val, value_size_);
     data_set_ = true;
   }
 
   void DataElement::clear() {
     if (data_set_) {
-      delete data_;
+      value_size_ = 0;
+      free(value_);  // TODO delete[]?
+      value_ = NULL;
     }
-    data_ = NULL;
     data_set_ = false;
 #ifdef BACKEND_KMR
     owner_ = -1;
@@ -62,8 +68,9 @@ namespace kmrnext {
     : base(),
       data_updated_(false), data_file_offset_(0), data_file_size_(0) {}
 
-  void SimpleFileDataElement::set_data(const Data* dat, bool overwrite) {
-    DataElement::set_data(dat, overwrite);
+  void SimpleFileDataElement::set_data(const void* val, const size_t siz,
+				       bool overwrite) {
+    DataElement::set_data(val, siz, overwrite);
     data_updated_ = true;
   }
 
@@ -86,11 +93,12 @@ namespace kmrnext {
     if (data_file_size_ == 0) {
       throw runtime_error("Data can not be found in the file.");
     }
-    if (data_ != NULL) {
-      throw runtime_error("Data should be NULL.");
+    if (value_ != NULL) {
+      throw runtime_error("Data should not be set.");
     }
-    data_ = new Data(buf + data_file_offset_, data_file_size_);
-    data_->allocate();
+    value_size_ = data_file_size_;
+    value_ = static_cast<void*>(calloc(value_size_, sizeof(char)));
+    memcpy(value_, buf + data_file_offset_, value_size_);
   }
 
   void SimpleFileDataElement::written(size_t start_pos, size_t written_siz) {
@@ -100,9 +108,10 @@ namespace kmrnext {
   }
 
   void SimpleFileDataElement::clear_cache() {
-    if (data_ != NULL) {
-      delete data_;
-      data_ = NULL;
+    if (value_ != NULL) {
+      value_size_ = 0;
+      free(value_);  // TODO delete[]?
+      value_ = NULL;
     }
     data_updated_ = false;
   }

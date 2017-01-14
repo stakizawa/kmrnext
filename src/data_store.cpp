@@ -186,7 +186,8 @@ namespace kmrnext {
 	if (src->dlist_[j] == NULL) {
 	  continue;
 	}
-	dlist_[offset + j]->set(src->dlist_[j]->data());
+	dlist_[offset + j]->set(src->dlist_[j]->value(),
+				src->dlist_[j]->size());
       }
       offset += src->dlist_size_;
     }
@@ -234,7 +235,8 @@ namespace kmrnext {
 	if (dlist_[offset + j] == NULL) {
 	  continue;
 	}
-	dst->dlist_[j]->set(dlist_[offset + j]->data());
+	dst->dlist_[j]->set(dlist_[offset + j]->value(),
+			    dlist_[offset + j]->size());
       }
       offset += dst->dlist_size_;
     }
@@ -567,12 +569,11 @@ namespace kmrnext {
       if (dlist_[i] == NULL || !dlist_[i]->is_set()) {
 	continue;
       }
-      Data *d = dlist_[i]->data();
-      size_t d_siz = d->size();
+      size_t d_siz = dlist_[i]->size();
       if (d_siz == 0) {
 	continue;
       }
-      char *d_val = static_cast<char*>(d->value());
+      char *d_val = static_cast<char*>(dlist_[i]->value()); // TODO del
       fout.write(d_val, static_cast<streamsize>(d_siz));
       dynamic_cast<SimpleFileDataElement*>(dlist_[i])->written(write_offset,
 							       d_siz);

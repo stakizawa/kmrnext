@@ -31,9 +31,9 @@ namespace kmrnext {
       dlist_[idx] = __create_de();
     }
     if (map_inplace_) {
-      dlist_[idx]->replace(&data);
+      dlist_[idx]->replace(data.value(), data.size());
     } else {
-      dlist_[idx]->set(&data);
+      dlist_[idx]->set(data.value(), data.size());
     }
   }
 
@@ -43,7 +43,7 @@ namespace kmrnext {
 #endif
     size_t idx = key_to_index(key);
     if (dlist_[idx] != NULL) {
-      Data* dat = dlist_[idx]->data();
+      Data dat(dlist_[idx]->value(), dlist_[idx]->size());
       return DataPack(key, dat, true);
     } else {
       return DataPack(key, Data(NULL, 0), false);
@@ -73,7 +73,8 @@ namespace kmrnext {
 	}
       }
       if (push && dlist_[i] != NULL) {
-	dps->push_back(DataPack(tmpkey, dlist_[i]->data(), true));
+	Data dat(dlist_[i]->value(), dlist_[i]->size());
+	dps->push_back(DataPack(tmpkey, dat, true));
       }
     }
 
@@ -87,7 +88,8 @@ namespace kmrnext {
 #endif
     size_t idx = key_to_index(key);
     if (dlist_[idx] != NULL) {
-      DataPack dp(key, dlist_[idx]->data(), true);
+      Data dat(dlist_[idx]->value(), dlist_[idx]->size());
+      DataPack dp(key, dat, true);
       dlist_[idx]->clear();
       return dp;
     } else {
@@ -114,13 +116,14 @@ namespace kmrnext {
 
     vector< vector<DataPack> > dpgroups(nkeys);
     for (size_t i = 0; i < dlist_size_; i++) {
-      if (dlist_[i] == NULL || dlist_[i]->data() == NULL) {
+      if (dlist_[i] == NULL || !dlist_[i]->is_set()) {
 	continue;
       }
       Key tmpkey = index_to_key(i);
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
-      dps.push_back(DataPack(tmpkey, dlist_[i]->data()));
+      Data dat(dlist_[i]->value(), dlist_[i]->size());
+      dps.push_back(DataPack(tmpkey, dat));
     }
 
     if (kmrnext_->profile()) {

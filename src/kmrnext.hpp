@@ -4,7 +4,7 @@
 /// KMR Next Interface
 
 /// The backend runtime (SERIAL, KMR)
-#define BACKEND_KMR 1
+#define BACKEND_SERIAL 1
 
 #include <stdexcept>
 #include <sstream>
@@ -663,18 +663,23 @@ namespace kmrnext {
 
     /// It sets a Data to the DataElement.
     ///
-    /// \param[in] dat                Data to be set.
-    /// \exception std::runtime_error When copy failed.
-    void set(const Data* dat);
+    /// \param[in] data_value          Pointer to data to be set.
+    /// \param[in] data_size           Size of data to be set.
+    /// \exception std::runtime_error  When copy failed.
+    void set(const void* data_value, const size_t data_size);
 
     /// It replaces a Data in the DataElement by the specified Data.
     ///
-    /// \param[in] dat                Data to be set
-    /// \exception std::runtime_error When copy failed
-    void replace(const Data* dat);
+    /// \param[in] data_value          Pointer to data to be set.
+    /// \param[in] data_size           Size of data to be set.
+    /// \exception std::runtime_error  When copy failed.
+    void replace(const void* data_value, const size_t data_size);
 
-    /// It returns Data in the DataElement.
-    Data* data() { return data_; }
+    /// It returns data value in the DataElement.
+    void* value() { return value_; }
+
+    /// It returns size of data in the DataElement.
+    size_t size() { return value_size_; }
 
     /// It returns true if a Data is set to the DataElement.
     bool is_set() const { return data_set_; }
@@ -702,8 +707,10 @@ namespace kmrnext {
 #endif
 
   protected:
-    // Data in this DataElement
-    Data* data_;
+    // The actual value of Data.
+    void *value_;        // TODO char*?
+    // The size of Data.
+    size_t value_size_;
     // True, if Data is set
     bool data_set_;
 
@@ -714,12 +721,14 @@ namespace kmrnext {
 
     // It sets a Data to the Dataelement.
     //
-    // \param[in] dat       Data to be set
+    // \param[in] val       Data value to be set
+    // \param[in] siz       Size of data to be set
     // \param[in] overwrite If the overwrite option is true, it removes
     //                      the current stored-Data and overwrites it
     //                      by the specified Data.
     // \exception std::runtime_error When copy failed
-    virtual void set_data(const Data* dat, bool overwrite=false);
+    virtual void set_data(const void* val, const size_t siz,
+			  bool overwrite=false);
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -819,7 +828,7 @@ namespace kmrnext {
     // The size of the Data in a file
     size_t data_file_size_;
 
-    void set_data(const Data* dat, bool overwrite=false);
+    void set_data(const void* val, const size_t siz, bool overwrite=false);
   };
 
 }

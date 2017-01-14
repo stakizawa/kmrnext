@@ -1,5 +1,5 @@
 ! The backend runtime (SERIAL, KMR)
-#define BACKEND_KMR 1
+#define BACKEND_SERIAL 1
 
 module kmrnextf
   use iso_c_binding
