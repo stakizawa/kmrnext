@@ -27,16 +27,16 @@ namespace {
 
   /// Parameter for mapper_get_view
   typedef struct {
-    DataStore *ds;
+    DataStore* ds;
     vector<DataElement*>& dlist;
-    vector<DataPack> *dps;
+    vector<DataPack>* dps;
   } param_mapper_get_view;
 
   /// Parameter for mapper_map
   typedef struct {
     DataStore::Mapper& mapper;
-    DataStore *ids;
-    DataStore *ods;
+    DataStore* ids;
+    DataStore* ods;
     const View& view;
     DataStore::MapEnvironment& env;
     vector< vector<DataPack> >& dpgroups;
@@ -45,7 +45,7 @@ namespace {
 
   /// Parameter for mapper_collate
   typedef struct {
-    DataStore *ds;
+    DataStore* ds;
     int rank;
   } param_mapper_collate;
 
@@ -53,7 +53,7 @@ namespace {
   class CollatePack {
   public:
     Key key_;
-    DataElement *de_;
+    DataElement* de_;
     CollatePack(Key& k, DataElement* de) : key_(k), de_(de) {}
   };
 
@@ -62,15 +62,15 @@ namespace {
   /// It is a KMR mapper function.  Key of the key-value should be an
   /// integer and value of the key-value should be a DataPack.  It also
   /// sets shared flags to data in the DataStore.
-  int mapper_get_view(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-		      KMR_KVS *kvo, void *p, const long i);
+  int mapper_get_view(const struct kmr_kv_box kv0, const KMR_KVS* kvi,
+		      KMR_KVS* kvo, void* p, const long i);
 
   /// It maps Datas in a DataStore.
   ///
   /// It is a KMR mapper function.  Key and value of the key-value should
   /// be an integer that represents index of Key-Data vactor.
-  int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-		 KMR_KVS *kvo, void *p, const long i);
+  int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS* kvi,
+		 KMR_KVS* kvo, void* p, const long i);
 
   /// It deserializes a Data from a key-value and add the Data to
   /// the DataStore.
@@ -78,12 +78,12 @@ namespace {
   /// It is a KMR mapper function.  The key of the key-value should be
   /// an integer and the value should be a byte array that represents
   /// a DataPack.
-  int mapper_collate(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-		     KMR_KVS *kvo, void *p, const long i);
+  int mapper_collate(const struct kmr_kv_box kv0, const KMR_KVS* kvi,
+		     KMR_KVS* kvo, void* p, const long i);
 
   /// It is a wrapper of KMR map function that locally maps key-values in
   /// the input KVS.
-  int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m);
+  int map_local(KMR_KVS* kvi, KMR_KVS* kvo, void* arg, kmr_mapfn_t m);
 
   /// It serializes Key, Data and their attributes to a byte array
   /// for collate().
@@ -100,7 +100,7 @@ namespace {
 
 namespace kmrnext {
 
-  DataStore::DataStore(size_t siz, KMRNext *kn)
+  DataStore::DataStore(size_t siz, KMRNext* kn)
     : base(siz), dlist_(vector<DataElement*>()),
       dlist_size_(0), icache_(IndexCache()), map_inplace_(false), kmrnext_(kn),
       parallel_(false), split_(NULL), collated_(false) {}
@@ -135,9 +135,9 @@ namespace kmrnext {
       }
       try {
 	if (map_inplace_) {
-	  dlist_[idx]->replace(&data);
+	  dlist_[idx]->replace(data.value(), data.size());
 	} else {
-	  dlist_[idx]->set(&data);
+	  dlist_[idx]->set(data.value(), data.size());
 	}
       }
       catch (runtime_error& e) {
@@ -160,27 +160,27 @@ namespace kmrnext {
       dlist_[idx] = __create_de();
     }
     if (dlist_[idx]->is_shared()) {
-      return DataPack(key, dlist_[idx]->data(), true);
+      Data dat(dlist_[idx]->value(), dlist_[idx]->size());
+      return DataPack(key, dat, true);
     }
 
-    KMR_KVS *snd = kmr_create_kvs(kmrnext_->kmr(),
+    KMR_KVS* snd = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
-    KMR_KVS *rcv = kmr_create_kvs(kmrnext_->kmr(),
+    KMR_KVS* rcv = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
     if (dlist_[idx]->is_set()) {
-      Data *d = dlist_[idx]->data();
-      size_t snd_siz = sizeof(int) + d->size();
-      char *snd_buf = static_cast<char*>(malloc(sizeof(char) * snd_siz));
+      size_t snd_siz = sizeof(int) + dlist_[idx]->size();
+      char* snd_buf = new char[snd_siz];
       int owner = kmrnext_->rank();
       memcpy(snd_buf, &owner, sizeof(int));
-      memcpy(snd_buf + sizeof(int), d->value(), d->size());
+      memcpy(snd_buf + sizeof(int), dlist_[idx]->value(), dlist_[idx]->size());
       struct kmr_kv_box kv;
       kv.klen = (int)sizeof(long);
       kv.vlen = (int)snd_siz;
       kv.k.i  = idx;
       kv.v.p  = snd_buf;
       kmr_add_kv(snd, kv);
-      free(snd_buf);
+      delete[] snd_buf;
     }
     kmr_add_kv_done(snd);
     kmr_replicate(snd, rcv, kmr_noopt);
@@ -199,17 +199,16 @@ namespace kmrnext {
 	// Copy data for future access.
 	int owner;
 	memcpy(&owner, kv.v.p, sizeof(int));
-	Data rcvdat(static_cast<void*>((const_cast<char*>(kv.v.p) +
-					sizeof(int))),
-		    kv.vlen - sizeof(int));
-	dlist_[idx]->set(&rcvdat);
+	dlist_[idx]->set((const_cast<char*>(kv.v.p) + sizeof(int)),
+			 kv.vlen - sizeof(int));
 	dlist_[idx]->set_owner(owner);
       }
       dlist_[idx]->shared();
     }
     kmr_free_kvs(rcv);
 
-    return DataPack(key, dlist_[idx]->data(), true);
+    Data dat(dlist_[idx]->value(), dlist_[idx]->size());
+    return DataPack(key, dat, true);
   }
 
   vector<DataPack>* DataStore::get(const View& view, const Key& key) {
@@ -228,16 +227,16 @@ namespace kmrnext {
       }
     }
 
-    vector<DataPack> *dps = new vector<DataPack>();
+    vector<DataPack>* dps = new vector<DataPack>();
 
     size_t* blk_sizs = new size_t[size_];
     for (size_t i = 0; i < size_; i++) {
       blk_sizs[i] = (view.dim(i) > 0)? (value_[i] / view.dim(i)) : 1;
     }
 
-    KMR_KVS *snd = kmr_create_kvs(kmrnext_->kmr(),
+    KMR_KVS* snd = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
-    KMR_KVS *rcv = kmr_create_kvs(kmrnext_->kmr(),
+    KMR_KVS* rcv = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
@@ -258,26 +257,26 @@ namespace kmrnext {
       if (match) {
 	if (dlist_[i]->is_shared()) {
 	  // the data is already replicated
+	  Data dat(dlist_[i]->value(), dlist_[i]->size());
 #ifdef _OPENMP
           #pragma omp critical
 #endif
-	  dps->push_back(DataPack(tmpkey, dlist_[i]->data(), true));
+	  dps->push_back(DataPack(tmpkey, dat, true));
 	  continue;
 	} else {
 	  // replicate the data
-	  Data *d = dlist_[i]->data();
-	  size_t snd_siz = sizeof(int) + d->size();
-	  char *snd_buf = static_cast<char*>(malloc(sizeof(char) * snd_siz));
+	  size_t snd_siz = sizeof(int) + dlist_[i]->size();
+	  char* snd_buf = new char[snd_siz];
 	  int owner = kmrnext_->rank();
 	  memcpy(snd_buf, &owner, sizeof(int));
-	  memcpy(snd_buf + sizeof(int), d->value(), d->size());
+	  memcpy(snd_buf + sizeof(int), dlist_[i]->value(), dlist_[i]->size());
 	  struct kmr_kv_box kv;
 	  kv.klen = static_cast<int>(sizeof(size_t));
 	  kv.vlen = static_cast<int>(snd_siz);
 	  kv.k.i  = i;
 	  kv.v.p  = snd_buf;
 	  kmr_add_kv(snd, kv);
-	  free(snd_buf);
+	  delete[] snd_buf;
 	}
       }
     }
@@ -335,17 +334,18 @@ namespace kmrnext {
 #endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (dlist_[i] == NULL ||
-	  dlist_[i]->data() == NULL ||
+	  !dlist_[i]->is_set() ||
 	  (dlist_[i]->is_shared() && dlist_[i]->owner() != kmrnext_->rank())) {
 	continue;
       }
       Key tmpkey = index_to_key(i);
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
+      Data dat(dlist_[i]->value(), dlist_[i]->size());
 #ifdef _OPENMP
       #pragma omp critical
 #endif
-      dps.push_back(DataPack(tmpkey, dlist_[i]->data()));
+      dps.push_back(DataPack(tmpkey, dat));
     }
 
     if (kmrnext_->profile()) {
@@ -361,7 +361,7 @@ namespace kmrnext {
       profile_out(kmrnext_, os.str());
     }
 
-    KMR_KVS *ikvs = kmr_create_kvs(kmrnext_->kmr(),
+    KMR_KVS* ikvs = kmr_create_kvs(kmrnext_->kmr(),
 				   KMR_KV_INTEGER, KMR_KV_INTEGER);
 #ifdef _OPENMP
     #pragma omp parallel for
@@ -379,7 +379,7 @@ namespace kmrnext {
     }
     kmr_add_kv_done(ikvs);
 
-    DataStore *_outds = outds;
+    DataStore* _outds = outds;
     if (outds == self_ || outds == this) {
       map_inplace_ = true;
       _outds = this;
@@ -467,7 +467,7 @@ namespace kmrnext {
       DataPack::Dumper& dumper_;
 
       WrappedDumper(DataPack::Dumper& dmpr) : dumper_(dmpr) {}
-      int operator()(DataStore *inds, DataStore *outds,
+      int operator()(DataStore* inds, DataStore* outds,
 		     Key& key, vector<DataPack>& dps,
 		     MapEnvironment& env)
       {
@@ -478,28 +478,28 @@ namespace kmrnext {
 	}
 	string dumped = os.str();
 	int local_len = static_cast<int>(dumped.size());
-	char *local_cstr = const_cast<char*>(dumped.c_str());
+	char* local_cstr = const_cast<char*>(dumped.c_str());
 	int nprocs;
 	MPI_Comm_size(env.mpi_comm, &nprocs);
-	int *local_lens = static_cast<int*>(malloc(sizeof(int) * nprocs));
+	int* local_lens = new int[nprocs];
 	MPI_Allgather(&local_len, 1, MPI_INT, local_lens, 1, MPI_INT,
 		      env.mpi_comm);
 	int total_len = 0;
-	int *displs = static_cast<int*>(malloc(sizeof(int) * nprocs));
+	int* displs = new int[nprocs];
 	for (int i = 0; i < nprocs; i++) {
 	  displs[i] = total_len;
 	  total_len += local_lens[i];
 	}
 	total_len += 1; // +1 for '\0'
-	char *total_cstr = static_cast<char*>(malloc(sizeof(char) * total_len));
+	char* total_cstr = new char[total_len];
 	MPI_Allgatherv(local_cstr, local_len, MPI_CHAR,
 		       total_cstr, local_lens, displs, MPI_CHAR, env.mpi_comm);
 	total_cstr[total_len - 1] = '\0';
 
 	result_.append(total_cstr);
-	free(total_cstr);
-	free(displs);
-	free(local_lens);
+	delete[] total_cstr;
+	delete[] displs;
+	delete[] local_lens;
 	return 0;
       }
     } dmpr(dumper);
@@ -517,13 +517,13 @@ namespace kmrnext {
     // bcast string
     int length = static_cast<int>(dmpr.result_.size()) + 1;
     MPI_Bcast(&length, 1, MPI_INT, master, kmrnext_->kmr()->comm);
-    char *result_cstr = static_cast<char*>(malloc(sizeof(char) * length));
+    char* result_cstr = new char[length];
     if (kmrnext_->rank() == master) {
       memcpy(result_cstr, dmpr.result_.c_str(), sizeof(char) * length);
     }
     MPI_Bcast(result_cstr, length, MPI_CHAR, master, kmrnext_->kmr()->comm);
     string result(result_cstr);
-    free(result_cstr);
+    delete[] result_cstr;
     return result;
   }
 
@@ -532,7 +532,7 @@ namespace kmrnext {
     public:
       long result_;
       Counter() : result_(0) {}
-      int operator()(DataStore *inds, DataStore *outds,
+      int operator()(DataStore* inds, DataStore* outds,
 		     Key& key, vector<DataPack>& dps,
 		     MapEnvironment& env)
       {
@@ -617,7 +617,7 @@ namespace kmrnext {
     size_t ndata;
     // Indices of viewed Keys whose related data should be reside
     // in this process
-    size_t *indices;
+    size_t* indices;
     // size of indices
     size_t indices_cnt;
 
@@ -671,7 +671,7 @@ namespace kmrnext {
 #endif
 	for (size_t i = 0; i < dlist_size_; i++) {
 	  if (dlist_[i] == NULL ||
-	      dlist_[i]->data() == NULL ||
+	      !dlist_[i]->is_set() ||
 	      (dlist_[i]->is_shared() &&
 	       dlist_[i]->owner() != kmrnext_->rank())) {
 	    continue;
@@ -681,10 +681,11 @@ namespace kmrnext {
 	  if (range_start <= viewed_idx && viewed_idx <= range_end) {
 	    size_t idx = viewed_idx - range_start;
 	    vector<DataPack>& dps = dpgroups.at(idx);
+	    Data dat(dlist_[i]->value(), dlist_[i]->size());
 #ifdef _OPENMP
             #pragma omp critical
 #endif
-	    dps.push_back(DataPack(tmpkey, dlist_[i]->data()));
+	    dps.push_back(DataPack(tmpkey, dat));
 	  }
 	}
       }
@@ -758,7 +759,7 @@ namespace kmrnext {
       }
     }
 
-    KMR_KVS *kvs0 = kmr_create_kvs(kmrnext_->kmr(),
+    KMR_KVS* kvs0 = kmr_create_kvs(kmrnext_->kmr(),
 				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
 #ifdef _OPENMP
     #pragma omp parallel for
@@ -768,7 +769,7 @@ namespace kmrnext {
       if (cps.size() > 0) {
 	for (vector<CollatePack>::iterator itr = cps.begin(); itr != cps.end();
 	     itr++) {
-	  char *buf;
+	  char* buf;
 	  size_t buf_siz;
 	  serialize_collate(&(*itr), &buf, &buf_siz);
 	  struct kmr_kv_box kv;
@@ -778,14 +779,14 @@ namespace kmrnext {
 				     static_cast<size_t>(kmrnext_->nprocs()));
 	  kv.v.p  = buf;
 	  kmr_add_kv(kvs0, kv);
-	  free(buf);
+	  delete[] buf;
 	  (*itr).de_->clear();
 	}
       }
     }
     kmr_add_kv_done(kvs0);
 
-    KMR_KVS *kvs1 = kmr_create_kvs(kmrnext_->kmr(),
+    KMR_KVS* kvs1 = kmr_create_kvs(kmrnext_->kmr(),
 				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
     struct kmr_option kmr_shflopt = kmr_noopt;
     kmr_shflopt.key_as_rank = 1;
@@ -840,7 +841,7 @@ namespace kmrnext {
 
       WrappedLoader(DataStore::Loader<long>& ldr, KMRNext* next)
 	: loader_(ldr), kmrnext_(next) {}
-      int operator()(DataStore *inds, DataStore *outds,
+      int operator()(DataStore* inds, DataStore* outds,
 		     Key& k, vector<DataPack>& dps,
 		     DataStore::MapEnvironment& env)
       {
@@ -849,7 +850,7 @@ namespace kmrnext {
 	  throw runtime_error("System error: Unexpected shuffle behavior.");
 	}
 #endif
-	long *dsval = static_cast<long*>(dps[0].data().value());
+	long* dsval = static_cast<long*>(dps[0].data().value());
 #ifdef DEBUG
 	if (*dsval != kmrnext_->rank()) {
 	  throw runtime_error("System error: Unexpected shuffle behavior.");
@@ -958,32 +959,32 @@ namespace kmrnext {
 }
 
 namespace {
-  int mapper_get_view(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-		      KMR_KVS *kvo, void *p, const long i) {
-    param_mapper_get_view *param = (param_mapper_get_view *)p;
+  int mapper_get_view(const struct kmr_kv_box kv0, const KMR_KVS* kvi,
+		      KMR_KVS* kvo, void* p, const long i) {
+    param_mapper_get_view* param = (param_mapper_get_view*)p;
     size_t idx = kv0.k.i;
     Key key = param->ds->index_to_key(idx);
     if (!param->dlist[idx]->is_set()) {
       int owner;
       memcpy(&owner, kv0.v.p, sizeof(int));
-      Data data(static_cast<void*>(const_cast<char*>(kv0.v.p) + sizeof(int)),
-		kv0.vlen - sizeof(int));
-      param->dlist[idx]->set(&data);
+      param->dlist[idx]->set(const_cast<char*>(kv0.v.p) + sizeof(int),
+			     kv0.vlen - sizeof(int));
       param->dlist[idx]->set_owner(owner);
     }
     param->dlist[idx]->shared();
+    Data dat(param->dlist[idx]->value(), param->dlist[idx]->size());
 #ifdef _OPENMP
     // As a KMR map function is run in parallel by OpenMP, shared resources
     // should be modified in critical regions.
     #pragma omp critical
 #endif
-    param->dps->push_back(DataPack(key, param->dlist[idx]->data(), true));
+    param->dps->push_back(DataPack(key, dat, true));
     return MPI_SUCCESS;
   }
 
-  int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-		 KMR_KVS *kvo, void *p, const long i) {
-    param_mapper_map *param = static_cast<param_mapper_map*>(p);
+  int mapper_map(const struct kmr_kv_box kv0, const KMR_KVS* kvi,
+		 KMR_KVS* kvo, void* p, const long i) {
+    param_mapper_map* param = static_cast<param_mapper_map*>(p);
     size_t idx = kv0.k.i;
     vector<DataPack>& dps = param->dpgroups.at(idx);
     if (dps.size() != 0) {
@@ -997,8 +998,8 @@ namespace {
     return MPI_SUCCESS;
   }
 
-  int map_local(KMR_KVS *kvi, KMR_KVS *kvo, void *arg, kmr_mapfn_t m) {
-    param_mapper_map *param = static_cast<param_mapper_map*>(arg);
+  int map_local(KMR_KVS* kvi, KMR_KVS* kvo, void* arg, kmr_mapfn_t m) {
+    param_mapper_map* param = static_cast<param_mapper_map*>(arg);
     MPI_Comm self_comm;
     MPI_Comm_split(kvi->c.mr->comm, kvi->c.mr->rank, kvi->c.mr->rank,
 		   &self_comm);
@@ -1010,9 +1011,9 @@ namespace {
     return MPI_SUCCESS;
   }
 
-  int mapper_collate(const struct kmr_kv_box kv0, const KMR_KVS *kvi,
-		     KMR_KVS *kvo, void *p, const long i) {
-    param_mapper_collate *param = static_cast<param_mapper_collate*>(p);
+  int mapper_collate(const struct kmr_kv_box kv0, const KMR_KVS* kvi,
+		     KMR_KVS* kvo, void* p, const long i) {
+    param_mapper_collate* param = static_cast<param_mapper_collate*>(p);
     deserialize_collate(kv0.v.p, kv0.vlen, param->ds, param->rank);
     return MPI_SUCCESS;
   }
@@ -1029,17 +1030,16 @@ namespace {
 
     // calculate size
     Key k = cp->key_;
-    Data d = cp->de_->data();
     *buf_siz  = sizeof(size_t);            // 1. [key]  size
     *buf_siz += sizeof(size_t) * k.size(); // 2. [key]  content
     *buf_siz += sizeof(size_t);            // 3. [data] size
-    *buf_siz += d.size();                  // 4. [data] content
+    *buf_siz += cp->de_->size();           // 4. [data] content
     *buf_siz += sizeof(int);               // 5. [data] owner
 
     // set data to buf
-    *buf = static_cast<char*>(calloc(*buf_siz, sizeof(char)));
+    *buf = new char[*buf_siz];
     // key
-    char *p = *buf;
+    char* p = *buf;
     *reinterpret_cast<size_t*>(p) = k.size();
     p += sizeof(size_t);
     for (size_t i = 0; i < k.size(); i++) {
@@ -1047,10 +1047,10 @@ namespace {
       p += sizeof(size_t);
     }
     // data
-    *reinterpret_cast<size_t*>(p) = d.size();
+    *reinterpret_cast<size_t*>(p) = cp->de_->size();
     p += sizeof(size_t);
-    memcpy(p, d.value(), d.size());
-    p += d.size();
+    memcpy(p, cp->de_->value(), cp->de_->size());
+    p += cp->de_->size();
     *reinterpret_cast<int*>(p) = cp->de_->owner();
   }
 
@@ -1064,10 +1064,10 @@ namespace {
     // 5. [data] owner   : sizeof(int)
 
     // key
-    char *p = const_cast<char*>(buf);
+    char* p = const_cast<char*>(buf);
     size_t key_siz = *reinterpret_cast<size_t*>(p);
     p += sizeof(size_t);
-    size_t *key_ary = new size_t[key_siz];
+    size_t* key_ary = new size_t[key_siz];
     for (size_t i = 0; i < key_siz; i++) {
       key_ary[i] = *reinterpret_cast<size_t*>(p);
       p += sizeof(size_t);
@@ -1078,7 +1078,6 @@ namespace {
     // data
     size_t dat_siz = *reinterpret_cast<size_t*>(p);
     p += sizeof(size_t);
-    Data d(static_cast<void*>(p), dat_siz);
 #if 0
     // owner in serialized data is omitted
     p += dat_siz;
@@ -1086,7 +1085,7 @@ namespace {
 #endif
 
     DataElement* de = ds->data_element_at(k);
-    de->set(&d);
+    de->set(p, dat_siz);
     de->set_owner(owner);
   }
 

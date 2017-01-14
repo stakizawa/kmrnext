@@ -7,7 +7,7 @@
 
 namespace kmrnext {
 
-  KMRNext* KMRNext::init(int argc, char **argv) {
+  KMRNext* KMRNext::init(int argc, char** argv) {
     if (kmrnext_ == NULL) {
       int mpi_initialized;
       MPI_Initialized(&mpi_initialized);

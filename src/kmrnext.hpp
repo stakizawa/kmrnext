@@ -4,7 +4,7 @@
 /// KMR Next Interface
 
 /// The backend runtime (SERIAL, KMR)
-#define BACKEND_SERIAL 1
+#define BACKEND_KMR 1
 
 #include <stdexcept>
 #include <sstream>
@@ -270,12 +270,6 @@ namespace kmrnext {
     /// The copy constructor do not allocate memory for value.
     Data(const Data& obj);
 
-    // TODO delete
-    /// Copy constructor
-    ///
-    /// The copy constructor do not allocate memory for value.
-    //    Data(const Data* obj);
-
     ~Data();
 
     /// It allocates a memory space for the value.
@@ -315,10 +309,6 @@ namespace kmrnext {
     /// \param[in] k         Key of the DataPack
     /// \param[in] d         Data of the DataPack
     /// \param[in] allocate  if True, Data is internally allocated
-
-    // TODO delete
-    //    DataPack(const Key& k, const Data* d, bool allocate=false);
-
     DataPack(const Key& k, const Data& d, bool allocate=false);
 
     DataPack(const DataPack &obj);
@@ -718,7 +708,9 @@ namespace kmrnext {
     bool data_set_;
 
 #ifdef BACKEND_KMR
+    // The owner of data in the DataElement.
     int owner_;
+    // True if data in the DataElement is shared among processes.
     bool shared_;
 #endif
 

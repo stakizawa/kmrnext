@@ -28,17 +28,6 @@ namespace kmrnext {
     : value_(obj.value_), value_size_(obj.value_size_),
       value_allocated_(false) {}
 
-  // TODO delete
-  // Data::Data(const Data* obj) : value_allocated_(false) {
-  //   if (obj != NULL) {
-  //     value_ = obj->value_;
-  //     value_size_ = obj->value_size_;
-  //   } else {
-  //     value_ = NULL;
-  //     value_size_ = 0;
-  //   }
-  // }
-
   Data::~Data() {
     if (value_allocated_) {
       delete[] static_cast<char*>(value_);
@@ -70,14 +59,6 @@ namespace kmrnext {
     }
     return true;
   }
-
-  // TODO delete
-  // DataPack::DataPack(const Key& k, const Data* d, bool allocate)
-  //   : key_(k), data_(d), allocated_(allocate) {
-  //   if (allocated_) {
-  //     data_.allocate();
-  //   }
-  // }
 
   DataPack::DataPack(const Key& k, const Data& d, bool allocate)
     : key_(k), data_(d), allocated_(allocate) {
