@@ -20,17 +20,26 @@ namespace {
   public:
     int operator()(DataStore* ds, const long& num)
     {
+      if (ds->size() == 1) {
+	Key key(1);
+	key.set_dim(0, num);
+	long val = 0;
+	Data data(&val, sizeof(long));
+	ds->add(key, data);
+      } else {
 #ifdef _OPENMP
-      #pragma omp parallel
+        #pragma omp parallel
 #endif
-      {
-	Key key(ds->size());
+	{
+	  Key key(ds->size());
+	  key.set_dim(0, num);
 #ifdef _OPENMP
-	#pragma omp for
+          #pragma omp for
 #endif
-	for (size_t i = 0; i < ds->dim(0); i++) {
-	  key.set_dim(0, i);
-	  set_data(ds, key, 1, ds->size());
+	  for (size_t i = 0; i < ds->dim(1); i++) {
+	    key.set_dim(1, i);
+	    set_data(ds, key, 2, ds->size());
+	  }
 	}
       }
       return 0;
@@ -121,7 +130,9 @@ namespace kmrnext {
   void DataStore::zeroize() {
     Zeroizer zero;
     vector<long> dlst;
-    dlst.push_back(0);
+    for (size_t i = 0; i < value_[0]; i++) {
+      dlst.push_back(i);
+    }
     load_integers(dlst, zero);
   }
 
