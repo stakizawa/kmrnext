@@ -213,6 +213,7 @@ namespace {
 	}
       }
     }
+    delete ds;
   }
 
   TEST_F(DataStoreTest, Add) {

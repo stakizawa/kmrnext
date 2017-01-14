@@ -81,7 +81,7 @@ namespace kmrnext {
     data_file_size_ = 0;
   }
 
-  void SimpleFileDataElement::restore(char *buf) {
+  void SimpleFileDataElement::restore(char* buf) {
     if (!data_set_) {
       // Skip as Data is removed
       return;

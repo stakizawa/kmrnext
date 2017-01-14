@@ -2,7 +2,7 @@
 
 namespace kmrnext {
 
-  DataStore::DataStore(size_t siz, KMRNext *kn)
+  DataStore::DataStore(size_t siz, KMRNext* kn)
     : base(siz), dlist_(vector<DataElement*>()), dlist_size_(0),
       icache_(IndexCache()), map_inplace_(false), kmrnext_(kn) {}
 
@@ -61,7 +61,7 @@ namespace kmrnext {
       blk_sizs[i] = (view.dim(i) > 0)? (value_[i] / view.dim(i)) : 1;
     }
 
-    vector<DataPack> *dps = new vector<DataPack>();
+    vector<DataPack>* dps = new vector<DataPack>();
     for (size_t i = 0; i < dlist_size_; i++) {
       Key tmpkey = index_to_key(i);
       bool push = true;
@@ -164,7 +164,7 @@ namespace kmrnext {
       DataPack::Dumper& dumper_;
 
       WrappedDumper(DataPack::Dumper& dmpr) : dumper_(dmpr) {}
-      int operator()(DataStore *inds, DataStore *outds,
+      int operator()(DataStore* inds, DataStore* outds,
 		     Key& key, vector<DataPack>& dps,
 		     MapEnvironment& env)
       {
@@ -192,7 +192,7 @@ namespace kmrnext {
     public:
       long result_;
       Counter() : result_(0) {}
-      int operator()(DataStore *inds, DataStore *outds,
+      int operator()(DataStore* inds, DataStore* outds,
 		     Key& key, vector<DataPack>& dps,
 		     MapEnvironment& env)
       {

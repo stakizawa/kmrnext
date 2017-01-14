@@ -4,7 +4,7 @@
 
 namespace kmrnext {
 
-  KMRNext* KMRNext::init(int argc, char **argv) {
+  KMRNext* KMRNext::init(int argc, char** argv) {
     return KMRNext::init();
   }
 

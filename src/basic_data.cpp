@@ -52,7 +52,7 @@ namespace kmrnext {
     if (value_allocated_) {
       throw runtime_error("Already allocated.");
     }
-    void *tmp = value_;
+    void* tmp = value_;
     value_ = static_cast<void*>(calloc(value_size_, sizeof(char)));
     memcpy(value_, tmp, value_size_);
     value_allocated_ = true;

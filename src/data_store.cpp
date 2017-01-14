@@ -80,7 +80,7 @@ namespace {
 
 namespace kmrnext {
 
-  DataStore *DataStore::self_;
+  DataStore* DataStore::self_;
 
   void DataStore::initialize(KMRNext* next) {
     if (DataStore::self_ == NULL) {
@@ -95,7 +95,7 @@ namespace kmrnext {
     }
   }
 
-  void DataStore::set(const size_t *val) {
+  void DataStore::set(const size_t* val) {
 #if VALIDATION
     if (dlist_size_ != 0) {
       throw runtime_error("DataStore is already initialized.");
@@ -149,7 +149,7 @@ namespace kmrnext {
       size_t expected_dim_size = size_ - 1;
       size_t expected_dlist_size = 0;
       for (size_t i = 0; i < dslist.size(); i++) {
-	DataStore *src = dslist.at(i);
+	DataStore* src = dslist.at(i);
 	if (expected_dim_size != src->size_) {
 	  throw runtime_error("Dimension size of one of DataStore is wrong.");
 	}
@@ -170,7 +170,7 @@ namespace kmrnext {
 
     size_t sizes[kMaxDimensionSize];
     sizes[0] = dslist.size();
-    DataStore *ds0 = dslist.at(0);
+    DataStore* ds0 = dslist.at(0);
     for (size_t i = 1; i < size_; i++) {
       sizes[i] = ds0->value_[i-1];
     }
@@ -178,7 +178,7 @@ namespace kmrnext {
 
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
-      DataStore *src = dslist.at(i);
+      DataStore* src = dslist.at(i);
       for (size_t j = 0; j < src->dlist_size_; j++) {
 	if (dlist_[offset + j] == NULL) {
 	  dlist_[offset + j] = __create_de();
@@ -226,7 +226,7 @@ namespace kmrnext {
 
     size_t offset = 0;
     for (size_t i = 0; i < dslist.size(); i++) {
-      DataStore *dst = dslist.at(i);
+      DataStore* dst = dslist.at(i);
       dst->set(split_dims);
       for (size_t j = 0; j < dst->dlist_size_; j++) {
 	if (dst->dlist_[j] == NULL) {
@@ -251,7 +251,7 @@ namespace kmrnext {
   void DataStore::__duplicate(DataStore* ds) {
     class Copier : public Mapper {
     public:
-      int operator()(DataStore *inds, DataStore *outds,
+      int operator()(DataStore* inds, DataStore* outds,
 		     Key& key, vector<DataPack>& dps,
 		     MapEnvironment& env)
       {
@@ -517,7 +517,7 @@ namespace kmrnext {
     load();
     DataStore::split_to(dslist);
     for (size_t i = 0; i < dslist.size(); i++) {
-      SimpleFileDataStore *ds =
+      SimpleFileDataStore* ds =
 	dynamic_cast<SimpleFileDataStore*>(dslist.at(i));
       ds->store();
       ds->clear_cache();
@@ -573,7 +573,7 @@ namespace kmrnext {
       if (d_siz == 0) {
 	continue;
       }
-      char *d_val = static_cast<char*>(dlist_[i]->value()); // TODO del
+      char* d_val = static_cast<char*>(dlist_[i]->value()); // TODO del
       fout.write(d_val, static_cast<streamsize>(d_siz));
       dynamic_cast<SimpleFileDataElement*>(dlist_[i])->written(write_offset,
 							       d_siz);
@@ -599,7 +599,7 @@ namespace kmrnext {
     if (file_siz == 0) {
       return false;
     }
-    char *buf = static_cast<char*>(calloc(file_siz, sizeof(char)));
+    char* buf = static_cast<char*>(calloc(file_siz, sizeof(char))); // TODO del
     ifstream fin;
     fin.open(fname.c_str(), ios::in|ios::binary);
     fin.read(buf, static_cast<streamsize>(file_siz));
@@ -671,7 +671,7 @@ namespace {
     Key key(1);
     for (size_t i = 0; i < array.size(); i++) {
       key.set_dim(0, i);
-      char *buf;
+      char* buf;
       size_t buf_siz;
       serialize(array.at(i), &buf, &buf_siz);
       Data dat(buf, buf_siz);
@@ -690,11 +690,11 @@ namespace {
       DataStore::Loader<T>& loader_;
 
       WrappedLoader(DataStore::Loader<T>& ldr) : loader_(ldr) {}
-      int operator()(DataStore *inds, DataStore *outds,
+      int operator()(DataStore* inds, DataStore* outds,
 		     Key& k, vector<DataPack>& dps,
 		     DataStore::MapEnvironment& env)
       {
-	T *val;
+	T* val;
 	deserialize(static_cast<char*>(dps.at(0).data().value()),
 		    dps.at(0).data().size(), &val);
 	loader_(outds, *val);

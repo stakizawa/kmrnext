@@ -3,7 +3,7 @@
 
 namespace kmrnext {
 
-  KMRNext *KMRNext::kmrnext_ = NULL;
+  KMRNext* KMRNext::kmrnext_ = NULL;
 
   DataStore* KMRNext::create_ds(size_t siz) {
     if (iomode_ == KMRNext::Memory) {

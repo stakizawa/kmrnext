@@ -49,7 +49,7 @@ namespace kmrnext {
     /// \param[in] argc The number of command line arguments.
     /// \param[in] argv The command line arguments.
     /// \return         An instance of KMRNext class or its derived class.
-    static KMRNext* init(int argc, char **argv);
+    static KMRNext* init(int argc, char** argv);
 
     /// It initializes the whole system.
     ///
@@ -93,7 +93,7 @@ namespace kmrnext {
     int rank() const { return rank_; }
 
     /// It returns a KMR object.
-    KMR *kmr() const { return mr_; };
+    KMR* kmr() const { return mr_; };
 #endif
 
   private:
@@ -103,7 +103,7 @@ namespace kmrnext {
     // IO mode of DataStore.
     IOMode iomode_;
 
-    static KMRNext *kmrnext_;
+    static KMRNext* kmrnext_;
 
     KMRNext();
 
@@ -119,7 +119,7 @@ namespace kmrnext {
     // Rank of this process in the MPI_Comm
     int rank_;
     // KMR instance to be used
-    KMR *mr_;
+    KMR* mr_;
 #endif
   };
 
@@ -154,7 +154,7 @@ namespace kmrnext {
     /// It sets value of each dimension.
     ///
     /// \param[in] val An array that stores value of each dimension
-    virtual void set(const T *val) {
+    virtual void set(const T* val) {
       for (size_t i = 0; i < size_; i++) {
 	value_[i] = val[i];
       }
@@ -262,7 +262,7 @@ namespace kmrnext {
     ///
     /// \param[in] val     Value of data to be set.
     /// \param[in] val_siz Size of value.
-    Data(void *val, const size_t val_siz)
+    Data(void* val, const size_t val_siz)
       : value_(val), value_size_(val_siz), value_allocated_(false) {};
 
     /// Copy constructor
@@ -284,7 +284,7 @@ namespace kmrnext {
     void allocate();
 
     /// It returns a pointer to the value of the Data.
-    void *value() const { return value_; }
+    void* value() const { return value_; }
 
     /// It returns size of the Data.
     size_t size() const { return value_size_; }
@@ -297,7 +297,7 @@ namespace kmrnext {
 
   private:
     // The actual value of Data.
-    void *value_;
+    void* value_;
     // The size of Data value.
     size_t value_size_;
     // True, if value is allocated.
@@ -357,7 +357,7 @@ namespace kmrnext {
     ///
     /// \param[in] size number of dimensions of this DataStore.
     /// \param[in] kn   an instance of KMRNext context
-    DataStore(const size_t siz, KMRNext *kn);
+    DataStore(const size_t siz, KMRNext* kn);
 
     virtual ~DataStore();
 
@@ -395,7 +395,7 @@ namespace kmrnext {
     /////////////////////////////////////////////////////////////////////////
     class Mapper {
     public:
-      virtual int operator()(DataStore *inds, DataStore *outds,
+      virtual int operator()(DataStore* inds, DataStore* outds,
 			     Key& key, vector<DataPack>& dps,
 			     MapEnvironment& env) = 0;
     };
@@ -410,7 +410,7 @@ namespace kmrnext {
     template <typename Type>
     class Loader {
     public:
-      virtual int operator()(DataStore *ds, const Type& param) = 0;
+      virtual int operator()(DataStore* ds, const Type& param) = 0;
     };
 
     /// It sets size of each dimension.
@@ -418,7 +418,7 @@ namespace kmrnext {
     /// This DataStore is ready to use after calling this function.
     ///
     /// \param[in] val an array that stores value of each dimension
-    virtual void set(const size_t *val);
+    virtual void set(const size_t* val);
 
     /// It sets size of a specified dimension of this DataStore.
     ///
@@ -610,12 +610,12 @@ namespace kmrnext {
     // True if the input and output DataStore of map function is same
     bool map_inplace_;
     // A KMRNext object that stores execution status
-    KMRNext *kmrnext_;
+    KMRNext* kmrnext_;
 #ifdef BACKEND_KMR
     // True if the DataStore should be processed in parallel
     bool parallel_;
     // Split pattern of the DataStore, that defines data distribution
-    View *split_;
+    View* split_;
     // Set to be true if the last call of map() or collate() actually
     // performed collate.
     bool collated_;
@@ -708,7 +708,7 @@ namespace kmrnext {
 
   protected:
     // The actual value of Data.
-    void *value_;        // TODO char*?
+    void* value_;        // TODO char*?
     // The size of Data.
     size_t value_size_;
     // True, if Data is set
@@ -742,7 +742,7 @@ namespace kmrnext {
     ///
     /// \param[in] size number of dimensions of this DataStore.
     /// \param[in] kn   an instance of KMRNext context
-    SimpleFileDataStore(const size_t siz, KMRNext *kn)
+    SimpleFileDataStore(const size_t siz, KMRNext* kn)
       : base(siz, kn), data_updated_(false), data_cached_(false) {}
 
     virtual ~SimpleFileDataStore();
@@ -809,7 +809,7 @@ namespace kmrnext {
     /// It restores the Data in the DataElement from a file buffer.
     ///
     /// \param[in] buf  A file buffer
-    void restore(char *buf);
+    void restore(char* buf);
 
     /// It is called when the Data in the DataElement is written to a file.
     ///
