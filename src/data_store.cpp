@@ -4,7 +4,6 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
-#include <cstdlib>
 #include "util.hpp"
 
 #ifdef _OPENMP
@@ -573,8 +572,8 @@ namespace kmrnext {
       if (d_siz == 0) {
 	continue;
       }
-      char* d_val = static_cast<char*>(dlist_[i]->value()); // TODO del
-      fout.write(d_val, static_cast<streamsize>(d_siz));
+      fout.write(static_cast<char*>(dlist_[i]->value()),
+		 static_cast<streamsize>(d_siz));
       dynamic_cast<SimpleFileDataElement*>(dlist_[i])->written(write_offset,
 							       d_siz);
       write_offset += d_siz;
@@ -599,7 +598,7 @@ namespace kmrnext {
     if (file_siz == 0) {
       return false;
     }
-    char* buf = static_cast<char*>(calloc(file_siz, sizeof(char))); // TODO del
+    char* buf = new char[file_siz];
     ifstream fin;
     fin.open(fname.c_str(), ios::in|ios::binary);
     fin.read(buf, static_cast<streamsize>(file_siz));
@@ -614,7 +613,7 @@ namespace kmrnext {
       }
       dynamic_cast<SimpleFileDataElement*>(dlist_[i])->restore(buf);
     }
-    free(buf);
+    delete[] buf;
     data_cached_ = true;
     return true;
   }

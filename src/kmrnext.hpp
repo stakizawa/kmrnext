@@ -270,10 +270,11 @@ namespace kmrnext {
     /// The copy constructor do not allocate memory for value.
     Data(const Data& obj);
 
+    // TODO delete
     /// Copy constructor
     ///
     /// The copy constructor do not allocate memory for value.
-    Data(const Data* obj);
+    //    Data(const Data* obj);
 
     ~Data();
 
@@ -314,7 +315,9 @@ namespace kmrnext {
     /// \param[in] k         Key of the DataPack
     /// \param[in] d         Data of the DataPack
     /// \param[in] allocate  if True, Data is internally allocated
-    DataPack(const Key& k, const Data* d, bool allocate=false);
+
+    // TODO delete
+    //    DataPack(const Key& k, const Data* d, bool allocate=false);
 
     DataPack(const Key& k, const Data& d, bool allocate=false);
 
@@ -708,7 +711,7 @@ namespace kmrnext {
 
   protected:
     // The actual value of Data.
-    void* value_;        // TODO char*?
+    char* value_;
     // The size of Data.
     size_t value_size_;
     // True, if Data is set

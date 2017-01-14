@@ -1,6 +1,5 @@
 #include "../config.hpp"
 
-#include <cstdlib>
 #include <cstring>
 #include "kmrnext.hpp"
 
@@ -17,7 +16,7 @@ namespace kmrnext {
 
   DataElement::~DataElement() {
     if (data_set_) {
-      free(value_); // TODO delete[]?
+      delete[] value_;
     }
   }
 
@@ -36,7 +35,7 @@ namespace kmrnext {
     }
     if (overwrite) {
       if (data_set_) {
-	free(value_);  // TODO delete[]?
+	delete[] value_;
       }
     } else {
 #if VALIDATION
@@ -46,15 +45,15 @@ namespace kmrnext {
 #endif
     }
     value_size_ = siz;
-    value_ = static_cast<void*>(calloc(value_size_, sizeof(char)));
-    memcpy(value_, val, value_size_);
+    value_ = new char[siz];
+    memcpy(value_, val, siz);
     data_set_ = true;
   }
 
   void DataElement::clear() {
     if (data_set_) {
       value_size_ = 0;
-      free(value_);  // TODO delete[]?
+      delete[] value_;
       value_ = NULL;
     }
     data_set_ = false;
@@ -97,7 +96,7 @@ namespace kmrnext {
       throw runtime_error("Data should not be set.");
     }
     value_size_ = data_file_size_;
-    value_ = static_cast<void*>(calloc(value_size_, sizeof(char)));
+    value_ = new char[value_size_];
     memcpy(value_, buf + data_file_offset_, value_size_);
   }
 
@@ -110,7 +109,7 @@ namespace kmrnext {
   void SimpleFileDataElement::clear_cache() {
     if (value_ != NULL) {
       value_size_ = 0;
-      free(value_);  // TODO delete[]?
+      delete[] value_;
       value_ = NULL;
     }
     data_updated_ = false;
