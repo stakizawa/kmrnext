@@ -20,8 +20,19 @@ namespace {
   public:
     int operator()(DataStore* ds, const long& num)
     {
-      Key key(ds->size());
-      set_data(ds, key, 0, ds->size());
+#ifdef _OPENMP
+      #pragma omp parallel
+#endif
+      {
+	Key key(ds->size());
+#ifdef _OPENMP
+	#pragma omp for
+#endif
+	for (size_t i = 0; i < ds->dim(0); i++) {
+	  key.set_dim(0, i);
+	  set_data(ds, key, 1, ds->size());
+	}
+      }
       return 0;
     }
   private:
@@ -643,8 +654,8 @@ namespace {
     }
 #endif
 
-    DataStore* ds0 = new DataStore(1, next);
-    ds0->set_dim(0, array.size());
+    DataStore ds0(1, next);
+    ds0.set_dim(0, array.size());
     Key key(1);
     for (size_t i = 0; i < array.size(); i++) {
       key.set_dim(0, i);
@@ -652,13 +663,13 @@ namespace {
       size_t buf_siz;
       serialize(array.at(i), &buf, &buf_siz);
       Data dat(buf, buf_siz);
-      ds0->add(key, dat);
+      ds0.add(key, dat);
     }
 #ifdef BACKEND_KMR
     // Use Split <T> so that each process loads an array element.
     View split_ds0(1);
     split_ds0.set_dim(0, View::SplitAll);
-    ds0->set_split(split_ds0);
+    ds0.set_split(split_ds0);
 #endif
 
     // Define a mapper for the loader
@@ -682,8 +693,7 @@ namespace {
 
     View v(1);
     v.set_dim(0, View::SplitAll);
-    ds0->map(wloader, v, ds);
-    delete ds0;
+    ds0.map(wloader, v, ds);
 
 #ifdef BACKEND_KMR
     View split_ds(ds_dims_siz);
