@@ -1094,7 +1094,7 @@ namespace {
     size_t avg = count / nprocs;
     size_t rem = count % nprocs;
     size_t idx_max = 0;
-    size_t result = -1;
+    size_t result = 1000000;
     for (size_t i = 0; i < nprocs; i++) {
       idx_max += (i < rem)? avg + 1 : avg;
       if (index < idx_max) {
