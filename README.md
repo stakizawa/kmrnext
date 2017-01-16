@@ -37,6 +37,13 @@ script.  The default backend is "serial".
         $ make
         $ make install
 
+* configure with the "kmrnoomp", KMR built without OpenMP, backend
+
+        $ ./configure --prefix=PATH_TO_INSTALL_DIR \
+          --with-backend=kmrnoomp --with-kmr=PATH_TO_KMR_DIR
+        $ make
+        $ make install
+
 By default, this software is installed with OpenMP enabled if the compiler
 supports OpenMP.  If you want to disable OpenMP, specify `--disable-openmp`
 option to the configure script.

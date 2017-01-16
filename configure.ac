@@ -131,11 +131,21 @@ fi
 
 # Checks the backend library
 AC_ARG_WITH([backend],
-	    [AS_HELP_STRING([--with-backend=@<:@serial/kmr@:>@],
+	    [AS_HELP_STRING([--with-backend=@<:@serial/kmr/kmrnoomp@:>@],
 			    [set the runtime backend [default=serial]])],
 	    [with_backend=$withval],
 	    [with_backend=serial])
 if test "$with_backend" = "kmr"; then
+    TARGET="KMR"
+    AC_DEFINE([BACKEND_KMR], [1],
+    	      [Define if kmr backend is set])
+    CC=$MPICC
+    CXX=$MPICXX
+    FC=$MPIFC
+    CXXLIB="$CXXLIB $_CXXLIB_MPI"
+    AC_DEFINE([KMR_OMP], [1],
+    	      [Define if backend kmr supports OpenMP])
+elif test "$with_backend" = "kmrnoomp"; then
     TARGET="KMR"
     AC_DEFINE([BACKEND_KMR], [1],
     	      [Define if kmr backend is set])

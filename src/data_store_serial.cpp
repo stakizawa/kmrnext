@@ -8,9 +8,7 @@ namespace kmrnext {
 
   DataStore::~DataStore() {
     if (dlist_size_ != 0) {
-#ifdef _OPENMP
       #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
-#endif
       for (size_t i = 0; i < dlist_size_; i++) {
 	if (dlist_[i] != NULL) {
 	  delete dlist_[i];

@@ -1334,7 +1334,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-backend=[serial/kmr]
+  --with-backend=[serial/kmr/kmrnoomp]
                           set the runtime backend [default=serial]
   --with-kmr=PATH         set path for kmr [default=/usr/local]
 
@@ -5254,6 +5254,18 @@ else
 fi
 
 if test "$with_backend" = "kmr"; then
+    TARGET="KMR"
+
+$as_echo "#define BACKEND_KMR 1" >>confdefs.h
+
+    CC=$MPICC
+    CXX=$MPICXX
+    FC=$MPIFC
+    CXXLIB="$CXXLIB $_CXXLIB_MPI"
+
+$as_echo "#define KMR_OMP 1" >>confdefs.h
+
+elif test "$with_backend" = "kmrnoomp"; then
     TARGET="KMR"
 
 $as_echo "#define BACKEND_KMR 1" >>confdefs.h
