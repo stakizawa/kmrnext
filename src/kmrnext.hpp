@@ -533,20 +533,21 @@ namespace kmrnext {
     void load_integers(const vector<long>& ints, Loader<long>& loader);
 
 #ifdef BACKEND_KMR
-    /// It loads process local data, such as array, to the DataStore on
-    /// each process in parallel.
+    /// It calles the Loader object on each process in parallel.
+    /// It is useful for loading process local data to the DataStore.
     ///
-    /// The data to be loaded should be passed to the loader class as
-    /// constructor parameters.  The operator() method in the loader class
-    /// receives rank number of the process in long integer as the second
-    /// parameter.  The parameter can be used to specify Key.
+    /// The loader object, loader, called on each process receives
+    /// the rank number of the process as the second argument of the
+    /// operator() method in long integer.  As any other data is not
+    /// passed to the method as arguments, the data to be loaded should
+    /// be passed to the loader class as constructor parameters.
     ///
-    /// \param[in] loader the mapper function object used to load the data
+    /// \param[in] loader the loader function object used to load the data
     /// \exception std::runtime_error
     ///                when there is a mismatch between the number of data,
     ///                number of processes and dimension sizes of the
     ///                DataStore.
-    void load_local_data(Loader<long>& loader);
+    void load_parallel(Loader<long>& loader);
 #endif
 
     /// It returns a Key of the specified indexed Data.

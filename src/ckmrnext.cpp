@@ -114,22 +114,19 @@ void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
 }
 
 #ifdef BACKEND_KMR
-void KMRNEXT_ds_load_local_data(void *ds, void *data, size_t siz,
-				kmrnext_load_localfn_t l)
+void KMRNEXT_ds_load_parallel(void *ds, kmrnext_load_parallelfn_t l, void *p)
 {
   class WrappedLoader : public DataStore::Loader<long> {
-    void *dat_;
-    size_t siz_;
-    kmrnext_load_localfn_t fn_;
+    kmrnext_load_parallelfn_t fn_;
+    void *p_;
   public:
-    WrappedLoader(void *data, size_t siz, kmrnext_load_localfn_t fn)
-      : dat_(data), siz_(siz), fn_(fn) {}
+    WrappedLoader(kmrnext_load_parallelfn_t fn, void *_p) : fn_(fn), p_(_p) {}
     int operator()(DataStore* _ds, const long& rank) {
-      return fn_(static_cast<void*>(_ds), static_cast<int>(rank), dat_, siz_);
+      return fn_(static_cast<void*>(_ds), static_cast<int>(rank), p_);
     }
-  } loader(data, siz, l);
+  } loader(l, p);
   DataStore* _ds = static_cast<DataStore*>(ds);
-  _ds->load_local_data(loader);
+  _ds->load_parallel(loader);
 }
 #endif
 

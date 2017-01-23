@@ -32,11 +32,12 @@ typedef struct {
 } mapenv;
 
 typedef int (*kmrnext_loadfn_t)(void *ds, const char *file);
-typedef int (*kmrnext_load_localfn_t)(void *ds, int rank, const void *data,
-				      size_t siz);
 typedef int (*kmrnext_mapfn_t)(void *ids, void *ods, void *key,
 			       datapacks dps, mapenv env);
 typedef char* (*kmrnext_dumpfn_t)(void *dp);
+#ifdef BACKEND_KMR
+typedef int (*kmrnext_load_parallelfn_t)(void *ds, int rank, void *p);
+#endif
 
 void *KMRNEXT_init(int argc, char **argv);
 void *KMRNEXT_init0();
@@ -57,8 +58,6 @@ void KMRNEXT_ds_set_size(void *ds, size_t *val);
 void KMRNEXT_ds_zeroize(void *ds);
 void KMRNEXT_ds_load_files(void *ds, char **files, size_t nfiles,
 			   kmrnext_loadfn_t l);
-void KMRNEXT_ds_load_local_data(void *ds, void *data, size_t siz,
-				kmrnext_load_localfn_t l);
 void KMRNEXT_ds_add(void *ds, void *key, void *data);
 void *KMRNEXT_ds_get(void *ds, void *key);
 datapacks KMRNEXT_ds_get_view(void *ds, void *key, void *view);
@@ -69,6 +68,7 @@ long KMRNEXT_ds_count(void *ds);
 char *KMRNEXT_ds_dump(void *ds, kmrnext_dumpfn_t d);
 char *KMRNEXT_ds_string(void *ds);
 #ifdef BACKEND_KMR
+void KMRNEXT_ds_load_parallel(void *ds, kmrnext_load_parallelfn_t l, void *p);
 void KMRNEXT_ds_set_split(void *ds, void *split);
 void *KMRNEXT_ds_get_split(void *ds);
 void KMRNEXT_ds_collate(void *ds);

@@ -797,21 +797,21 @@ namespace kmrnext {
     return collated_;
   }
 
-  void DataStore::load_local_data(Loader<long>& loader) {
+  void DataStore::load_parallel(Loader<long>& loader) {
     // Create a 1D DataStore that stores ranks
-    DataStore* ds0 = new DataStore(1, kmrnext_);
-    ds0->set_dim(0, kmrnext_->nprocs());
+    DataStore ds0(1, kmrnext_);
+    ds0.set_dim(0, kmrnext_->nprocs());
     Key key(1);
     for (long i = 0; i < kmrnext_->nprocs(); i++) {
       key.set_dim(0, i);
       Data dat(&i, sizeof(long));
-      ds0->add(key, dat);
+      ds0.add(key, dat);
     }
 
     // Use Split <T> so that each process loads an array element.
     View split_ds0(1);
     split_ds0.set_dim(0, View::SplitAll);
-    ds0->set_split(split_ds0);
+    ds0.set_split(split_ds0);
 
     // Define a mapper for the loader
     class WrappedLoader : public DataStore::Mapper {
@@ -844,8 +844,7 @@ namespace kmrnext {
     // Run the mapper
     View v(1);
     v.set_dim(0, View::SplitAll);
-    ds0->map(wloader, v, this);
-    delete ds0;
+    ds0.map(wloader, v, this);
 
     // Set the default split
     View split_ds(size_);

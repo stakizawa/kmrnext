@@ -229,14 +229,14 @@ namespace {
     }
   };
 
-  TEST_F(KMRDataStoreTest, Load_local_data) {
+  TEST_F(KMRDataStoreTest, Load_parallel) {
     int data[4] = {rank, rank, rank, rank};
     LocalDataLoader loader(data, 4);
 
     size_t ds2_size[2] = {static_cast<size_t>(nprocs), 4};
     kmrnext::DataStore* ds0 = gNext->create_ds(2);
     ds0->set(ds2_size);
-    ds0->load_local_data(loader);
+    ds0->load_parallel(loader);
     if (nprocs >= 1) {
       EXPECT_EQ(0, *static_cast<int*>(ds0->get(*k2_00_).data().value()));
       EXPECT_EQ(0, ds0->data_element_at(*k2_00_)->owner());
