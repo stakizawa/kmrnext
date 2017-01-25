@@ -26,11 +26,15 @@ namespace {
 	Data data(&val, sizeof(long));
 	ds->add(key, data);
       } else {
+#ifdef _OPENMP
         #pragma omp parallel
+#endif
 	{
 	  Key key(ds->size());
 	  key.set_dim(0, num);
+#ifdef _OPENMP
           #pragma omp for
+#endif
 	  for (size_t i = 0; i < ds->dim(1); i++) {
 	    key.set_dim(1, i);
 	    set_data(ds, key, 2, ds->size());
@@ -103,7 +107,9 @@ namespace kmrnext {
       dlist_size_ *= val[i];
     }
     dlist_.reserve(dlist_size_);
+#ifdef _OPENMP
     #pragma omp parallel for
+#endif
     for (size_t i = 0; i < dlist_size_; i++) {
       dlist_[i] = NULL;
     }
@@ -456,7 +462,9 @@ namespace kmrnext {
     }
 
     i2k_table_.reserve(i2k_len);
+#ifdef _OPENMP
     #pragma omp parallel for
+#endif
     for (size_t index = 0; index < i2k_len; index++) {
       Key key(dim_siz);
       size_t _index = index;
@@ -487,14 +495,18 @@ namespace kmrnext {
   }
 
   void SimpleFileDataStore::set_from(const vector<DataStore*>& dslist) {
+#ifdef _OPENMP
     #pragma omp parallel for
+#endif
     for (size_t i = 0; i < dslist.size(); i++) {
       dynamic_cast<SimpleFileDataStore*>(dslist.at(i))->load();
     }
     DataStore::set_from(dslist);
     store();
     clear_cache();
+#ifdef _OPENMP
     #pragma omp parallel for
+#endif
     for (size_t i = 0; i < dslist.size(); i++) {
       dynamic_cast<SimpleFileDataStore*>(dslist.at(i))->clear_cache();
     }
@@ -592,7 +604,9 @@ namespace kmrnext {
     fin.read(buf, static_cast<streamsize>(file_siz));
     fin.close();
 
+#ifdef _OPENMP
     #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (dlist_[i] == NULL) {
 	continue;
@@ -608,7 +622,9 @@ namespace kmrnext {
     if (!data_cached_) {
       return;
     }
+#ifdef _OPENMP
     #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (dlist_[i] == NULL) {
 	continue;

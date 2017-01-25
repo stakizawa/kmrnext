@@ -110,7 +110,9 @@ namespace kmrnext {
       delete split_;
     }
     if (dlist_size_ != 0) {
+#ifdef _OPENMP
       #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
       for (size_t i = 0; i < dlist_size_; i++) {
 	if (dlist_[i] != NULL) {
 	  delete dlist_[i];
@@ -216,7 +218,9 @@ namespace kmrnext {
 #endif
 
     // Allocate all DataElement beforehand
+#ifdef _OPENMP
     #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (dlist_[i] == NULL) {
 	dlist_[i] = __create_de();
@@ -235,7 +239,9 @@ namespace kmrnext {
     KMR_KVS* rcv = kmr_create_kvs(kmrnext_->kmr(),
 				  KMR_KV_INTEGER, KMR_KV_OPAQUE);
 #if KMR_OMP
+#ifdef _OPENMP
     #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
 #endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (!dlist_[i]->is_set()) {
@@ -255,7 +261,9 @@ namespace kmrnext {
 	  // the data is already replicated
 	  Data dat(dlist_[i]->value(), dlist_[i]->size());
 #if KMR_OMP
+#ifdef _OPENMP
           #pragma omp critical
+#endif
 #endif
 	  dps->push_back(DataPack(tmpkey, dat, true));
 	  continue;
@@ -325,7 +333,9 @@ namespace kmrnext {
     }
 
     vector< vector<DataPack> > dpgroups(nkeys);
+#ifdef _OPENMP
     #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (dlist_[i] == NULL ||
 	  !dlist_[i]->is_set() ||
@@ -336,7 +346,9 @@ namespace kmrnext {
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
       Data dat(dlist_[i]->value(), dlist_[i]->size());
+#ifdef _OPENMP
       #pragma omp critical
+#endif
       dps.push_back(DataPack(tmpkey, dat));
     }
 
@@ -356,7 +368,9 @@ namespace kmrnext {
     KMR_KVS* ikvs = kmr_create_kvs(kmrnext_->kmr(),
 				   KMR_KV_INTEGER, KMR_KV_INTEGER);
 #if KMR_OMP
+#ifdef _OPENMP
     #pragma omp parallel for
+#endif
 #endif
     for (size_t i = 0; i < nkeys; i++) {
       vector<DataPack> &dps = dpgroups.at(i);
@@ -410,7 +424,9 @@ namespace kmrnext {
     if (outds == self_ || outds == this) {
       map_inplace_ = false;
       // unshare all data
+#ifdef _OPENMP
       #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
       for (size_t i = 0; i < dlist_size_; i++) {
 	if (dlist_[i] == NULL) {
 	  continue;
@@ -656,7 +672,9 @@ namespace kmrnext {
       if (indices_cnt != 0) {
 	size_t range_start = indices[0];
 	size_t range_end   = indices[indices_cnt - 1];
+#ifdef _OPENMP
         #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
 	for (size_t i = 0; i < dlist_size_; i++) {
 	  if (dlist_[i] == NULL ||
 	      !dlist_[i]->is_set() ||
@@ -670,14 +688,18 @@ namespace kmrnext {
 	    size_t idx = viewed_idx - range_start;
 	    vector<DataPack>& dps = dpgroups.at(idx);
 	    Data dat(dlist_[i]->value(), dlist_[i]->size());
+#ifdef _OPENMP
             #pragma omp critical
+#endif
 	    dps.push_back(DataPack(tmpkey, dat));
 	  }
 	}
       }
 
       int local_need_collate = 0;
+#ifdef _OPENMP
       #pragma omp parallel for
+#endif
       for (size_t i = 0; i < dpgroups.size(); i++) {
 	vector<DataPack>& dps = dpgroups.at(i);
 	if (dps.size() != each_cnt) {
@@ -718,7 +740,9 @@ namespace kmrnext {
     {
       size_t range_start = (indices_cnt > 0)? indices[0] : 0;
       size_t range_end   = (indices_cnt > 0)? indices[indices_cnt - 1] : 0;
+#ifdef _OPENMP
       #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
       for (size_t i = 0; i < dlist_size_; i++) {
 	if (dlist_[i] == NULL || !dlist_[i]->is_set()) {
 	  continue;
@@ -733,7 +757,9 @@ namespace kmrnext {
 	if (indices_cnt > 0 &&
 	    !(range_start <= viewed_idx && viewed_idx <= range_end)) {
 	  vector<CollatePack>& cps = cpgroups.at(viewed_idx);
+#ifdef _OPENMP
           #pragma omp critical
+#endif
 	  cps.push_back(CollatePack(tmpkey, dlist_[i]));
 	}
       }
@@ -742,7 +768,9 @@ namespace kmrnext {
     KMR_KVS* kvs0 = kmr_create_kvs(kmrnext_->kmr(),
 				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
 #if KMR_OMP
+#ifdef _OPENMP
     #pragma omp parallel for
+#endif
 #endif
     for (size_t i = 0; i < ndata; i++) {
       vector<CollatePack> &cps = cpgroups.at(i);
@@ -955,7 +983,9 @@ namespace {
 #if KMR_OMP
     // As a KMR map function can be run in parallel by OpenMP, shared resources
     // should be modified in critical regions.
+#ifdef _OPENMP
     #pragma omp critical
+#endif
 #endif
     param->dps->push_back(DataPack(key, dat, true));
     return MPI_SUCCESS;
