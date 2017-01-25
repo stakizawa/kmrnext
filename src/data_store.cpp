@@ -2,10 +2,6 @@
 #include "kmrnext.hpp"
 #include "data_store.hpp"
 
-#ifdef _OPENMP
-#define OMP_FOR_CHUNK_SIZE 4
-#endif
-
 #ifdef BACKEND_SERIAL
 #include "data_store_serial.hpp"
 #elif defined BACKEND_KMR

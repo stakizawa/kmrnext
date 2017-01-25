@@ -6,6 +6,10 @@
 #include "kmrnext.hpp"
 #include "util.hpp"
 
+#ifdef _OPENMP
+#define OMP_FOR_CHUNK_SIZE 4
+#endif
+
 namespace kmrnext {
   using namespace std;
 
