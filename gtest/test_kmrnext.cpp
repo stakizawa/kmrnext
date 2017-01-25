@@ -9,12 +9,15 @@ namespace {
   // The fixture for testing class KMRNext.
   class KMRNextTest : public ::testing::Test {
     virtual void SetUp() {
+      default_ = gNext->io_mode();
       gNext->set_io_mode(kmrnext::KMRNext::Memory);
     }
 
     virtual void TearDown() {
-      gNext->set_io_mode(kmrnext::KMRNext::Memory);
+      gNext->set_io_mode(default_);
     }
+
+    kmrnext::KMRNext::IOMode default_;
   };
 
   TEST_F(KMRNextTest, IO_mode) {

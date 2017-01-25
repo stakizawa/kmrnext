@@ -170,15 +170,9 @@ namespace {
   };
 
   TEST_F(DataStoreTest, Constructor) {
-    // Constructor for DataStore
-    kmrnext::DataStore ds(ds_size_, gNext);
-    EXPECT_EQ(ds_size_, ds.size());
-    EXPECT_THROW({kmrnext::DataStore dse(ds_size_error_, gNext);},
-		 std::runtime_error);
-    // Constructor for SimpleFileDataStore
-    kmrnext::SimpleFileDataStore sfds(ds_size_, gNext);
-    EXPECT_EQ(ds_size_, sfds.size());
-    EXPECT_THROW({kmrnext::DataStore sfdse(ds_size_error_, gNext);},
+    kmrnext::DataStore* ds = gNext->create_ds(ds_size_);
+    EXPECT_EQ(ds_size_, ds->size());
+    EXPECT_THROW({ gNext->create_ds(ds_size_error_); },
 		 std::runtime_error);
   }
 
@@ -193,26 +187,6 @@ namespace {
 
     // set can be called only once
     EXPECT_THROW({ds->set(array_ds0_);}, std::runtime_error);
-    delete ds;
-  }
-
-  TEST_F(DataStoreTest, Zeroize) {
-    kmrnext::DataStore *ds = gNext->create_ds(ds_size_);
-    ds->set(array_ds0_);
-    ds->zeroize();
-    kmrnext::Key key(ds_size_);
-    for (size_t i = 0; i < array_ds0_[0]; i++) {
-      for (size_t j = 0; j < array_ds0_[1]; j++) {
-	for (size_t k = 0; k < array_ds0_[2]; k++) {
-	  key.set_dim(0, i);
-	  key.set_dim(1, j);
-	  key.set_dim(2, k);
-	  kmrnext::DataPack dp = ds->get(key);
-	  EXPECT_EQ(0, *static_cast<long*>(dp.data().value()));
-	  EXPECT_EQ(sizeof(long), dp.data().size());
-	}
-      }
-    }
     delete ds;
   }
 
@@ -661,6 +635,26 @@ namespace {
     ds1->add(*key0_, *d0_);
     EXPECT_EQ(1, ds1->count());
     delete ds1;
+  }
+
+  TEST_F(DataStoreTest, Zeroize) {
+    kmrnext::DataStore *ds = gNext->create_ds(ds_size_);
+    ds->set(array_ds0_);
+    ds->zeroize();
+    kmrnext::Key key(ds_size_);
+    for (size_t i = 0; i < array_ds0_[0]; i++) {
+      for (size_t j = 0; j < array_ds0_[1]; j++) {
+	for (size_t k = 0; k < array_ds0_[2]; k++) {
+	  key.set_dim(0, i);
+	  key.set_dim(1, j);
+	  key.set_dim(2, k);
+	  kmrnext::DataPack dp = ds->get(key);
+	  EXPECT_EQ(0, *static_cast<long*>(dp.data().value()));
+	  EXPECT_EQ(sizeof(long), dp.data().size());
+	}
+      }
+    }
+    delete ds;
   }
 
   TEST_F(DataStoreTest, Duplicate) {
