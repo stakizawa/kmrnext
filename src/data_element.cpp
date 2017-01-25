@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include "kmrnext.hpp"
+#include "data_element.hpp"
 
 namespace kmrnext {
 

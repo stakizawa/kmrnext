@@ -1,5 +1,10 @@
 #include "../config.hpp"
 #include "kmrnext.hpp"
+#ifdef BACKEND_SERIAL
+#include "data_store_serial.hpp"
+#elif defined BACKEND_KMR
+#include "data_store_kmr.hpp"
+#endif
 
 namespace kmrnext {
 
@@ -7,7 +12,7 @@ namespace kmrnext {
 
   DataStore* KMRNext::create_ds(size_t siz) {
     if (iomode_ == KMRNext::Memory) {
-      return new DataStore(siz, this);
+      return new InMemoryDataStore(siz, this);
     } else if (iomode_ == KMRNext::File) {
       return new SimpleFileDataStore(siz, this);
     } else {

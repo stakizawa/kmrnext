@@ -4,7 +4,7 @@
 /// KMR Next Interface
 
 /// The backend runtime (SERIAL, KMR)
-#define BACKEND_KMR 1
+#define BACKEND_SERIAL 1
 
 #include <stdexcept>
 #include <sstream>
@@ -26,8 +26,6 @@ namespace kmrnext {
   class DataPack;
   class DataStore;
   class DataElement;
-  class SimpleFileDataStore;
-  class SimpleFileDataElement;
 
   ///////////////////////////////////////////////////////////////////////////
   /// A class that stores KMR Next runtime status
@@ -343,17 +341,6 @@ namespace kmrnext {
     typedef Dimensional<size_t> base;
 
   public:
-    /// It creates a new DataStore.
-    ///
-    /// Size of each dimension should be set by DataStore.set() function
-    /// before using this DataStore.
-    ///
-    /// \param[in] size number of dimensions of this DataStore.
-    /// \param[in] kn   an instance of KMRNext context
-    DataStore(const size_t siz, KMRNext* kn);
-
-    virtual ~DataStore();
-
     /////////////////////////////////////////////////////////////////////////
     /// A class that stores map function execution environment
     ///
@@ -406,29 +393,29 @@ namespace kmrnext {
       virtual int operator()(DataStore* ds, const Type& param) = 0;
     };
 
+    /// It frees the DataStore.
+    virtual ~DataStore() {}
+
     /// It sets size of each dimension.
     ///
     /// This DataStore is ready to use after calling this function.
     ///
     /// \param[in] val an array that stores value of each dimension
-    virtual void set(const size_t* val);
+    virtual void set(const size_t* val) { base::set(val); }
 
     /// It sets size of a specified dimension of this DataStore.
     ///
     /// \param[in] idx  index of the dimension
     /// \param[in] siz the dimension size
-    virtual void set_dim(const size_t idx, const size_t siz);
-
-    /// It sets ZERO data (long interger 0) to all the data elements in
-    /// this DataStore.
-    void zeroize();
+    virtual void set_dim(const size_t idx, const size_t siz)
+    { base::set_dim(idx, siz); }
 
     /// It adds a data to this DataStore.
     ///
     /// \param[in] key  Key in this DataStore where the Data is stored
     /// \param[in] data Data to be added
     /// \exception std::runtime_error when addition failed
-    virtual void add(const Key& key, const Data& data);
+    virtual void add(const Key& key, const Data& data) = 0;
 
     /// It gets a specified data from this DataStore.
     ///
@@ -440,7 +427,7 @@ namespace kmrnext {
     ///            Even if the data does not exist, it returns a DataPack
     ///            object.  However, the Data of the DataPack is NULL.
     /// \exception std::runtime_error when failed to get
-    virtual DataPack get(const Key& key);
+    virtual DataPack get(const Key& key) = 0;
 
     /// It gets data whose keys are same when the specified view is applied.
     ///
@@ -453,7 +440,7 @@ namespace kmrnext {
     ///            Even if the data does not exist, it returns a DataPack
     ///            object.  However, the Data of the DataPack is NULL.
     /// \exception std::runtime_error when failed to get
-    virtual vector<DataPack>* get(const View& view, const Key& key);
+    virtual vector<DataPack>* get(const View& view, const Key& key) = 0;
 
     /// It removes a specified data from this DataStore.
     ///
@@ -462,13 +449,13 @@ namespace kmrnext {
     ///            Data.  Even if the data does not exist, it returns a
     ///            DataPack object.  However, the Data of the DataPack is NULL.
     /// \exception std::runtime_error when failed to get
-    virtual DataPack remove(const Key& key);
+    virtual DataPack remove(const Key& key) = 0;
 
     /// It sets Data from DataStores.
-    virtual void set_from(const vector<DataStore*>& dslist);
+    virtual void set_from(const vector<DataStore*>& dslist) = 0;
 
     /// It splits DataStore to low-dimensional DataStores.
-    virtual void split_to(vector<DataStore*>& dslist);
+    virtual void split_to(vector<DataStore*>& dslist) = 0;
 
     /// It maps each data.
     ///
@@ -477,14 +464,14 @@ namespace kmrnext {
     /// should be written to another DataStore, specify the last parameter
     /// of the output DataStore, outds.  If the last parameter is omitted,
     /// data elements of this DataStore are updated in-place.
-    virtual void map(Mapper& m, const View& view, DataStore* outds=self_);
+    virtual void map(Mapper& m, const View& view, DataStore* outds=self_) = 0;
 
 #ifdef BACKEND_KMR
     /// It sets the split pattern of the DataStore.
-    void set_split(const View& split);
+    virtual void set_split(const View& split) = 0;
 
     /// It returns the split pattern of the DataStore.
-    View get_split();
+    virtual View get_split() = 0;
 
     /// It globally sorts data.
     ///
@@ -492,24 +479,12 @@ namespace kmrnext {
     /// nodes using the Split.  It is automatically called in
     /// DataStore.map() function, so that explicitly calling this function
     /// is not required.
-    virtual void collate();
+    virtual void collate() = 0;
 
     /// It returns true if the last call of map() or collate() actually
     /// performed collate.  Otherwise it returns false.
-    bool collated();
+    virtual bool collated() = 0;
 #endif
-
-    /// It dumps data in the DataStore.
-    string dump(DataPack::Dumper& dumper);
-
-    /// It returns stored data count.
-    long count();
-
-    /// It duplicates the DataStore.
-    /// It performs deep copy, that is, all data elements in the DataStore
-    /// are deeply copied.  Moreover, it copies all attributes of data
-    /// elements.
-    virtual DataStore* duplicate();
 
     /// It loads files to the DataStore.
     /// A file in files is passed to the loader.
@@ -519,7 +494,8 @@ namespace kmrnext {
     /// \exception std::runtime_error
     ///                when there is a mismatch between the number of files
     ///                and dimension sizes of the DataStore.
-    void load_files(const vector<string>& files, Loader<string>& loader);
+    virtual void load_files(const vector<string>& files,
+			    Loader<string>& loader) = 0;
 
     /// It loads integers to the DataStore.
     /// An integer value in ints is passed to the loader.
@@ -530,7 +506,8 @@ namespace kmrnext {
     /// \exception std::runtime_error
     ///                when there is a mismatch between the number of integers
     ///                and dimension sizes of the DataStore.
-    void load_integers(const vector<long>& ints, Loader<long>& loader);
+    virtual void load_integers(const vector<long>& ints,
+			       Loader<long>& loader) = 0;
 
 #ifdef BACKEND_KMR
     /// It calles the Loader object on each process in parallel.
@@ -547,17 +524,33 @@ namespace kmrnext {
     ///                when there is a mismatch between the number of data,
     ///                number of processes and dimension sizes of the
     ///                DataStore.
-    void load_parallel(Loader<long>& loader);
+    virtual void load_parallel(Loader<long>& loader) = 0;
 #endif
 
-    /// It returns a Key of the specified indexed Data.
-    Key index_to_key(const size_t index);
+    /// It sets ZERO data (long interger 0) to all the data elements in
+    /// this DataStore.
+    void zeroize();
 
-    /// It converts the specified Key by applying the specified View.
-    Key key_to_viewed_key(const Key& key, const View& view);
+    /// It duplicates the DataStore.
+    /// It performs deep copy, that is, all data elements in the DataStore
+    /// are deeply copied.  Moreover, it copies all attributes of data
+    /// elements.
+    virtual DataStore* duplicate() = 0;
 
-    /// It returns the pointer to the specified indexed DataElement.
-    DataElement* data_element_at(const Key& key);
+    /// It dumps data in the DataStore.
+    virtual string dump(DataPack::Dumper& dumper) = 0;
+
+    /// It returns stored data count.
+    virtual long count() = 0;
+
+#ifdef BACKEND_KMR
+    /// It returns the index of Data calculated from the specified Key when
+    /// the specified split is applied.
+    virtual size_t key_to_split_index(const Key& key, const View& view) = 0;
+#endif
+
+    /// It returns the reference to the specified indexed DataElement.
+    virtual DataElement& data_element_at(const Key& key) = 0;
 
     /// It initializes the static fields.
     ///
@@ -572,78 +565,18 @@ namespace kmrnext {
     static void finalize();
 
   protected:
-    /////////////////////////////////////////////////////////////////////////
-    // A class that caches data for calculating indice and keys.
-    /////////////////////////////////////////////////////////////////////////
-    class IndexCache {
-    public:
-      IndexCache();
-
-      // It initializes private members.
-      void initialize(const size_t* sizes, const size_t i2k_len,
-		      const size_t dim_siz);
-
-      // It returns a key associated with the specified index.
-      Key i2k(const size_t index) const;
-
-      // It returns dimension offset of the specified dimension.
-      size_t dim_offset(const size_t dim) const;
-    private:
-      // index to key conversion table
-      vector<Key> i2k_table_;
-      // dimension offset table
-      vector<size_t> doffset_table_;
-    };
-
-    // Pointer to stored DataElements
-    vector<DataElement*> dlist_;
-    // Size of dlist_
-    size_t dlist_size_;
-    // Index cache
-    IndexCache icache_;
-    // True if the input and output DataStore of map function is same
-    bool map_inplace_;
-    // A KMRNext object that stores execution status
-    KMRNext* kmrnext_;
-#ifdef BACKEND_KMR
-    // True if the DataStore should be processed in parallel
-    bool parallel_;
-    // Split pattern of the DataStore, that defines data distribution
-    View* split_;
-    // Set to be true if the last call of map() or collate() actually
-    // performed collate.
-    bool collated_;
-#endif
-
-    // This is a dummy DataStore that represents this object.
+    /// This is a dummy DataStore that represents this object.
     static DataStore* self_;
 
-    // It is a real implementation of duplicate().
-    void __duplicate(DataStore* ds);
+    /// It creates a new DataStore.
+    ///
+    /// Size of each dimension should be set by DataStore.set() function
+    /// before using this DataStore.
+    ///
+    /// \param[in] size number of dimensions of this DataStore.
+    /// \param[in] kn   an instance of KMRNext context
+    DataStore(const size_t siz) : base(siz) {}
 
-    virtual DataElement* __create_de();
-
-    // It returns the index of Data calculated from the specified Key.
-    size_t key_to_index(const Key& key);
-
-    // It returns the index of Data calculated from the specified Key when
-    // the specified view is applied.
-    size_t key_to_viewed_index(const Key& key, const View& view);
-
-    // It checks if the given view is correct.
-    void check_view(const View& view);
-
-    // It checks if dimensions of key are inside the range.
-    void check_key_range(const Key& key);
-
-    // It checks the arguments of map().
-    void check_map_args(const View& view, DataStore* outds);
-
-#ifdef BACKEND_KMR
-    // It returns the index of Data calculated from the specified Key when
-    // the specified split is applied.
-    size_t key_to_split_index(const Key& key, const View& view);
-#endif
   };
 
   ///////////////////////////////////////////////////////////////////////////
@@ -725,106 +658,6 @@ namespace kmrnext {
     // \exception std::runtime_error When copy failed
     virtual void set_data(const void* val, const size_t siz,
 			  bool overwrite=false);
-  };
-
-  ///////////////////////////////////////////////////////////////////////////
-  /// A class that stores data in a file
-  ///////////////////////////////////////////////////////////////////////////
-  class SimpleFileDataStore : public DataStore {
-    typedef DataStore base;
-
-  public:
-    /// It creates a new SimpleFileDataStore.
-    ///
-    /// \param[in] size number of dimensions of this DataStore.
-    /// \param[in] kn   an instance of KMRNext context
-    SimpleFileDataStore(const size_t siz, KMRNext* kn)
-      : base(siz, kn), data_updated_(false), data_cached_(false) {}
-
-    virtual ~SimpleFileDataStore();
-
-    void add(const Key& key, const Data& data);
-
-    DataPack get(const Key& key);
-
-    vector<DataPack>* get(const View& view, const Key& key);
-
-    DataPack remove(const Key& key);
-
-    void set_from(const vector<DataStore*>& dslist);
-
-    void split_to(vector<DataStore*>& dslist);
-
-    void map(Mapper& m, const View& view, DataStore* outds=self_);
-
-    DataStore* duplicate();
-
-#ifdef BACKEND_KMR
-    virtual void collate();
-#endif
-
-  private:
-    // True if the data in DataStore is updated, but not written to a file
-    bool data_updated_;
-    // True if the Data in a file is cached in memory
-    bool data_cached_;
-
-    DataElement* __create_de();
-
-    // It returns name of file that stores data elements of the DataStore.
-    string filename();
-
-    // It writes data elements in the DataStore to a file.
-    //
-    // \return   true if Data are stored in a file
-    bool store();
-
-    // It reads data elements in a file and then loads to the DataStore.
-    //
-    // \return   true if Data are loaded from a file
-    bool load();
-
-    // It clears memory cache.
-    void clear_cache();
-  };
-
-  ///////////////////////////////////////////////////////////////////////////
-  /// A class that represents an element in a DataStore that uses files
-  ///////////////////////////////////////////////////////////////////////////
-  class SimpleFileDataElement : public DataElement {
-    typedef DataElement base;
-
-  public:
-    SimpleFileDataElement();
-
-    virtual ~SimpleFileDataElement() {}
-
-    /// It clears all attribute of the Data.
-    void clear();
-
-    /// It restores the Data in the DataElement from a file buffer.
-    ///
-    /// \param[in] buf  A file buffer
-    void restore(char* buf);
-
-    /// It is called when the Data in the DataElement is written to a file.
-    ///
-    /// \param[in] start_pos   File start position
-    /// \param[in] written_siz Written size in bytes
-    void written(size_t start_pos, size_t written_siz);
-
-    /// It clears memory cache of the DataElement.
-    void clear_cache();
-
-  private:
-    // True, if Data is updated only on memory
-    bool data_updated_;
-    // The offset of the Data in a file
-    size_t data_file_offset_;
-    // The size of the Data in a file
-    size_t data_file_size_;
-
-    void set_data(const void* val, const size_t siz, bool overwrite=false);
   };
 
 }

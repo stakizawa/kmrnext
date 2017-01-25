@@ -1,9 +1,11 @@
 include ../config.make
 
-HEADERS = kmrnext.hpp ckmrnext.h kmrnextf.f90
+HEADERS = kmrnext.hpp ckmrnext.h kmrnextf.f90 \
+	  data_element.hpp data_store.hpp data_store_serial.hpp \
+	  util.hpp
 LIB     = libkmrnext.a
 OBJS    = kmrnext.o basic_data.o data_store.o data_element.o ckmrnext.o \
-	  api_fortran.o kmrnextf.o
+	  api_fortran.o kmrnextf.o util.o
 TESTS   = test00-basic test01-mng-ds test02-clang test03-fortran test04-file \
 	  test05-multi
 

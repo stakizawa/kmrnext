@@ -3,63 +3,42 @@
 /// \file
 /// Utility functions
 
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include <ctime>
-#include <sys/stat.h>
-#include <unistd.h>
 #include "kmrnext.hpp"
 
-using namespace std;
-
+namespace kmrnext {
 #ifdef BACKEND_KMR
-// It returns current time in nano seconds after synchronizing between
-// processes in the specified MPI communicator.
-double gettime(MPI_Comm comm) {
-  MPI_Barrier(comm);
-  struct timespec ts;
-  clock_gettime(CLOCK_REALTIME, &ts);
-  return (static_cast<double>(ts.tv_sec) * 1E9 +
-	  static_cast<double>(ts.tv_nsec));
-}
+  // It returns current time in nano seconds after synchronizing between
+  // processes in the specified MPI communicator.
+  double gettime(MPI_Comm comm);
 #endif
 
+  // It write message to the standard error.
 #ifdef BACKEND_SERIAL
-void profile_out(string message) {
-  cerr << ";;KMRNEXT: " << message << endl;
-}
+  void profile_out(std::string message);
 #elif defined BACKEND_KMR
-void profile_out(kmrnext::KMRNext* kmrnext_, string message) {
-  cerr << ";;KMRNEXT [" << setfill('0') << setw(5) << kmrnext_->rank() << "] "
-       << message << endl;
-}
+  void profile_out(kmrnext::KMRNext* kmrnext_, std::string message);
 #endif
 
-// It returns true if the file exists.
-bool file_exist(string &filename) {
-  struct stat st;
-  int ret = stat(filename.c_str(), &st);
-  if (ret == 0) {
-    return true;
-  } else {
-    return false;
-  }
-}
+  // It returns true if the file exists.
+  bool file_exist(std::string &filename);
 
-size_t file_size(string &filename) {
-  ifstream fin;
-  fin.open(filename.c_str(), ios::in|ios::binary);
-  fin.seekg(0, ios::end);
-  streampos siz = fin.tellg();
-  fin.close();
-  return static_cast<size_t>(siz);
-}
+  // It returns size of the file.
+  size_t file_size(std::string &filename);
 
-void delete_file(string &filename) {
-  if (file_exist(filename)) {
-    unlink(filename.c_str());
-  }
+  // It deletes the file.
+  void delete_file(std::string &filename);
+
+  // It serializes a string.
+  void serialize(const string& str, char** buf, size_t* buf_siz);
+
+  // It deserializes a string.
+  void deserialize(char* buf, size_t buf_siz, string** str);
+
+  // It serializes an integer.
+  void serialize(const long& val, char** buf, size_t* buf_siz);
+
+  // It deserializes an integer.
+  void deserialize(char* buf, size_t buf_siz, long** val);
 }
 
 #endif
