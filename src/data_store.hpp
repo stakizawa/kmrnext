@@ -43,10 +43,8 @@ namespace kmrnext {
     typedef DataStore base;
 
   public:
-    // It returns a Key of the specified indexed Data.
     Key index_to_key(const size_t index);
 
-    // It returns the index of Data calculated from the specified Key.
     size_t key_to_index(const Key& key);
 
     // It returns the index of Data calculated from the specified Key when

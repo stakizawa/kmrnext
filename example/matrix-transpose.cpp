@@ -190,8 +190,8 @@ void print_matrix(DataStore* ds)
 #ifdef BACKEND_SERIAL
       os << *static_cast<int*>(data.value()) << " ";
 #elif defined BACKEND_KMR
-      DataElement *de = ds->data_element_at(key);
-      os << *static_cast<int*>(data.value()) << "(" << de->owner() << ") ";
+      DataElement& de = ds->data_element_at(key);
+      os << *static_cast<int*>(data.value()) << "(" << de.owner() << ") ";
 #endif
     }
     os << endl;

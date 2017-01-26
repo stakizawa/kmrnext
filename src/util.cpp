@@ -2,13 +2,13 @@
 #include <fstream>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "kmrnext.hpp"
+#include "util.hpp"
+
 #ifdef BACKEND_KMR
 #include <iomanip>
 #include <ctime>
 #endif
-
-#include "kmrnext.hpp"
-#include "util.hpp"
 
 namespace kmrnext {
   using namespace std;

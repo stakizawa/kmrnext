@@ -202,10 +202,10 @@ namespace {
     EXPECT_EQ(2, *static_cast<int*>(ds0->get(*k2_11_).data().value()));
     EXPECT_EQ(3, *static_cast<int*>(ds0->get(*k2_22_).data().value()));
     EXPECT_EQ(4, *static_cast<int*>(ds0->get(*k2_33_).data().value()));
-    EXPECT_EQ(owners[0], ds0->data_element_at(*k2_00_)->owner());
-    EXPECT_EQ(owners[1], ds0->data_element_at(*k2_11_)->owner());
-    EXPECT_EQ(owners[2], ds0->data_element_at(*k2_22_)->owner());
-    EXPECT_EQ(owners[3], ds0->data_element_at(*k2_33_)->owner());
+    EXPECT_EQ(owners[0], ds0->data_element_at(*k2_00_).owner());
+    EXPECT_EQ(owners[1], ds0->data_element_at(*k2_11_).owner());
+    EXPECT_EQ(owners[2], ds0->data_element_at(*k2_22_).owner());
+    EXPECT_EQ(owners[3], ds0->data_element_at(*k2_33_).owner());
     delete ds0;
   }
 
@@ -239,19 +239,19 @@ namespace {
     ds0->load_parallel(loader);
     if (nprocs >= 1) {
       EXPECT_EQ(0, *static_cast<int*>(ds0->get(*k2_00_).data().value()));
-      EXPECT_EQ(0, ds0->data_element_at(*k2_00_)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(*k2_00_).owner());
     }
     if (nprocs >= 2) {
       EXPECT_EQ(1, *static_cast<int*>(ds0->get(*k2_11_).data().value()));
-      EXPECT_EQ(1, ds0->data_element_at(*k2_11_)->owner());
+      EXPECT_EQ(1, ds0->data_element_at(*k2_11_).owner());
     }
     if (nprocs >= 3) {
       EXPECT_EQ(2, *static_cast<int*>(ds0->get(*k2_22_).data().value()));
-      EXPECT_EQ(2, ds0->data_element_at(*k2_22_)->owner());
+      EXPECT_EQ(2, ds0->data_element_at(*k2_22_).owner());
     }
     if (nprocs >= 4) {
       EXPECT_EQ(3, *static_cast<int*>(ds0->get(*k2_33_).data().value()));
-      EXPECT_EQ(3, ds0->data_element_at(*k2_33_)->owner());
+      EXPECT_EQ(3, ds0->data_element_at(*k2_33_).owner());
     }
     delete ds0;
   }
@@ -267,7 +267,7 @@ namespace {
     for (std::vector<kmrnext::DataPack>:: iterator itr = vec0->begin();
 	 itr != vec0->end(); itr++) {
       kmrnext::Key k0 = (*itr).key();
-      EXPECT_EQ(ds2_owners_[0], ds2_->data_element_at(k0)->owner());
+      EXPECT_EQ(ds2_owners_[0], ds2_->data_element_at(k0).owner());
     }
     delete vec0;
   }
@@ -360,10 +360,10 @@ namespace {
     EXPECT_EQ(2, *static_cast<int*>(ods0->get(*k2_11_).data().value()));
     EXPECT_EQ(3, *static_cast<int*>(ods0->get(*k2_22_).data().value()));
     EXPECT_EQ(4, *static_cast<int*>(ods0->get(*k2_33_).data().value()));
-    EXPECT_EQ(ds2_owners_[0], ods0->data_element_at(*k2_00_)->owner());
-    EXPECT_EQ(ds2_owners_[1], ods0->data_element_at(*k2_11_)->owner());
-    EXPECT_EQ(ds2_owners_[2], ods0->data_element_at(*k2_22_)->owner());
-    EXPECT_EQ(ds2_owners_[3], ods0->data_element_at(*k2_33_)->owner());
+    EXPECT_EQ(ds2_owners_[0], ods0->data_element_at(*k2_00_).owner());
+    EXPECT_EQ(ds2_owners_[1], ods0->data_element_at(*k2_11_).owner());
+    EXPECT_EQ(ds2_owners_[2], ods0->data_element_at(*k2_22_).owner());
+    EXPECT_EQ(ds2_owners_[3], ods0->data_element_at(*k2_33_).owner());
     delete ods0;
 
     // Check owners in case of Parallel Mapper
@@ -389,10 +389,10 @@ namespace {
     EXPECT_EQ(10, *static_cast<int*>(ods1->get(k1_1).data().value()));
     EXPECT_EQ(10, *static_cast<int*>(ods1->get(k1_2).data().value()));
     EXPECT_EQ(10, *static_cast<int*>(ods1->get(k1_3).data().value()));
-    EXPECT_EQ(ds2_owners_[0], ods1->data_element_at(k1_0)->owner());
-    EXPECT_EQ(ds2_owners_[1], ods1->data_element_at(k1_1)->owner());
-    EXPECT_EQ(ds2_owners_[2], ods1->data_element_at(k1_2)->owner());
-    EXPECT_EQ(ds2_owners_[3], ods1->data_element_at(k1_3)->owner());
+    EXPECT_EQ(ds2_owners_[0], ods1->data_element_at(k1_0).owner());
+    EXPECT_EQ(ds2_owners_[1], ods1->data_element_at(k1_1).owner());
+    EXPECT_EQ(ds2_owners_[2], ods1->data_element_at(k1_2).owner());
+    EXPECT_EQ(ds2_owners_[3], ods1->data_element_at(k1_3).owner());
     delete ods1;
   }
 
@@ -491,26 +491,26 @@ namespace {
     ds0->get(key000);
     ds0->get(key111);
     ds0->get(key222);
-    EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-    EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
-    EXPECT_EQ(0, ds0->data_element_at(key222)->owner());
+    EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+    EXPECT_EQ(0, ds0->data_element_at(key111).owner());
+    EXPECT_EQ(0, ds0->data_element_at(key222).owner());
     ds0->collate();
     // Check the allocation after collate()
     ds0->get(key000);
     ds0->get(key111);
     ds0->get(key222);
     if (nprocs >= 3) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key222).owner());
     } else if (nprocs == 2) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key222).owner());
     } else {  // nprocs == 1
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key222).owner());
     }
     EXPECT_EQ(1, *static_cast<int*>(ds0->get(key000).data().value()));
     EXPECT_EQ(1, *static_cast<int*>(ds0->get(key111).data().value()));
@@ -526,17 +526,17 @@ namespace {
       EXPECT_FALSE(ds0->collated());
     }
     if (nprocs >= 3) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key222).owner());
     } else if (nprocs == 2) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key222).owner());
     } else {  // nprocs == 1
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key222)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key222).owner());
     }
 
     kmrnext::View aviewFTT(3);
@@ -571,59 +571,59 @@ namespace {
     ds0->get(key012);
     ds0->get(key210);
     if (nprocs >= 9) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(4, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(8, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(7, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(4, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(8, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(7, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key210).owner());
     } else if (nprocs == 8) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(3, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(7, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(6, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(3, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(7, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(6, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210).owner());
     } else if (nprocs == 7) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(6, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(5, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(6, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(5, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210).owner());
     } else if (nprocs == 6) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(5, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(4, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(5, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(4, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210).owner());
     } else if (nprocs == 5) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(4, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(3, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(4, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(3, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210).owner());
     } else if (nprocs == 4) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(3, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(3, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(3, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(3, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210).owner());
     } else if (nprocs == 3) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210).owner());
     } else if (nprocs == 2) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210).owner());
     } else {  // nprocs == 1
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210).owner());
     }
 #else
     // The following is the case of row-ordered index
@@ -651,59 +651,59 @@ namespace {
     ds0->get(key012);
     ds0->get(key210);
     if (nprocs >= 9) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(4, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(8, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(5, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(3, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(4, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(8, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(5, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(3, ds0->data_element_at(key210).owner());
     } else if (nprocs == 8) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(3, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(7, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(4, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(3, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(7, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(4, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key210).owner());
     } else if (nprocs == 7) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(6, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(3, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(6, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(3, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key210).owner());
     } else if (nprocs == 6) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(5, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(5, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key210).owner());
     } else if (nprocs == 5) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(4, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(4, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key210).owner());
     } else if (nprocs == 4) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(3, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(3, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key210).owner());
     } else if (nprocs == 3) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(2, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(2, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key210).owner());
     } else if (nprocs == 2) {
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(1, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(1, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210).owner());
     } else {  // nprocs == 1
-      EXPECT_EQ(0, ds0->data_element_at(key000)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key111)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key222)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key012)->owner());
-      EXPECT_EQ(0, ds0->data_element_at(key210)->owner());
+      EXPECT_EQ(0, ds0->data_element_at(key000).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key111).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key222).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key012).owner());
+      EXPECT_EQ(0, ds0->data_element_at(key210).owner());
     }
 #endif
     delete ds0;

@@ -419,8 +419,8 @@ void check_data_location_4d(DataStore* ds)
 	  }
 	  int owner = calc_owner(ary1, kProc, 4);
 
-	  DataElement *de = ds->data_element_at(key);
-	  if (de->owner() != owner) {
+	  DataElement& de = ds->data_element_at(key);
+	  if (de.owner() != owner) {
 	    cerr << "Owner is not correct." << endl;
 	    KMRNext::abort(1);
 	  }
@@ -457,8 +457,8 @@ void check_data_location_5d(DataStore* ds)
 	    }
 	    int owner = calc_owner(ary1, kProc, 4);
 
-	    DataElement *de = ds->data_element_at(key);
-	    if (de->owner() != owner) {
+	    DataElement& de = ds->data_element_at(key);
+	    if (de.owner() != owner) {
 	      cerr << "Owner is not correct." << endl;
 	      KMRNext::abort(1);
 	    }

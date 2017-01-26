@@ -1,7 +1,8 @@
 include ../config.make
 
 HEADERS = kmrnext.hpp ckmrnext.h kmrnextf.f90 \
-	  data_element.hpp data_store.hpp data_store_serial.hpp \
+	  data_element.hpp data_store.hpp \
+	  data_store_serial.hpp data_store_kmr.hpp \
 	  util.hpp
 LIB     = libkmrnext.a
 OBJS    = kmrnext.o basic_data.o data_store.o data_element.o ckmrnext.o \

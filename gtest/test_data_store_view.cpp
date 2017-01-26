@@ -282,7 +282,7 @@ namespace {
 	for (size_t j = 0; j < ds_->dim(1); j++) {
 	  key.set_dim(1, j);
 	  ds_->get(key);
-	  EXPECT_EQ(0, ds_->data_element_at(key)->owner());
+	  EXPECT_EQ(0, ds_->data_element_at(key).owner());
 	}
       }
     }
@@ -303,7 +303,7 @@ namespace {
 	for (size_t j = 0; j < ds_->dim(1); j++) {
 	  key.set_dim(1, j);
 	  ds_->get(key);
-	  EXPECT_EQ(owner, ds_->data_element_at(key)->owner());
+	  EXPECT_EQ(owner, ds_->data_element_at(key).owner());
 	}
       }
     }
@@ -325,7 +325,7 @@ namespace {
 	  key.set_dim(1, j);
 	  ds_->get(key);
 	  EXPECT_EQ(owners[j * ds_->dim(0) + i],
-	   	    ds_->data_element_at(key)->owner());
+	   	    ds_->data_element_at(key).owner());
 	}
       }
       delete_owners(owners);

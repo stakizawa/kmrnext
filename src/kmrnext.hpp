@@ -4,7 +4,7 @@
 /// KMR Next Interface
 
 /// The backend runtime (SERIAL, KMR)
-#define BACKEND_SERIAL 1
+#define BACKEND_KMR 1
 
 #include <stdexcept>
 #include <sstream>
@@ -542,6 +542,12 @@ namespace kmrnext {
 
     /// It returns stored data count.
     virtual long count() = 0;
+
+    /// It returns a Key of the specified indexed Data.
+    virtual Key index_to_key(const size_t index) = 0;
+
+    /// It returns the index of Data calculated from the specified Key.
+    virtual size_t key_to_index(const Key& key) = 0;
 
 #ifdef BACKEND_KMR
     /// It returns the index of Data calculated from the specified Key when

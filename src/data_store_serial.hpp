@@ -18,7 +18,7 @@ namespace kmrnext{
 
   public:
 
-    virtual ~DataStoreImpl() {}
+    virtual ~DataStoreImpl();
 
     void set(const size_t* val);
 
@@ -40,27 +40,11 @@ namespace kmrnext{
 
     virtual void map(Mapper& m, const View& view, DataStore* outds=self_);
 
-// TODO delete
-#ifdef BACKEND_KMR
-    void set_split(const View& split) {}
-
-    View get_split() {}
-
-    virtual void collate() {}
-
-    bool collated() { return false; }
-#endif
-
     // The implementation is common to both Serial and KMR backend
     void load_files(const vector<string>& files, Loader<string>& loader);
 
     // The implementation is common to both Serial and KMR backend
     void load_integers(const vector<long>& ints, Loader<long>& loader);
-
-// TODO delete
-#ifdef BACKEND_KMR
-    void load_parallel(Loader<long>& loader) {}
-#endif
 
     // The implementation is common to both Serial and KMR backend
     virtual DataStore* duplicate();
@@ -68,10 +52,6 @@ namespace kmrnext{
     string dump(DataPack::Dumper& dumper);
 
     long count();
-
-#ifdef BACKEND_KMR
-    size_t key_to_split_index(const Key& key, const View& view) { return 0; }
-#endif
 
     // The implementation is common to both Serial and KMR backend
     DataElement& data_element_at(const Key& key);
@@ -85,15 +65,6 @@ namespace kmrnext{
     bool map_inplace_;
     // A KMRNext object that stores execution status
     KMRNext* kmrnext_;
-#ifdef BACKEND_KMR
-    // True if the DataStore should be processed in parallel
-    bool parallel_;
-    // Split pattern of the DataStore, that defines data distribution
-    View* split_;
-    // Set to be true if the last call of map() or collate() actually
-    // performed collate.
-    bool collated_;
-#endif
 
     // It creates a new DataStore.
     //
@@ -102,9 +73,7 @@ namespace kmrnext{
     //
     // \param[in] size number of dimensions of this DataStore.
     // \param[in] kn   an instance of KMRNext context
-    DataStoreImpl(const size_t siz, KMRNext* kn)
-      : base(siz), dlist_(vector<DE>()), dlist_size_(0),
-	map_inplace_(false), kmrnext_(kn) {}
+    DataStoreImpl(const size_t siz, KMRNext* kn);
 
   };
 
@@ -168,11 +137,6 @@ namespace kmrnext{
     // The implementation is common to both Serial and KMR backend
     DataStore* duplicate();
 
-    // TODO delete
-#ifdef BACKEND_KMR
-    virtual void collate();
-#endif
-
   private:
     // True if the data in DataStore is updated, but not written to a file
     bool data_updated_;
@@ -200,38 +164,21 @@ namespace kmrnext{
 
   };
 
-  //########################################################################//
-  // Method implementations specialized for the serial backend
-  //########################################################################//
+}
+
+//##########################################################################//
+// Method implementations specialized for the serial backend
+//##########################################################################//
+namespace kmrnext {
+  using namespace std;
 
   template <typename DE>
-  void DataStoreImpl<DE>::set(const size_t* val) {
-#if VALIDATION
-    if (dlist_size_ != 0) {
-      throw runtime_error("DataStore is already initialized.");
-    }
-#endif
-
-    dlist_size_ = 1;
-    for (size_t i = 0; i < size_; i++) {
-      value_[i] = val[i];
-      dlist_size_ *= val[i];
-    }
-    DE de;
-    dlist_.resize(dlist_size_, de);
-
-    icache_.initialize(value_, dlist_size_, size_);
-  }
+  DataStoreImpl<DE>::DataStoreImpl(const size_t siz, KMRNext* kn)
+    : base(siz), dlist_(vector<DE>()), dlist_size_(0),
+      map_inplace_(false), kmrnext_(kn) {}
 
   template <typename DE>
-  void DataStoreImpl<DE>::set_dim(const size_t idx, const size_t siz) {
-#if VALIDATION
-    if (dlist_size_ != 0) {
-      throw runtime_error("DataStore is already initialized.");
-    }
-#endif
-    base::set_dim(idx, siz);
-  }
+  DataStoreImpl<DE>::~DataStoreImpl() {}
 
   template <typename DE>
   void DataStoreImpl<DE>::add(const Key& key, const Data& data) {
@@ -427,11 +374,44 @@ namespace kmrnext{
     return counter.result_;
   }
 
-  //########################################################################//
-  // Method implementations common for both serial and KMR backend
-  //
-  // The following methods are copied in both two implementation headers.
-  //########################################################################//
+}
+
+//##########################################################################//
+// Method implementations common for both serial and KMR backend
+//
+// The following methods are copied in both two implementation headers.
+//##########################################################################//
+namespace kmrnext {
+  using namespace std;
+
+  template <typename DE>
+  void DataStoreImpl<DE>::set(const size_t* val) {
+#if VALIDATION
+    if (dlist_size_ != 0) {
+      throw runtime_error("DataStore is already initialized.");
+    }
+#endif
+
+    dlist_size_ = 1;
+    for (size_t i = 0; i < size_; i++) {
+      value_[i] = val[i];
+      dlist_size_ *= val[i];
+    }
+    DE de;
+    dlist_.resize(dlist_size_, de);
+
+    icache_.initialize(value_, dlist_size_, size_);
+  }
+
+  template <typename DE>
+  void DataStoreImpl<DE>::set_dim(const size_t idx, const size_t siz) {
+#if VALIDATION
+    if (dlist_size_ != 0) {
+      throw runtime_error("DataStore is already initialized.");
+    }
+#endif
+    base::set_dim(idx, siz);
+  }
 
   template <typename DE>
   void DataStoreImpl<DE>::set_from(const vector<DataStore*>& dslist) {
