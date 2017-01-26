@@ -1,6 +1,13 @@
+/// \file
+/// Implementation of DataStore class
+///
+/// Classes and methods defined in this file is common for both serial and
+/// KMR backend.
+
 #include "../config.hpp"
 #include "kmrnext.hpp"
 #include "data_store.hpp"
+#include <fstream>
 
 #ifdef BACKEND_SERIAL
 #include "data_store_serial.hpp"
@@ -8,24 +15,12 @@
 #include "data_store_kmr.hpp"
 #endif
 
-namespace kmrnext {
+namespace {
+  using namespace kmrnext;
 
-  DataStore* DataStore::self_;
-
-  void DataStore::initialize(KMRNext* next) {
-    if (DataStore::self_ == NULL) {
-      DataStore::self_ = new InMemoryDataStore(0, next);
-    }
-  }
-
-  void DataStore::finalize() {
-    if (DataStore::self_ != NULL) {
-      delete DataStore::self_;
-      DataStore::self_ = NULL;
-    }
-  }
-
+  ////////////////////////////////////////////////////////////////////////////
   // A data loader class that sets long integer 0 to all data elements.
+  ////////////////////////////////////////////////////////////////////////////
   class Zeroizer : public DataStore::Loader<long> {
   public:
     int operator()(DataStore* ds, const long& num)
@@ -70,6 +65,28 @@ namespace kmrnext {
     }
   };
 
+}
+
+namespace kmrnext {
+  ////////////////////////////////////////////////////////////////////////////
+  // Method implementation for class DataStore
+  ////////////////////////////////////////////////////////////////////////////
+
+  DataStore* DataStore::self_;
+
+  void DataStore::initialize(KMRNext* next) {
+    if (DataStore::self_ == NULL) {
+      DataStore::self_ = new InMemoryDataStore(0, next);
+    }
+  }
+
+  void DataStore::finalize() {
+    if (DataStore::self_ != NULL) {
+      delete DataStore::self_;
+      DataStore::self_ = NULL;
+    }
+  }
+
   void DataStore::zeroize() {
     Zeroizer zero;
     vector<long> dlst;
@@ -78,6 +95,10 @@ namespace kmrnext {
     }
     load_integers(dlst, zero);
   }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Method implementation for class DataStoreCommonImpl
+  ////////////////////////////////////////////////////////////////////////////
 
   void DataStoreCommonImpl::perform_duplicate(DataStore* ds) {
     class Copier : public Mapper {
@@ -259,6 +280,10 @@ namespace kmrnext {
     }
   }
 
+  ////////////////////////////////////////////////////////////////////////////
+  // Method implementation for class IndexCache
+  ////////////////////////////////////////////////////////////////////////////
+
   IndexCache::IndexCache()
     : i2k_table_(vector<Key>()), doffset_table_(vector<size_t>()) {}
 
@@ -295,4 +320,159 @@ namespace kmrnext {
     return doffset_table_[dim];
   }
 
+  ////////////////////////////////////////////////////////////////////////////
+  // Method implementation for class SimpleFileDataStore
+  ////////////////////////////////////////////////////////////////////////////
+
+  SimpleFileDataStore::~SimpleFileDataStore() {
+    string fname = filename();
+    delete_file(fname);
+  }
+
+  void SimpleFileDataStore::add(const Key& key, const Data& data) {
+    base::add(key, data);
+    data_updated_ = true;
+  }
+
+  void SimpleFileDataStore::set_from(const vector<DataStore*>& dslist) {
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < dslist.size(); i++) {
+      dynamic_cast<SimpleFileDataStore*>(dslist[i])->load();
+    }
+    base::set_from(dslist);
+    store();
+    clear_cache();
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < dslist.size(); i++) {
+      dynamic_cast<SimpleFileDataStore*>(dslist[i])->clear_cache();
+    }
+  }
+
+  void SimpleFileDataStore::split_to(vector<DataStore*>& dslist) {
+    load();
+    base::split_to(dslist);
+    for (size_t i = 0; i < dslist.size(); i++) {
+      SimpleFileDataStore* ds =
+	dynamic_cast<SimpleFileDataStore*>(dslist[i]);
+      ds->store();
+      ds->clear_cache();
+    }
+    clear_cache();
+  }
+
+  void SimpleFileDataStore::map(Mapper& m, const View& view, DataStore* outds)
+  {
+    store();
+    load();
+    base::map(m, view, outds);
+    SimpleFileDataStore* _outds = dynamic_cast<SimpleFileDataStore*>(outds);
+    if (outds == self_ || outds == this) {
+      _outds = this;
+      data_updated_ = true;
+    }
+    _outds->store();
+    _outds->clear_cache();
+    clear_cache();
+  }
+
+  DataStore* SimpleFileDataStore::duplicate() {
+    SimpleFileDataStore* ds = new SimpleFileDataStore(size_, kmrnext_);
+    perform_duplicate(ds);
+    return ds;
+  }
+
+  bool SimpleFileDataStore::store() {
+    string fname = filename();
+    if (file_exist(fname)) {
+      if (data_updated_) {
+	load();
+	delete_file(fname);
+      } else {
+	return false;
+      }
+    }
+
+    ofstream fout;
+    fout.open(fname.c_str(), ios::out|ios::binary);
+    size_t write_offset = 0;
+
+    for (size_t i = 0; i < dlist_size_; i++) {
+      if (!dlist_[i].is_set()) {
+	continue;
+      }
+      size_t d_siz = dlist_[i].size();
+      if (d_siz == 0) {
+	continue;
+      }
+      fout.write(static_cast<char*>(dlist_[i].value()),
+		 static_cast<streamsize>(d_siz));
+      dlist_[i].written(write_offset, d_siz);
+      write_offset += d_siz;
+    }
+    fout.flush();
+    fout.close();
+    data_updated_ = false;
+    data_cached_ = true;
+    return true;
+  }
+
+  bool SimpleFileDataStore::load() {
+    string fname = filename();
+    if (data_cached_ && !file_exist(fname)) {
+      throw runtime_error("File is not found.");
+    }
+    if (data_cached_ || (!data_cached_ && !file_exist(fname))) {
+      return false;
+    }
+
+    size_t file_siz = file_size(fname);
+    if (file_siz == 0) {
+      return false;
+    }
+    char* buf = new char[file_siz];
+    ifstream fin;
+    fin.open(fname.c_str(), ios::in|ios::binary);
+    fin.read(buf, static_cast<streamsize>(file_siz));
+    fin.close();
+
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
+    for (size_t i = 0; i < dlist_size_; i++) {
+      if (!dlist_[i].is_set()) {
+	continue;
+      }
+      dlist_[i].restore(buf);
+    }
+    delete[] buf;
+    data_cached_ = true;
+    return true;
+  }
+
+  void SimpleFileDataStore::clear_cache() {
+    if (!data_cached_) {
+      return;
+    }
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
+#endif
+    for (size_t i = 0; i < dlist_size_; i++) {
+      if (!dlist_[i].is_set()) {
+	continue;
+      }
+      dlist_[i].clear_cache();
+    }
+    data_cached_ = false;
+  }
+
 }
+
+#ifdef BACKEND_SERIAL
+#include "data_store_serial.cpp"
+#elif defined BACKEND_KMR
+#include "data_store_kmr.cpp"
+#endif
