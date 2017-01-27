@@ -31,9 +31,6 @@ namespace kmrnext {
 
   void DataElement::set_data(const void* val, const size_t siz,
 			     bool overwrite) {
-    if (val == NULL) {
-      return;
-    }
     if (overwrite) {
       if (data_set_) {
 	delete[] value_;
@@ -46,9 +43,14 @@ namespace kmrnext {
 #endif
     }
     value_size_ = siz;
-    value_ = new char[siz];
-    memcpy(value_, val, siz);
-    data_set_ = true;
+    if (val != NULL) {
+      value_ = new char[siz];
+      memcpy(value_, val, siz);
+      data_set_ = true;
+    } else {
+      value_ = NULL;
+      data_set_ = false;
+    }
   }
 
   void DataElement::clear() {
