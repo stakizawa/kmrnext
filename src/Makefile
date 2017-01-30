@@ -87,6 +87,15 @@ install: all
 	install -m 644 kmrnextf.mod $(INCDIR)
 	install -m 644 $(LIB) $(LIBDIR)
 
+.PHONY: ctags
+ctags:
+ifeq ($(TARGET), KMR)
+	ctags -R -e -L _ctags_files_kmr
+else
+	ctags -R -e -L _ctags_files_serial
+endif
+
+
 .PHONY: clean
 clean:
 	-rm -rf $(OBJS) $(TESTS) *.o *.d *.mod
