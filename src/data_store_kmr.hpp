@@ -29,8 +29,6 @@
 #include "data_element.hpp"
 #include <algorithm>
 
-#define LESS_LOCK 1
-
 namespace kmrnext{
   using namespace std;
 
@@ -593,17 +591,11 @@ namespace kmrnext {
     }
 
     vector< vector<DataPack> > dpgroups(nkeys);
-
-#if LESS_LOCK
-
 #ifdef _OPENMP
     #pragma omp parallel
-#endif
     {
       vector< vector<DataPack> > dpgroups_p(nkeys);
-#ifdef _OPENMP
       #pragma omp for schedule(static, OMP_FOR_CHUNK_SIZE)
-#endif
       for (size_t i = 0; i < dlist_size_; i++) {
 	if (!dlist_[i].is_set() ||
 	    (dlist_[i].is_shared() && dlist_[i].owner() != kmrnext_->rank())) {
@@ -615,9 +607,7 @@ namespace kmrnext {
 	Data dat(dlist_[i].value(), dlist_[i].size());
 	dps.push_back(DataPack(tmpkey, dat));
       }
-#ifdef _OPENMP
       #pragma omp critical
-#endif
       {
 	for (size_t i = 0; i < nkeys; i++) {
 	  vector<DataPack>& dps_p = dpgroups_p.at(i);
@@ -629,12 +619,7 @@ namespace kmrnext {
 	}
       }
     }
-
 #else
-
-#ifdef _OPENMP
-    #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
-#endif
     for (size_t i = 0; i < dlist_size_; i++) {
       if (!dlist_[i].is_set() ||
 	  (dlist_[i].is_shared() && dlist_[i].owner() != kmrnext_->rank())) {
@@ -644,13 +629,8 @@ namespace kmrnext {
       size_t viewed_idx = key_to_viewed_index(tmpkey, view);
       vector<DataPack>& dps = dpgroups.at(viewed_idx);
       Data dat(dlist_[i].value(), dlist_[i].size());
-#ifdef _OPENMP
-      #pragma omp critical
-#endif
       dps.push_back(DataPack(tmpkey, dat));
     }
-
-
 #endif
 
     if (kmrnext_->profile()) {
@@ -828,17 +808,11 @@ namespace kmrnext {
       if (indices_cnt != 0) {
 	size_t range_start = indices[0];
 	size_t range_end   = indices[indices_cnt - 1];
-
-#if LESS_LOCK
-
 #ifdef _OPENMP
         #pragma omp parallel
-#endif
 	{
 	  vector< vector<DataPack> > dpgroups_p(indices_cnt);
-#ifdef _OPENMP
           #pragma omp for schedule(static, OMP_FOR_CHUNK_SIZE)
-#endif
 	  for (size_t i = 0; i < dlist_size_; i++) {
 	    if (!dlist_[i].is_set() ||
 		(dlist_[i].is_shared() &&
@@ -854,9 +828,7 @@ namespace kmrnext {
 	      dps.push_back(DataPack(tmpkey, dat));
 	    }
 	  }
-#ifdef _OPENMP
           #pragma omp critical
-#endif
 	  {
 	    for (size_t i = 0; i < indices_cnt; i++) {
 	      vector<DataPack>& dps_p = dpgroups_p.at(i);
@@ -868,12 +840,7 @@ namespace kmrnext {
 	    }
 	  }
 	}
-
 #else
-
-#ifdef _OPENMP
-        #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
-#endif
 	for (size_t i = 0; i < dlist_size_; i++) {
 	  if (!dlist_[i].is_set() ||
 	      (dlist_[i].is_shared() &&
@@ -886,13 +853,9 @@ namespace kmrnext {
 	    size_t idx = viewed_idx - range_start;
 	    vector<DataPack>& dps = dpgroups.at(idx);
 	    Data dat(dlist_[i].value(), dlist_[i].size());
-#ifdef _OPENMP
-            #pragma omp critical
-#endif
 	    dps.push_back(DataPack(tmpkey, dat));
 	  }
 	}
-
 #endif
       }
 
@@ -940,16 +903,11 @@ namespace kmrnext {
     {
       size_t range_start = (indices_cnt > 0)? indices[0] : 0;
       size_t range_end   = (indices_cnt > 0)? indices[indices_cnt - 1] : 0;
-#if LESS_LOCK
-
 #ifdef _OPENMP
       #pragma omp parallel
-#endif
       {
 	vector< vector<CollatePack> > cpgroups_p(ndata);
-#ifdef _OPENMP
         #pragma omp for schedule(static, OMP_FOR_CHUNK_SIZE)
-#endif
 	for (size_t i = 0; i < dlist_size_; i++) {
 	  if (!dlist_[i].is_set()) {
 	    continue;
@@ -967,9 +925,7 @@ namespace kmrnext {
 	    cps.push_back(CollatePack(tmpkey, &dlist_[i]));
 	  }
 	}
-#ifdef _OPENMP
         #pragma omp critical
-#endif
 	{
 	  for (size_t i = 0; i < ndata; i++) {
 	    vector<CollatePack>& cps_p = cpgroups_p.at(i);
@@ -981,12 +937,7 @@ namespace kmrnext {
 	  }
 	}
       }
-
 #else
-
-#ifdef _OPENMP
-      #pragma omp parallel for schedule(static, OMP_FOR_CHUNK_SIZE)
-#endif
       for (size_t i = 0; i < dlist_size_; i++) {
 	if (!dlist_[i].is_set()) {
 	  continue;
@@ -1001,13 +952,9 @@ namespace kmrnext {
 	if (indices_cnt > 0 &&
 	    !(range_start <= viewed_idx && viewed_idx <= range_end)) {
 	  vector<CollatePack>& cps = cpgroups.at(viewed_idx);
-#ifdef _OPENMP
-          #pragma omp critical
-#endif
 	  cps.push_back(CollatePack(tmpkey, &dlist_[i]));
 	}
       }
-
 #endif
     }
 
