@@ -225,7 +225,7 @@ namespace kmrnext{
 // This namespace contains functions and structures used to implement
 // KMR backend functions
 //////////////////////////////////////////////////////////////////////////////
-namespace kmrtask {
+namespace kmrutils {
   using namespace std;
   using namespace kmrnext;
 
@@ -329,23 +329,6 @@ namespace kmrtask {
     CollatePack(Key& k, DataElement* de) : key_(k), de_(de) {}
   };
 
-  ////////////////////////////////////////////////////////////////////////////
-  // Parameter class and task for mapper_collate
-  //
-  // The task deserializes a Data from a key-value and adds the Data to
-  // the DataStore.
-  //
-  // Tha task is a KMR mapper function.  The key of the key-value should be
-  // an integer and the value should be a byte array that represents
-  // a DataPack.
-  ////////////////////////////////////////////////////////////////////////////
-  struct param_mapper_collate {
-    DataStore* ds; // target DataStore
-    int rank;      // owner rank
-  };
-  int mapper_collate(const struct kmr_kv_box kv0, const KMR_KVS* kvi,
-		     KMR_KVS* kvo, void* p, const long i);
-
   // It performs collate() using KMR function.
   void collate_kmr(KMRNext *kn, DataStore* ds,
 		   vector< vector<CollatePack> >& cpgroups,
@@ -356,44 +339,6 @@ namespace kmrtask {
 		   vector< vector<CollatePack> >& cpgroups,
 		   size_t ncpgroups);
 
-  /// It calculates size of a collated data.
-  // TODO can move to cpp?
-  int size_collate(const CollatePack* cp);
-
-  // It serializes Key, Data and their attributes to a byte array
-  // for collate().
-  // TODO can move to cpp?
-  void serialize_collate(const CollatePack* dep, char** buf, size_t* buf_siz);
-
-  // It deserializes a Key, Data and their attribute from a byte array
-  // for collate().
-  // TODO can move to cpp?
-  void deserialize_collate(const char* buf, size_t* buf_siz, DataStore* ds,
-			   int owner);
-
-  // It calculates send target rank.
-  // TODO can move to cpp?
-  const size_t kDummyTarget = 1000000;
-  inline size_t calc_send_target(size_t index, size_t count, size_t nprocs) {
-    size_t avg = count / nprocs;
-    size_t rem = count % nprocs;
-    size_t idx_max = 0;
-    size_t result = kDummyTarget;
-    for (size_t i = 0; i < nprocs; i++) {
-      idx_max += (i < rem)? avg + 1 : avg;
-      if (index < idx_max) {
-	result = i;
-	break;
-      }
-    }
-#ifdef DEBUG
-    if (result == kDummyTarget) {
-      throw runtime_error("Logical error at calc_send_target().");
-    }
-#endif
-    return result;
-  }
-
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -401,7 +346,7 @@ namespace kmrtask {
 //////////////////////////////////////////////////////////////////////////////
 namespace kmrnext {
   using namespace std;
-  using namespace kmrtask;
+  using namespace kmrutils;
 
   template <typename DE>
   DataStoreImpl<DE>::DataStoreImpl(const size_t siz, KMRNext* kn)
