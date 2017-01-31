@@ -138,7 +138,7 @@ namespace kmrtask {
 #endif
 
     DataElement& de = ds->data_element_at(k);
-    de.set(p, dat_siz);
+    de.replace(p, dat_siz);
     de.set_owner(owner);
   }
 

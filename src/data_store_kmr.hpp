@@ -1002,12 +1002,12 @@ namespace kmrnext {
     struct kmr_option kmr_shflopt = kmr_noopt;
     kmr_shflopt.key_as_rank = 1;
     kmr_shuffle(kvs0, kvs1, kmr_shflopt);
-    parallel_ = true;
-    map_inplace_ = true;
+    //parallel_ = true;
+    //map_inplace_ = true;
     param_mapper_collate p0 = { this, kmrnext_->rank() };
     kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
-    map_inplace_ = false;
-    parallel_ = false;
+    //map_inplace_ = false;
+    //parallel_ = false;
 
     if (indices != NULL) {
       delete[] indices;
