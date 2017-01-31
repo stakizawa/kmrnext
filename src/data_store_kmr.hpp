@@ -29,6 +29,10 @@
 #include "data_element.hpp"
 #include <algorithm>
 
+// Count of vector elements pre-reserved for adding elements in OpenMP
+// critical region.
+#define CRITICAL_VECTOR_PRE_RESERVE_SIZE 100
+
 namespace kmrnext{
   using namespace std;
 
@@ -613,7 +617,9 @@ namespace kmrnext {
 	  vector<DataPack>& dps_p = dpgroups_p.at(i);
 	  if (dps_p.size() > 0) {
 	    vector<DataPack>& dps = dpgroups.at(i);
-	    dps.reserve(dps.size() + dps_p.size());
+	    if (dps.size() == 0) {
+	      dps.reserve(CRITICAL_VECTOR_PRE_RESERVE_SIZE);
+	    }
 	    copy(dps_p.begin(), dps_p.end(), back_inserter(dps));
 	  }
 	}
@@ -834,7 +840,9 @@ namespace kmrnext {
 	      vector<DataPack>& dps_p = dpgroups_p.at(i);
 	      if (dps_p.size() > 0) {
 		vector<DataPack>& dps = dpgroups.at(i);
-		dps.reserve(dps.size() + dps_p.size());
+		if (dps.size() == 0) {
+		  dps.reserve(CRITICAL_VECTOR_PRE_RESERVE_SIZE);
+		}
 		copy(dps_p.begin(), dps_p.end(), back_inserter(dps));
 	      }
 	    }
@@ -931,7 +939,9 @@ namespace kmrnext {
 	    vector<CollatePack>& cps_p = cpgroups_p.at(i);
 	    if (cps_p.size() > 0) {
 	      vector<CollatePack>& cps = cpgroups.at(i);
-	      cps.reserve(cps.size() + cps_p.size());
+	      if (dps.size() == 0) {
+		dps.reserve(CRITICAL_VECTOR_PRE_RESERVE_SIZE);
+	      }
 	      copy(cps_p.begin(), cps_p.end(), back_inserter(cps));
 	    }
 	  }
