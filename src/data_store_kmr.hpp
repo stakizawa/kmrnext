@@ -33,6 +33,9 @@
 // critical region.
 #define CRITICAL_VECTOR_PRE_RESERVE_SIZE 100
 
+// If 1, it performs collate() using KMR
+#define COLLATE_KMR 0
+
 namespace kmrnext{
   using namespace std;
 
@@ -318,6 +321,14 @@ namespace kmrtask {
     return MPI_SUCCESS;
   }
 
+  // A data set used in collate()
+  class CollatePack {
+  public:
+    Key key_;
+    DataElement* de_;
+    CollatePack(Key& k, DataElement* de) : key_(k), de_(de) {}
+  };
+
   ////////////////////////////////////////////////////////////////////////////
   // Parameter class and task for mapper_collate
   //
@@ -335,24 +346,33 @@ namespace kmrtask {
   int mapper_collate(const struct kmr_kv_box kv0, const KMR_KVS* kvi,
 		     KMR_KVS* kvo, void* p, const long i);
 
-  // A data set used in collate()
-  class CollatePack {
-  public:
-    Key key_;
-    DataElement* de_;
-    CollatePack(Key& k, DataElement* de) : key_(k), de_(de) {}
-  };
+  // It performs collate() using KMR function.
+  void collate_kmr(KMRNext *kn, DataStore* ds,
+		   vector< vector<CollatePack> >& cpgroups,
+		   size_t ncpgroups);
+
+  // It performs collate() using MPI alltoall function.
+  void collate_mpi(KMRNext *kn, DataStore* ds,
+		   vector< vector<CollatePack> >& cpgroups,
+		   size_t ncpgroups);
+
+  /// It calculates size of a collated data.
+  // TODO can move to cpp?
+  int size_collate(const CollatePack* cp);
 
   // It serializes Key, Data and their attributes to a byte array
   // for collate().
+  // TODO can move to cpp?
   void serialize_collate(const CollatePack* dep, char** buf, size_t* buf_siz);
 
   // It deserializes a Key, Data and their attribute from a byte array
   // for collate().
-  void deserialize_collate(const char* buf, size_t buf_siz, DataStore* ds,
+  // TODO can move to cpp?
+  void deserialize_collate(const char* buf, size_t* buf_siz, DataStore* ds,
 			   int owner);
 
   // It calculates send target rank.
+  // TODO can move to cpp?
   const size_t kDummyTarget = 1000000;
   inline size_t calc_send_target(size_t index, size_t count, size_t nprocs) {
     size_t avg = count / nprocs;
@@ -968,46 +988,11 @@ namespace kmrnext {
 #endif
     }
 
-    KMR_KVS* kvs0 = kmr_create_kvs(kmrnext_->kmr(),
-				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
-#if KMR_OMP
-#ifdef _OPENMP
-    #pragma omp parallel for
+#if COLLATE_KMR
+    collate_kmr(kmrnext_, this, cpgroups, ndata);
+#else
+    collate_mpi(kmrnext_, this, cpgroups, ndata);
 #endif
-#endif
-    for (size_t i = 0; i < ndata; i++) {
-      vector<CollatePack> &cps = cpgroups.at(i);
-      if (cps.size() > 0) {
-	for (vector<CollatePack>::iterator itr = cps.begin(); itr != cps.end();
-	     itr++) {
-	  char* buf;
-	  size_t buf_siz;
-	  serialize_collate(&(*itr), &buf, &buf_siz);
-	  struct kmr_kv_box kv;
-	  kv.klen = static_cast<int>(sizeof(size_t));
-	  kv.vlen = static_cast<int>(buf_siz);
-	  kv.k.i  = calc_send_target(i, ndata,
-				     static_cast<size_t>(kmrnext_->nprocs()));
-	  kv.v.p  = buf;
-	  kmr_add_kv(kvs0, kv);
-	  delete[] buf;
-	  (*itr).de_->clear();
-	}
-      }
-    }
-    kmr_add_kv_done(kvs0);
-
-    KMR_KVS* kvs1 = kmr_create_kvs(kmrnext_->kmr(),
-				   KMR_KV_INTEGER, KMR_KV_OPAQUE);
-    struct kmr_option kmr_shflopt = kmr_noopt;
-    kmr_shflopt.key_as_rank = 1;
-    kmr_shuffle(kvs0, kvs1, kmr_shflopt);
-    //parallel_ = true;
-    //map_inplace_ = true;
-    param_mapper_collate p0 = { this, kmrnext_->rank() };
-    kmr_map(kvs1, NULL, &p0, kmr_noopt, mapper_collate);
-    //map_inplace_ = false;
-    //parallel_ = false;
 
     if (indices != NULL) {
       delete[] indices;
