@@ -939,8 +939,8 @@ namespace kmrnext {
 	    vector<CollatePack>& cps_p = cpgroups_p.at(i);
 	    if (cps_p.size() > 0) {
 	      vector<CollatePack>& cps = cpgroups.at(i);
-	      if (dps.size() == 0) {
-		dps.reserve(CRITICAL_VECTOR_PRE_RESERVE_SIZE);
+	      if (cps.size() == 0) {
+		cps.reserve(CRITICAL_VECTOR_PRE_RESERVE_SIZE);
 	      }
 	      copy(cps_p.begin(), cps_p.end(), back_inserter(cps));
 	    }
