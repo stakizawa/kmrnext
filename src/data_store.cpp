@@ -289,15 +289,14 @@ namespace kmrnext {
 
   void IndexCache::initialize(const size_t* sizes, const size_t i2k_len,
 			      const size_t dim_siz) {
-    doffset_table_.reserve(dim_siz);
+    doffset_table_.resize(dim_siz, 1);
     for (size_t i = 0; i < dim_siz; i++) {
-      doffset_table_[i] = 1;
       for (size_t j = i+1; j < dim_siz; j++) {
 	doffset_table_[i] *= sizes[j];
       }
     }
 
-    i2k_table_.reserve(i2k_len);
+    i2k_table_.resize(i2k_len, Key(dim_siz));
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
