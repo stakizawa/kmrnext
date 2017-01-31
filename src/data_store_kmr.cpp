@@ -245,7 +245,12 @@ namespace kmrutils {
     size += sizeof(size_t) * k.size(); // 2. [key]  content
     size += sizeof(size_t);            // 3. [data] size
     size += cp->de_->size();           // 4. [data] content
+#if SYSENV_GNULINUX
     size += sizeof(int);               // 5. [data] owner
+#endif
+#if SYSENV_K_FX
+    size += sizeof(size_t);            // 5. [data] owner
+#endif
     return static_cast<int>(size);
   }
 
@@ -267,7 +272,12 @@ namespace kmrutils {
     *buf_siz += sizeof(size_t) * k.size(); // 2. [key]  content
     *buf_siz += sizeof(size_t);            // 3. [data] size
     *buf_siz += cp->de_->size();           // 4. [data] content
+#if SYSENV_GNULINUX
     *buf_siz += sizeof(int);               // 5. [data] owner
+#endif
+#if SYSENV_K_FX
+    *buf_siz += sizeof(size_t);            // 5. [data] owner
+#endif
 
     // set buf
     // key
@@ -283,7 +293,12 @@ namespace kmrutils {
     p += sizeof(size_t);
     memcpy(p, cp->de_->value(), cp->de_->size());
     p += cp->de_->size();
+#if SYSENV_GNULINUX
     *reinterpret_cast<int*>(p) = cp->de_->owner();
+#endif
+#if SYSENV_K_FX
+    *reinterpret_cast<size_t*>(p) = cp->de_->owner();
+#endif
   }
 
   // It deserializes a Key, Data and their attribute from a byte array
@@ -327,7 +342,12 @@ namespace kmrutils {
     *buf_siz += sizeof(size_t) * key_siz; // 2. [key]  content
     *buf_siz += sizeof(size_t);           // 3. [data] size
     *buf_siz += dat_siz;                  // 4. [data] content
+#if SYSENV_GNULINUX
     *buf_siz += sizeof(int);              // 5. [data] owner
+#endif
+#if SYSENV_K_FX
+    *buf_siz += sizeof(size_t);           // 5. [data] owner
+#endif
   }
 
   void collate_mpi(KMRNext* kn, DataStore* ds,
