@@ -728,11 +728,12 @@ namespace kmrnext {
     View split = get_split();
     // Count of viewed data
     size_t ndata;
-    // Indices of viewed Keys whose related data should be reside
-    // in this process
-    size_t* indices;
-    // size of indices
-    size_t indices_cnt;
+    // Count of viewed data this process should have
+    size_t range_cnt;
+    // The first index of viewed data this process should have
+    size_t range_start = 0;
+    // The last index of viewed data this process should have
+    size_t range_end   = 0;
 
     // Check if collate is necessary.
     {
@@ -758,31 +759,24 @@ namespace kmrnext {
       {
 	size_t avg_cnt = ndata / static_cast<size_t>(kmrnext_->nprocs());
 	size_t rem_cnt = ndata % static_cast<size_t>(kmrnext_->nprocs());
-	indices_cnt =
+	range_cnt =
 	  (kmrnext_->rank() < static_cast<int>(rem_cnt))?
 	  avg_cnt + 1 : avg_cnt;
-	if (indices_cnt == 0) {
-	  indices = NULL;
-	} else {
-	  indices = new size_t[indices_cnt];
-	  size_t start = avg_cnt * static_cast<size_t>(kmrnext_->rank())
+	if (range_cnt != 0) {
+	  range_start = avg_cnt * static_cast<size_t>(kmrnext_->rank())
 	    + ((kmrnext_->rank() < static_cast<int>(rem_cnt))?
 	       kmrnext_->rank() : rem_cnt);
-	  for (size_t i = 0; i < indices_cnt; i++) {
-	    indices[i] = start + i;
-	  }
+	  range_end = range_start + range_cnt - 1;
 	}
       }
 
       // It holds the DataPacks this process should hold
-      vector< vector<DataPack> > dpgroups(indices_cnt);
-      if (indices_cnt != 0) {
-	size_t range_start = indices[0];
-	size_t range_end   = indices[indices_cnt - 1];
+      vector<int> data_cnts(range_cnt, 0);
+      if (range_cnt != 0) {
 #ifdef _OPENMP
         #pragma omp parallel
 	{
-	  vector< vector<DataPack> > dpgroups_p(indices_cnt);
+	  vector<int> data_cnts_p(range_cnt, 0);
           #pragma omp for schedule(static, OMP_FOR_CHUNK_SIZE)
 	  for (size_t i = 0; i < dlist_size_; i++) {
 	    if (!dlist_[i].is_set() ||
@@ -794,22 +788,13 @@ namespace kmrnext {
 	    size_t viewed_idx = key_to_split_index(tmpkey, split);
 	    if (range_start <= viewed_idx && viewed_idx <= range_end) {
 	      size_t idx = viewed_idx - range_start;
-	      vector<DataPack>& dps = dpgroups_p.at(idx);
-	      Data dat(dlist_[i].value(), dlist_[i].size());
-	      dps.push_back(DataPack(tmpkey, dat));
+	      data_cnts_p[idx] = data_cnts_p[idx] + 1;
 	    }
 	  }
           #pragma omp critical
 	  {
-	    for (size_t i = 0; i < indices_cnt; i++) {
-	      vector<DataPack>& dps_p = dpgroups_p.at(i);
-	      if (dps_p.size() > 0) {
-		vector<DataPack>& dps = dpgroups.at(i);
-		if (dps.size() == 0) {
-		  dps.reserve(CRITICAL_VECTOR_PRE_RESERVE_SIZE);
-		}
-		copy(dps_p.begin(), dps_p.end(), back_inserter(dps));
-	      }
+	    for (size_t i = 0; i < range_cnt; i++) {
+	      data_cnts[i] = data_cnts[i] + data_cnts_p[i];
 	    }
 	  }
 	}
@@ -824,22 +809,17 @@ namespace kmrnext {
 	  size_t viewed_idx = key_to_split_index(tmpkey, split);
 	  if (range_start <= viewed_idx && viewed_idx <= range_end) {
 	    size_t idx = viewed_idx - range_start;
-	    vector<DataPack>& dps = dpgroups.at(idx);
-	    Data dat(dlist_[i].value(), dlist_[i].size());
-	    dps.push_back(DataPack(tmpkey, dat));
+	    data_cnts[idx] = data_cnts[idx] + 1;
 	  }
 	}
 #endif
       }
 
       int local_need_collate = 0;
-#ifdef _OPENMP
-      #pragma omp parallel for
-#endif
-      for (size_t i = 0; i < dpgroups.size(); i++) {
-	vector<DataPack>& dps = dpgroups.at(i);
-	if (dps.size() != each_cnt) {
+      for (size_t i = 0; i < range_cnt; i++) {
+	if (data_cnts[i] != each_cnt) {
 	  local_need_collate = 1;
+	  break;
 	}
       }
       int need_collate;
@@ -860,9 +840,6 @@ namespace kmrnext {
       if (need_collate == 0) {
 	// no need to collate
 	collated_ = false;
-	if (indices != NULL) {
-	  delete[] indices;
-	}
 	return;
       } else {
 	collated_ = true;
@@ -874,8 +851,6 @@ namespace kmrnext {
     // Search data should be sent
     vector< vector<CollatePack> > cpgroups(ndata);
     {
-      size_t range_start = (indices_cnt > 0)? indices[0] : 0;
-      size_t range_end   = (indices_cnt > 0)? indices[indices_cnt - 1] : 0;
 #ifdef _OPENMP
       #pragma omp parallel
       {
@@ -892,7 +867,7 @@ namespace kmrnext {
 	  dlist_[i].unshared();
 	  Key tmpkey = index_to_key(i);
 	  size_t viewed_idx = key_to_split_index(tmpkey, split);
-	  if (indices_cnt > 0 &&
+	  if (range_cnt > 0 &&
 	      !(range_start <= viewed_idx && viewed_idx <= range_end)) {
 	    vector<CollatePack>& cps = cpgroups_p.at(viewed_idx);
 	    cps.push_back(CollatePack(tmpkey, &dlist_[i]));
@@ -924,7 +899,7 @@ namespace kmrnext {
 	dlist_[i].unshared();
 	Key tmpkey = index_to_key(i);
 	size_t viewed_idx = key_to_split_index(tmpkey, split);
-	if (indices_cnt > 0 &&
+	if (range_cnt > 0 &&
 	    !(range_start <= viewed_idx && viewed_idx <= range_end)) {
 	  vector<CollatePack>& cps = cpgroups.at(viewed_idx);
 	  cps.push_back(CollatePack(tmpkey, &dlist_[i]));
@@ -938,10 +913,6 @@ namespace kmrnext {
 #else
     collate_mpi(kmrnext_, this, cpgroups, ndata);
 #endif
-
-    if (indices != NULL) {
-      delete[] indices;
-    }
 
     if (kmrnext_->profile()) {
       time_collate_finish = gettime(kmrnext_->kmr()->comm);
