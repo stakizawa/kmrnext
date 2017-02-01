@@ -25,15 +25,19 @@ namespace kmrnext {
 		    const size_t dim_siz);
 
     // It returns a key associated with the specified index.
-    Key i2k(const size_t index) const;
+    Key i2k(const size_t index);
 
     // It returns dimension offset of the specified dimension.
     size_t dim_offset(const size_t dim) const;
   private:
     // index to key conversion table
     vector<Key> i2k_table_;
+    // flags that tells the specified index in i2k_table_ is set
+    vector<int> i2k_table_set_;
     // dimension offset table
     vector<size_t> doffset_table_;
+    // DataStore dimension count;
+    size_t ds_dim_siz_;
   };
 
   /////////////////////////////////////////////////////////////////////////

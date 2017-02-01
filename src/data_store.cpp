@@ -285,10 +285,12 @@ namespace kmrnext {
   ////////////////////////////////////////////////////////////////////////////
 
   IndexCache::IndexCache()
-    : i2k_table_(vector<Key>()), doffset_table_(vector<size_t>()) {}
+    : i2k_table_(vector<Key>()), i2k_table_set_(vector<int>()),
+      doffset_table_(vector<size_t>()), ds_dim_siz_(0) {}
 
   void IndexCache::initialize(const size_t* sizes, const size_t i2k_len,
 			      const size_t dim_siz) {
+    ds_dim_siz_ = dim_siz;
     doffset_table_.resize(dim_siz, 1);
     for (size_t i = 0; i < dim_siz; i++) {
       for (size_t j = i+1; j < dim_siz; j++) {
@@ -297,22 +299,23 @@ namespace kmrnext {
     }
 
     i2k_table_.resize(i2k_len, Key(dim_siz));
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (size_t index = 0; index < i2k_len; index++) {
-      Key key(dim_siz);
+    i2k_table_set_.resize(i2k_len, 0);
+  }
+
+  Key IndexCache::i2k(const size_t index) {
+    if (i2k_table_set_[index] == 1) {
+      return i2k_table_[index];
+    } else {
+      Key key(ds_dim_siz_);
       size_t _index = index;
-      for (size_t i = 0; i < dim_siz; i++) {
+      for (size_t i = 0; i < ds_dim_siz_; i++) {
 	key.set_dim(i, _index / doffset_table_[i]);
 	_index %= doffset_table_[i];
       }
       i2k_table_[index] = key;
+      i2k_table_set_[index] = 1;
+      return i2k_table_[index];
     }
-  }
-
-  Key IndexCache::i2k(const size_t index) const {
-    return i2k_table_[index];
   }
 
   size_t IndexCache::dim_offset(const size_t dim) const {
