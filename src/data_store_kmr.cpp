@@ -405,6 +405,7 @@ namespace kmrutils {
 	      }
 	    }
 	  }
+	  delete[] scnts_p;
 	}
 
       } else {
