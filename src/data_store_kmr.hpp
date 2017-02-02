@@ -932,6 +932,15 @@ namespace kmrnext {
 
   template <typename DE>
   void DataStoreImpl<DE>::load_parallel(Loader<long>& loader) {
+#if 1
+    // load in parallel without using map().
+
+    parallel_ = true;
+    loader(this, kmrnext_->rank());
+    parallel_ = false;
+#else
+    // load in parallel using map().
+
     // Create a 1D DataStore that stores ranks
     DataStoreImpl<DE> ds0(1, kmrnext_);
     ds0.set_dim(0, kmrnext_->nprocs());
@@ -979,6 +988,7 @@ namespace kmrnext {
     View v(1);
     v.set_dim(0, View::SplitAll);
     ds0.map(wloader, v, this);
+#endif
 
     // Set the default split
     View split_ds(size_);
