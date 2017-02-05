@@ -133,6 +133,9 @@ namespace kmrnext {
     T value_[kMaxDimensionSize];
 
   public:
+    /// The default constructor.
+    Dimensional() : size_(0) {}
+
     /// It creates a new dimensional data.
     ///
     /// \param[in] siz The numberof of dimensions
@@ -227,6 +230,7 @@ namespace kmrnext {
   ///////////////////////////////////////////////////////////////////////////
   class Key : public Dimensional<size_t> {
   public:
+    Key() : Dimensional<size_t>() {}
     explicit Key(const size_t siz) : Dimensional<size_t>(siz) {}
   };
 
