@@ -10,6 +10,8 @@
 #define OMP_FOR_CHUNK_SIZE 4
 #endif
 
+#define INDEX_CACHE_ARRAY 1
+
 namespace kmrnext {
   using namespace std;
 
@@ -19,6 +21,15 @@ namespace kmrnext {
   class IndexCache {
   public:
     IndexCache();
+
+#if INDEX_CACHE_ARRAY
+    ~IndexCache() {
+      if (i2k_table_ != NULL) {
+	delete[] i2k_table_;
+	delete[] i2k_table_set_;
+      }
+    }
+#endif
 
     // It initializes private members.
     void initialize(const size_t* sizes, const size_t i2k_len,
@@ -30,10 +41,19 @@ namespace kmrnext {
     // It returns dimension offset of the specified dimension.
     size_t dim_offset(const size_t dim) const;
   private:
+#if INDEX_CACHE_ARRAY
+    // index to key conversion table
+    Key* i2k_table_;
+    // flags that tells the specified index in i2k_table_ is set
+    int* i2k_table_set_;
+    // size of i2k_table_
+    size_t i2k_table_siz_;
+#else
     // index to key conversion table
     vector<Key> i2k_table_;
     // flags that tells the specified index in i2k_table_ is set
     vector<int> i2k_table_set_;
+#endif
     // dimension offset table
     vector<size_t> doffset_table_;
     // DataStore dimension count;

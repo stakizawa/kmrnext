@@ -284,9 +284,15 @@ namespace kmrnext {
   // Method implementation for class IndexCache
   ////////////////////////////////////////////////////////////////////////////
 
+#if INDEX_CACHE_ARRAY
+  IndexCache::IndexCache()
+    : i2k_table_(NULL), i2k_table_set_(NULL), i2k_table_siz_(0),
+      doffset_table_(vector<size_t>()), ds_dim_siz_(0) {}
+#else
   IndexCache::IndexCache()
     : i2k_table_(vector<Key>()), i2k_table_set_(vector<int>()),
       doffset_table_(vector<size_t>()), ds_dim_siz_(0) {}
+#endif
 
   void IndexCache::initialize(const size_t* sizes, const size_t i2k_len,
 			      const size_t dim_siz) {
@@ -298,8 +304,20 @@ namespace kmrnext {
       }
     }
 
+#if INDEX_CACHE_ARRAY
+    i2k_table_siz_ = i2k_len;
+    i2k_table_ = new Key[i2k_table_siz_];
+    i2k_table_set_ = new int[i2k_table_siz_];
+    Key k0(dim_siz);
+    #pragma omp parallel for
+    for (size_t i = 0; i < i2k_len; i++) {
+      i2k_table_[i] = k0;
+      i2k_table_set_[i] = 0;
+    }
+#else
     i2k_table_.resize(i2k_len, Key(dim_siz));
     i2k_table_set_.resize(i2k_len, 0);
+#endif
   }
 
   Key IndexCache::i2k(const size_t index) {
