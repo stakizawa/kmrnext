@@ -9,10 +9,15 @@ MARKDOWN_SUPPORT  = YES
 JAVADOC_AUTOBRIEF = YES
 EXTRACT_STATIC    = NO
 
-PREDEFINED             = BACKEND_KMR
+ENABLE_PREPROCESSING   = YES
+PREDEFINED             = BACKEND_KMR:=1
 USE_MDFILE_AS_MAINPAGE = README.md
+FILE_PATTERNS          = *.hpp *.cpp
 INPUT += README.md
-INPUT += src/kmrnext.hpp src/basic_data.cpp src/data_element.cpp
-INPUT += src/kmrnext.cpp src/kmrnext_kmr.cpp src/kmrnext_serial.cpp
-INPUT += src/data_store.cpp src/data_store_kmr.cpp src/data_store_serial.cpp
-INPUT += src/util.hpp
+INPUT += src/basic_data.cpp src/data_element.hpp src/data_element.cpp
+INPUT += src/data_store.hpp src/data_store.cpp src/kmrnext.hpp src/kmrnext.cpp
+INPUT += src/util.hpp src/util.cpp
+INPUT += src/kmrnext_kmr.cpp src/data_store_kmr.hpp
+INPUT += src/data_store_kmr.cpp
+INPUT += src/kmrnext_serial.cpp src/data_store_serial.hpp
+INPUT += src/data_store_serial.cpp
