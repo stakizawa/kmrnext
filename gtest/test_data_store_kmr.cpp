@@ -519,12 +519,12 @@ namespace {
     // Without resetting the Split, calling collate() again does
     // not take any effect.
     ds0->collate();
-    ds0->get(key000);
-    ds0->get(key111);
-    ds0->get(key222);
     if (nprocs > 1) {
       EXPECT_FALSE(ds0->collated());
     }
+    ds0->get(key000);
+    ds0->get(key111);
+    ds0->get(key222);
     if (nprocs >= 3) {
       EXPECT_EQ(0, ds0->data_element_at(key000).owner());
       EXPECT_EQ(1, ds0->data_element_at(key111).owner());
@@ -538,6 +538,14 @@ namespace {
       EXPECT_EQ(0, ds0->data_element_at(key111).owner());
       EXPECT_EQ(0, ds0->data_element_at(key222).owner());
     }
+    // However, set_force_collate(true) is called, calling collate()
+    // do collate.
+    ds0->set_force_collate(true);
+    ds0->collate();
+    if (nprocs > 1) {
+      EXPECT_TRUE(ds0->collated());
+    }
+    ds0->set_force_collate(false);
 
     kmrnext::View aviewFTT(3);
     long _avFTT[3] = { kmrnext::View::SplitNone,

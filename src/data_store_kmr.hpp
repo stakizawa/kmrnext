@@ -78,6 +78,8 @@ namespace kmrnext{
 
     bool collated();
 
+    void set_force_collate(bool status);
+
     // The implementation is common to both Serial and KMR backend
     void load_files(const vector<string>& files, Loader<string>& loader);
 
@@ -114,6 +116,9 @@ namespace kmrnext{
     // Set to be true if the last call of map() or collate() actually
     // performed collate.
     bool collated_;
+    // If true, collating data is always performed when map() or collate()
+    // is called.
+    bool force_collate_;
 
     // It creates a new DataStore.
     //
@@ -351,7 +356,8 @@ namespace kmrnext {
   template <typename DE>
   DataStoreImpl<DE>::DataStoreImpl(const size_t siz, KMRNext* kn)
     : base(siz), dlist_(vector<DE>()), dlist_size_(0), map_inplace_(false),
-      kmrnext_(kn), parallel_(false), split_(NULL), collated_(false) {}
+      kmrnext_(kn), parallel_(false), split_(NULL), collated_(false),
+      force_collate_(false) {}
 
   template <typename DE>
   DataStoreImpl<DE>::~DataStoreImpl() {
@@ -734,12 +740,12 @@ namespace kmrnext {
     size_t range_start = 0;
     // The last index of viewed data this process should have
     size_t range_end   = 0;
+    // Count of elements in each split data block
+    size_t each_cnt = 1;
 
-    // Check if collate is necessary.
+    // Calculate parameters
     {
       ndata = 1;
-      // Element count of each data
-      size_t each_cnt = 1;
       for (size_t i = 0; i < size_; i++) {
 	if (split.dim(i) == View::SplitAll) {
 	  ndata *= value_[i];
@@ -769,7 +775,12 @@ namespace kmrnext {
 	  range_end = range_start + range_cnt - 1;
 	}
       }
+    }
 
+    // Check if collate is necessary.
+    if (force_collate_) {
+      collated_ = true;
+    } else {
       // It holds the DataPacks this process should hold
       vector<int> data_cnts(range_cnt, 0);
       if (range_cnt != 0) {
@@ -928,6 +939,11 @@ namespace kmrnext {
   template <typename DE>
   bool DataStoreImpl<DE>::collated() {
     return collated_;
+  }
+
+  template <typename DE>
+  void DataStoreImpl<DE>::set_force_collate(bool status) {
+    force_collate_ = status;
   }
 
   template <typename DE>

@@ -488,6 +488,19 @@ namespace kmrnext {
     /// It returns true if the last call of map() or collate() actually
     /// performed collate.  Otherwise it returns false.
     virtual bool collated() = 0;
+
+    /// It sets a status flag for forcibly collating data.
+    ///
+    /// DataStore.collate() and DataStore.map() perform collating only when
+    /// the current data layout does not match the user-specified Split by
+    /// default.  Calling this function with true, DataStore.collate() and
+    /// DataStore.map() forcibly collate data.  This option is useful when
+    /// the user knows that the current data layout does not match the
+    /// specified Split beforehand because checking the necessity of
+    /// collating can be skipped.
+    ///
+    /// By default, forcibly collating is false.
+    virtual void set_force_collate(bool status) = 0;
 #endif
 
     /// It loads files to the DataStore.
