@@ -263,6 +263,14 @@ module kmrnextf
        implicit none
        type(c_ptr), intent(in), value :: ds
      end function C_kmrnext_ds_collated
+
+     subroutine C_kmrnext_ds_set_force_collate(ds, status) &
+          bind(c, name='KMRNEXT_ds_set_force_collate')
+       use iso_c_binding
+       implicit none
+       type(c_ptr),     intent(in), value :: ds
+       logical(c_bool), intent(in), value :: status
+     end subroutine C_kmrnext_ds_set_force_collate
 #endif
 
      type(c_ptr) function C_kmrnext_ds_duplicate(ds) &
@@ -616,6 +624,12 @@ contains
     type(c_ptr), intent(in), value :: ds
     zz = C_kmrnext_ds_collated(ds)
   end function kmrnext_ds_collated
+
+  subroutine kmrnext_ds_set_force_collate(ds, status)
+    type(c_ptr), intent(in), value :: ds
+    logical,     intent(in), value :: status
+    call C_kmrnext_ds_set_force_collate(ds, logical(status, kind=c_bool))
+  end subroutine kmrnext_ds_set_force_collate
 #endif
 
   type(c_ptr) function kmrnext_ds_duplicate(ds) result(zz)

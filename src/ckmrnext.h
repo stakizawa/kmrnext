@@ -73,6 +73,7 @@ void KMRNEXT_ds_set_split(void *ds, void *split);
 void *KMRNEXT_ds_get_split(void *ds);
 void KMRNEXT_ds_collate(void *ds);
 bool KMRNEXT_ds_collated(void *ds);
+void KMRNEXT_ds_set_force_collate(void *ds, bool status);
 #endif
 void *KMRNEXT_ds_duplicate(void *ds);
 

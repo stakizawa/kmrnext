@@ -275,6 +275,12 @@ bool KMRNEXT_ds_collated(void *ds)
   DataStore *_ds = static_cast<DataStore*>(ds);
   return _ds->collated();
 }
+
+void KMRNEXT_ds_set_force_collate(void *ds, bool status)
+{
+  DataStore *_ds = static_cast<DataStore*>(ds);
+  _ds->set_force_collate(status);
+}
 #endif
 
 void *KMRNEXT_ds_duplicate(void *ds)
