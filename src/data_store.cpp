@@ -309,7 +309,9 @@ namespace kmrnext {
     i2k_table_ = new Key[i2k_table_siz_];
     i2k_table_set_ = new int[i2k_table_siz_];
     Key k0(dim_siz);
+#ifdef _OPENMP
     #pragma omp parallel for
+#endif
     for (size_t i = 0; i < i2k_len; i++) {
       i2k_table_[i] = k0;
       i2k_table_set_[i] = 0;
