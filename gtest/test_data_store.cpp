@@ -469,7 +469,7 @@ namespace {
     EXPECT_EQ(2, *static_cast<long*>(ds0->get(*key0_).data().value()));
     delete ds0;
 
-#if 0
+#ifdef BACKEND_SERIAL
     // This test destroys KMRNext environment.
     // If a map task returns a number other than 0, it throws runtime_error.
     FailMapper failer;
