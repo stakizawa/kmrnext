@@ -421,6 +421,17 @@ namespace {
     }
   };
 
+  // A mapper class that always fails.
+  class FailMapper : public kmrnext::DataStore::Mapper {
+  public:
+    int operator()(kmrnext::DataStore *inds, kmrnext::DataStore *outds,
+		   kmrnext::Key& key, std::vector<kmrnext::DataPack>& dps,
+		   kmrnext::DataStore::MapEnvironment& env)
+    {
+      return 1;
+    }
+  };
+
   TEST_F(DataStoreTest, Map) {
     // assume that ds.get() works fine
     Summarizer mapper;
@@ -457,6 +468,15 @@ namespace {
     ds0->map(mapper, *v0_);
     EXPECT_EQ(2, *static_cast<long*>(ds0->get(*key0_).data().value()));
     delete ds0;
+
+#if 0
+    // This test destroys KMRNext environment.
+    // If a map task returns a number other than 0, it throws runtime_error.
+    FailMapper failer;
+    ds0 = ds0_->duplicate();
+    EXPECT_THROW({ds0->map(failer, *v0_);}, std::runtime_error);
+    delete ds0;
+#endif
   }
 
   class DataLoader1D : public kmrnext::DataStore::Loader<long> {

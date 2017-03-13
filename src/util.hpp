@@ -39,6 +39,9 @@ namespace kmrnext {
 
   // It deserializes an integer.
   void deserialize(char* buf, size_t buf_siz, long** val);
+
+  // It returns a string representation of an map task.
+  string task_to_string(kmrnext::DataStore::Mapper& m);
 }
 
 #endif

@@ -2,6 +2,9 @@
 #include <fstream>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <typeinfo>
+#include <cxxabi.h>
+#include <cstdlib>
 #include "kmrnext.hpp"
 #include "util.hpp"
 
@@ -77,6 +80,19 @@ namespace kmrnext {
   void deserialize(char* buf, size_t buf_siz, long** val) {
     *val = new long;
     **val = *reinterpret_cast<long*>(buf);
+  }
+
+  string task_to_string(kmrnext::DataStore::Mapper& m) {
+    const type_info& id = typeid(m);
+    int status;
+    char* t_name = abi::__cxa_demangle(id.name(), NULL, NULL, &status);
+    if (t_name != NULL && status == 0) {
+      string str(t_name);
+      free(t_name);
+      return str;
+    } else {
+      return "Unknown";
+    }
   }
 
 }

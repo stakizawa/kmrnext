@@ -312,7 +312,14 @@ namespace kmrnext {
       vector<DataPack>& dps = dpgroups.at(i);
       if (dps.size() > 0) {
 	Key viewed_key = key_to_viewed_key(dps.at(0).key(), view);
-	m(this, _outds, viewed_key, dps, env);
+	int mret = m(this, _outds, viewed_key, dps, env);
+	if (mret != 0) {
+	  // raise an exception
+	  ostringstream os;
+	  string tname = task_to_string(m);
+	  os << "Failed to execute a map task: " << tname;
+	  throw runtime_error(os.str());
+	}
       }
     }
     if (outds == self_ || outds == this) {

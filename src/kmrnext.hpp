@@ -379,6 +379,17 @@ namespace kmrnext {
     /////////////////////////////////////////////////////////////////////////
     class Mapper {
     public:
+      /// \param[in]  inds   The pointer to the input DataStore.
+      /// \param[out] outds  The pointer to the output DataStore.
+      /// \param[in]  key    The identifier of an instance of the task, which
+      ///                    is a unit of applying a function to Data.
+      /// \param[in]  dps    An vector that containts DataElements and their
+      ///                    coordinates which should be processed by this
+      ///                    process.
+      /// \param[in]  env    It containts parameters for task execution.
+      /// \return            It have to return 0 if the operation is correctly
+      ///                    conducted.  Otherwise, it have to return other
+      ///                    values.
       virtual int operator()(DataStore* inds, DataStore* outds,
 			     Key& key, vector<DataPack>& dps,
 			     MapEnvironment& env) = 0;

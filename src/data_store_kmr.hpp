@@ -305,7 +305,15 @@ namespace kmrutils {
       if (!param->map_local) {
 	param->env.mpi_comm = kvi->c.mr->comm;
       }
-      param->mapper(param->ids, param->ods, viewed_key, dps, param->env);
+      int mret = param->mapper(param->ids, param->ods, viewed_key, dps,
+			       param->env);
+      if (mret != 0) {
+	// raise an exception
+	ostringstream os;
+	string tname = task_to_string(param->mapper);
+	os << "Failed to execute a map task: " << tname;
+	throw runtime_error(os.str());
+      }
     }
     return MPI_SUCCESS;
   }
