@@ -886,7 +886,7 @@ namespace kmrnext {
 	  dlist_[i].unshared();
 	  Key tmpkey = index_to_key(i);
 	  size_t viewed_idx = key_to_split_index(tmpkey, split);
-	  if (range_cnt > 0 &&
+	  if (range_cnt == 0 ||
 	      !(range_start <= viewed_idx && viewed_idx <= range_end)) {
 	    vector<CollatePack>& cps = cpgroups_p.at(viewed_idx);
 	    cps.push_back(CollatePack(tmpkey, &dlist_[i]));
@@ -918,7 +918,7 @@ namespace kmrnext {
 	dlist_[i].unshared();
 	Key tmpkey = index_to_key(i);
 	size_t viewed_idx = key_to_split_index(tmpkey, split);
-	if (range_cnt > 0 &&
+	if (range_cnt == 0 ||
 	    !(range_start <= viewed_idx && viewed_idx <= range_end)) {
 	  vector<CollatePack>& cps = cpgroups.at(viewed_idx);
 	  cps.push_back(CollatePack(tmpkey, &dlist_[i]));
